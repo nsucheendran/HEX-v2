@@ -1,3 +1,5 @@
+package udaf;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,8 +24,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 
 public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver {
-	private static final Log LOG = LogFactory.getLog(GenericUDAFFirstValueNValueSort.class
-			.getName());
+	private static final Log LOG = LogFactory.getLog(GenericUDAFFirstValueNValueSort.class.getName());
 
 	@Override
 	public GenericUDAFEvaluator getEvaluator(TypeInfo[] parameters)
@@ -102,6 +103,7 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
 			if (m.equals(Mode.COMPLETE) || m.equals(Mode.PARTIAL1)) {
 				valueOI = parameters[0];
 				sortKeyOI = new PrimitiveObjectInspector[parameters.length-1];
+				
 				for(int num=1; num<parameters.length; num++) {
 					sortKeyOI[num-1] = (PrimitiveObjectInspector) parameters[num];
 				}
@@ -134,7 +136,7 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
 		public void reset(AggregationBuffer agg) throws HiveException {
 			((TopOrderedSet) agg).init();
 		}
-
+		
 		@Override
 		public void iterate(AggregationBuffer agg, Object[] parameters)
 				throws HiveException {
@@ -143,8 +145,8 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
 					valueOI, ObjectInspectorCopyOption.WRITABLE);
 			StringBuilder sortKey = new StringBuilder();
 			for(int num=0; num<sortKeyOI.length; num++) {
-				if(parameters[num]!=null) {
-					Object key = ObjectInspectorUtils.copyToStandardObject(parameters[num],
+				if(parameters[num+1]!=null) {
+					Object key = ObjectInspectorUtils.copyToStandardObject(parameters[num+1],
 							sortKeyOI[num], ObjectInspectorCopyOption.WRITABLE);
 					sortKey.append(key);
 				}
