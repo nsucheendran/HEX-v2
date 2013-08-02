@@ -23,18 +23,31 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 
+/**
+ * This is a UDAF that returns the first column value appearing in the sorted rows of a group. 
+ * The rows are sorted by the column values provided along. Any no. of sort column values can be provided. 
+ * 
+ * Input values:
+ * 1. Column value to be returned
+ * 2. Variable no. of sort column values
+ * 
+ * Output value:
+ * Returns column value for the 1st row in the sorted data rows.
+ * 
+ */
 public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver {
 	private static final Log LOG = LogFactory.getLog(GenericUDAFFirstValueNValueSort.class.getName());
 
 	@Override
 	public GenericUDAFEvaluator getEvaluator(TypeInfo[] parameters)
 			throws SemanticException {
-		if (parameters.length < 2) {// value to be returned, orderBy value,
+		if (parameters.length < 2) {
 			throw new UDFArgumentTypeException(
 					2,
 					"Min 2 arguments expected: 1). colm value to be returned, "
 							+ " 2. 1 or more orderBy colms");
 		}
+		// Only Primitive data types are allowed as sort columns
 		for(int num=1; num< parameters.length; num++) {
 			if (parameters[num].getCategory() != ObjectInspector.Category.PRIMITIVE) {
 		      throw new UDFArgumentTypeException(num,
@@ -56,7 +69,10 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
 	protected GenericUDAFEvaluator createEvaluator() {
 		return new GenericUDAFOrderedNValueEvaluator();
 	}
-
+	
+	/*
+	 * Keeps track of the Top key-value pair in the group 
+	 */
 	private static class TopOrderedSet implements AggregationBuffer {
 		private Text sortKey;
 		private Object value;
@@ -86,9 +102,8 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
 			topRec.put(sortKey, value);
 			return topRec;
 		}
-		
 	}
-
+	
 	public static class GenericUDAFOrderedNValueEvaluator extends
 			GenericUDAFEvaluator {
 		private ObjectInspector valueOI;
@@ -100,6 +115,7 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
 		public ObjectInspector init(Mode m, ObjectInspector[] parameters)
 				throws HiveException {
 			super.init(m, parameters);
+			// In complete & partial1 mode, we'll receive value to be returned & sortKeys
 			if (m.equals(Mode.COMPLETE) || m.equals(Mode.PARTIAL1)) {
 				valueOI = parameters[0];
 				sortKeyOI = new PrimitiveObjectInspector[parameters.length-1];
@@ -109,17 +125,19 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
 				}
 				writableValueOI = ObjectInspectorUtils
 						.getWritableObjectInspector(valueOI);
-			} else {
+			} else { 
+				//In partial2 & final mode, 
+				//we'll receive the intermediate map, with the top key-value pair for that partial aggregation 
 				mapOI = (StandardMapObjectInspector) parameters[0];
 			}
-			
-			// init output object inspectors
+			//In partial mode, the intermediate map containing top key-value pair for the partial data is returned
 			if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
 				ObjectInspector mapOI = ObjectInspectorFactory.getStandardMapObjectInspector(
 						PrimitiveObjectInspectorFactory.writableStringObjectInspector, writableValueOI);
 				return ObjectInspectorUtils
 						.getWritableObjectInspector(mapOI);
 			} else if(m == Mode.FINAL) {
+				// In final mode, the aggregated top column value for the group is returned
 				ObjectInspector writableValueOI = ObjectInspectorUtils
 						.getWritableObjectInspector(mapOI.getMapValueObjectInspector());
 				return writableValueOI;
@@ -151,6 +169,7 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
 					sortKey.append(key);
 				}
 			}
+			// if the new sortKey is less than the current sortKey, set the new one
 			fb.checkAndSet(new Text(sortKey.toString()), value);
 		}
 
