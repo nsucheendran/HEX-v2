@@ -84,7 +84,7 @@ public class GenericUDAFFirstValueNValueSort extends
 	 * Keeps track of the Top key-value pair in the group
 	 */
 	private static class MinOrderedSet implements AggregationBuffer {
-		private List<Object> sortKeys;
+		private Object[] sortKeys;
 		private Object value;
 
 		MinOrderedSet() {
@@ -96,7 +96,7 @@ public class GenericUDAFFirstValueNValueSort extends
 			value = null;
 		}
 
-		void checkAndSet(List<Object> newkeys, List<ObjectInspector> sortKeyOI,
+		void checkAndSet(Object[] newkeys, ObjectInspector[] sortKeyOI,
 				Object newValue) {
 			if (sortKeys == null
 					|| (newkeys != null && areNewSortKeysLesser(newkeys,
@@ -106,20 +106,12 @@ public class GenericUDAFFirstValueNValueSort extends
 			}
 		}
 
-		private boolean areNewSortKeysLesser(List<Object> newKeys,
-				List<ObjectInspector> sortKeyOI) {
-			for (int i = 0; i < newKeys.size(); i++) {
-				int compareResult = ObjectInspectorUtils.compare(
-						newKeys.get(i), sortKeyOI.get(i), sortKeys.get(i),
-						sortKeyOI.get(i));
-				if (compareResult < 0) {
-					return true;
-				} else if (compareResult > 0) {
-					return false;
-				} else {
-					continue;
-				}
-			}
+		private boolean areNewSortKeysLesser(Object[] newKeys,
+				ObjectInspector[] sortKeyOI) {
+			int compareResult = ObjectInspectorUtils.compare(newKeys, sortKeyOI, sortKeys, sortKeyOI);
+			if (compareResult < 0) {
+				return true;
+			} 
 			return false;
 		}
 
@@ -221,21 +213,21 @@ public class GenericUDAFFirstValueNValueSort extends
 			MinOrderedSet existingRecord = (MinOrderedSet) agg;
 			Object value = ObjectInspectorUtils.copyToStandardObject(
 					parameters[0], valueOI, ObjectInspectorCopyOption.WRITABLE);
-			List<Object> stdSortKeys = new ArrayList<Object>();
+			Object[] stdSortKeys = new Object[parameters.length-1];
 			for (int num = 0; num < sortKeysOI.length; num++) {
 				if (parameters[num + 1] != null) {
 					Object key = ObjectInspectorUtils.copyToStandardObject(
 							parameters[num + 1], sortKeysOI[num],
 							ObjectInspectorCopyOption.WRITABLE);
-					stdSortKeys.add(key);
+					stdSortKeys[num] = key;
 				} else {
-					stdSortKeys.add(null);
+					stdSortKeys[num] = null;
 				}
 			}
 			// if the new sortKey is less than the current sortKey, set the new
 			// one
 			existingRecord.checkAndSet(stdSortKeys,
-					Lists.newArrayList(stdSortKeysOI), value);
+					stdSortKeysOI, value);
 		}
 
 		@Override
@@ -255,16 +247,15 @@ public class GenericUDAFFirstValueNValueSort extends
 				for (Map.Entry<Object, Object> data : partialData.entrySet()) {
 					LazyBinaryStruct soi = (LazyBinaryStruct) data.getValue();
 					List<Object> sortKeys = soi.getFieldsAsList();
-					List<Object> stdSortKeys = new ArrayList<Object>(
-							sortKeys.size());
+					Object[] stdSortKeys = new Object[sortKeys.size()];
 					for (int i = 0; i < sortKeys.size(); i++) {
-						stdSortKeys.add(ObjectInspectorUtils
+						stdSortKeys[i] = ObjectInspectorUtils
 								.copyToStandardObject(sortKeys.get(i),
 										stdSortKeysOI[i],
-										ObjectInspectorCopyOption.WRITABLE));
+										ObjectInspectorCopyOption.WRITABLE);
 					}
 					myagg.checkAndSet(stdSortKeys,
-							Lists.newArrayList(stdSortKeysOI), data.getKey());
+							stdSortKeysOI, data.getKey());
 				}
 			}
 		}
