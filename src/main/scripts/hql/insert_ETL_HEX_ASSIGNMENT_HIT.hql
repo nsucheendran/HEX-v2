@@ -37,13 +37,14 @@ insert into table platdev.ETL_HCOM_HEX_ASSIGNMENT_HIT PARTITION(year, month)
     from 
     (select split(firstValueNSort(concat_ws("$$$", local_date, cast(gmt as string), cast(hit_data_id as string), cast(new_visitor_ind as string), page_assigned_entry_page_name,
                      site_sectn_name,user_cntext_name,cast(browser_height as string),cast(browser_width as string),cast(brwsr_id as string),c302,cast(destination_id as string),
-                     cast(property_destination_id as string)),  gmt, visit_page_number),"$$$") min_hit_data,
+                     cast(property_destination_id as string)), gmt, visit_page_number),"$$$") min_hit_data,
                                     cid,
                                     test_variant_code,
                                     coalesce(c44, 'Unknown') as guid
                                from etl.etl_hcom_hit_data LATERAL VIEW explode(split(concat_ws(',',c154,c281),',')) tt as test_variant_code
-                              where test_variant_code <> ''
+                              where test_variant_code <> '' and test_variant_code NOT like '%.UID.%'
                                 and local_date = '${hiveconf:local.date}' 
+                                and is_ip_excluded = 'FALSE' AND is_user_agent_excluded = 'FALSE' and is_excluded_hit = 'FALSE'
                            group by cid, test_variant_code, c44) temp 
                            left outer join
                            platdev.ETL_HCOM_HEX_ASSIGNMENT_HIT test1 
