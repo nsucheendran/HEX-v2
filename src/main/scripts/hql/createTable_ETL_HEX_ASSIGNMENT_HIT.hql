@@ -17,6 +17,14 @@ create table ETL_HCOM_HEX_ASSIGNMENT_HIT
  brwsr_id smallint,
  mobile_ind string,
  destination_id int,
- property_destination_id int)
+ property_destination_id int,
+ platform_type string,
+ day_until_stay int,
+ length_of_stay int,
+ number_of_rooms int,
+ number_of_adults int,
+ number_of_children int,
+ children_in_search int
+ )
 partitioned by (year int, month int)
 stored as RCFILE;
