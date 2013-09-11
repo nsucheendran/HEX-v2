@@ -19,7 +19,7 @@ HWW_HOME=/usr/etl/HWW
 SCRIPT_PATH=$HWW_HOME/hdp_first_assignment_hit/scripts/hql/R1
 HEX_LST_PATH=/app/etl/HWW/Omniture/listfiles
 HEX_LOGS=/usr/etl/HWW/log
-HEX_LIB=$HEX_HOME/hdp_first_assignment_hit
+HEX_LIB=$HEX_HOME/hdp_first_assignment_hit/jars
 HEX_VERSION="1.0-SNAPSHOT"
 
 source $PLAT_HOME/common/sh_helpers.sh
