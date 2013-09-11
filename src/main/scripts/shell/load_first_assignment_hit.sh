@@ -1,12 +1,68 @@
 #!/bin/bash
+#
+# load_first_assignment_hit.sh
+# Wrapper to load first assignment hit data for HEX
+#
+# Usage:
+#  load_first_assignment_hit.sh
+#
+# Error codes:
+#   0 Success
+#   1 General error
+#
+# user          date            comment
+# ############# ############### ####################
+# achadha       2013-09-11      Wrapper to incrementally load/reprocess first assignment hit data
 
-set -e
-mkdir -p $HEX_LOGS
-touch $HEX_LOGS/hex.fah.local.date
-source $HEX_HOME/conf/hex_etl.cfg
+PLAT_HOME=/usr/local/edw/platform
+HWW_HOME=/usr/etl/HWW
+SCRIPT_PATH=$HWW_HOME/hdp_first_assignment_hit/scripts/hql/R1
+HEX_LST_PATH=/app/etl/HWW/Omniture/listfiles
+HEX_LOGS=/usr/etl/HWW/log
+HEX_LIB=$HEX_HOME/hdp_first_assignment_hit
+HEX_VERSION="1.0-SNAPSHOT"
 
-BOOKMARK=$HEX_LOGS/hex.fah.local.date
-LAST_DT=`cat ${BOOKMARK}`
+source $PLAT_HOME/common/sh_helpers.sh
+source $PLAT_HOME/common/sh_metadata_storage.sh
+
+HWW_FAH_LOCK_NAME="hdp_first_assignment_hit.lock"
+MESSAGE="load_first_assignment_hit.sh failed: Previous script still running"
+_ACQUIRE_LOCK $HWW_FAH_LOCK_NAME "$MESSAGE" 30
+
+STAGE_NAME="R1: HEX First Assignment Hit"
+_LOG_START_STAGE "$STAGE_NAME"
+
+PROCESS_NAME="ETL HCOM FIRST ASSIGNMENT HIT"
+_LOG "PROCESS_NAME=[$PROCESS_NAME]"
+
+ERROR_CODE=0
+
+PROCESS_ID=$(_GET_PROCESS_ID "$PROCESS_NAME");
+RETURN_CODE="$?"
+
+if [ "$PROCESS_ID" == "" ] || (( $RETURN_CODE != 0 )); then
+    _LOG "ERROR: Process [$PROCESS_NAME] does not exist in HEMS"
+    ERROR_CODE=1
+	_FREE_LOCK $HWW_FAH_LOCK_NAME
+    exit 1;
+else
+    RUN_ID=$(_RUN_PROCESS $PROCESS_ID "$PROCESS_NAME")
+    _LOG "PROCESS_ID=[$PROCESS_ID]"
+    _LOG "RUN_ID=[$RUN_ID]"
+    _LOG_PROCESS_DETAIL $RUN_ID "Started" "$ERROR_CODE"
+fi
+
+FAH_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "FAH_TABLE"`
+FAH_DB=`_READ_PROCESS_CONTEXT $PROCESS_ID "FAH_DB"`
+JOB_QUEUE=`_READ_PROCESS_CONTEXT $PROCESS_ID "JOB_QUEUE"`
+LAST_DT=`_READ_PROCESS_CONTEXT $PROCESS_ID "BOOKMARK"`
+PROCESSING_TYPE=`_READ_PROCESS_CONTEXT $PROCESS_ID "PROCESSING_TYPE"`
+if [ PROCESSING_TYPE = 'R' ];
+then
+  START_DT=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPROCESS_BOOKMARK_START"`
+  END_DT=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPROCESS_BOOKMARK_END"`
+fi
+
 START_DT=`date --date="${LAST_DT} +1 hours" '+%Y-%m-%d:%H'`
 CURR_DATE=$LAST_DT
 END_DT=''
@@ -32,6 +88,9 @@ if [ $END_DT ]; then
   IFS=$OIFS 
   END_DATE=${arr2[0]}
   END_HOUR=${arr2[1]}
-  echo "$START_DATE ($START_HOUR) - $END_DATE ($END_HOUR)"
-  time hive -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -hiveconf hex.lib="${HEX_LIB}" -hiveconf hex.version="${HEX_VERSION}" -f $HEX_DML/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/log.txt 2>&1 && echo "$END_DATE $END_HOUR" > $BOOKMARK
+  LOG_FILE_NAME="$HEX_LOGS/hdp_first_assignment_hit_${START_DATE}:${START_HOUR}-${END_DATE}:${END_HOUR}.log"
+  time hive -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -hiveconf hex.lib="${HEX_LIB}" -hiveconf hex.version="${HEX_VERSION}" -f $SCRIPT_PATH/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 && _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK "$END_DATE $END_HOUR" 
 fi
+
+_FREE_LOCK $HWW_FAH_LOCK_NAME
+
