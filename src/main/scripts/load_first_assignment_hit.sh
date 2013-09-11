@@ -16,7 +16,7 @@
 
 PLAT_HOME=/usr/local/edw/platform
 HWW_HOME=/usr/etl/HWW
-SCRIPT_PATH=$HWW_HOME/hdp_first_assignment_hit/scripts/hql/R1
+SCRIPT_PATH=$HWW_HOME/hww-hex-etl-hadoop/scripts/hql/R1
 HEX_LST_PATH=/app/etl/HWW/Omniture/listfiles
 HEX_LOGS=/usr/etl/HWW/log
 HEX_LIB=$HEX_HOME/hdp_first_assignment_hit/jars

@@ -6,7 +6,7 @@ PLAT_HOME=/usr/local/edw/platform
 source $PLAT_HOME/common/sh_metadata_storage.sh
 
 HWW_HOME=/usr/etl/HWW
-SCRIPT_PATH=$HWW_HOME/hdp_first_assignment_hit/scripts/hql/R1
+SCRIPT_PATH=$HWW_HOME/hww-hex-etl-hadoop/scripts/hql/R1
 
 FAH_TABLE='ETL_HCOM_HEX_ASSIGNMENT_HIT_VALIDATE'
 FAH_DB='hwwdev'
