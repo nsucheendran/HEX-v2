@@ -1,11 +1,11 @@
-add jar hex-etl-hadoop-1.0-SNAPSHOT.jar;
+add jar ${hiveconf:hex.lib}/hex-etl-hadoop-${hiveconf:hex.version}.jar;
 CREATE TEMPORARY FUNCTION firstValueNSort AS 'udaf.GenericUDAFFirstValueNValueSort';
 
 set hive.exec.dynamic.partition.mode=nonstrict;
 set hive.exec.dynamic.partition=true;
 set hive.exec.max.dynamic.partitions=2000;
 set hive.exec.max.dynamic.partitions.pernode=1024;
-set mapred.job.queue.name=edwdev;
+set mapred.job.queue.name=${hiveconf:job.queue};
 set hive.exec.compress.output=true;
 set mapred.max.split.size=256000000;
 set mapred.output.compression.type=BLOCK;
@@ -13,10 +13,10 @@ set mapred.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 set mapred.compress.map.output=true;
 set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 
-use platdev;
+use ${hiveconf:hex.fah.db};
 
-insert into table platdev.ETL_HCOM_HEX_ASSIGNMENT_HIT PARTITION(year, month)
-          select temp.guid,
+insert into table ${hiveconf:hex.fah.db}.${hiveconf:hex.fah.table} PARTITION(year, month)
+          select coalesce(temp.guid,'Unknown') as guid,
                  temp.cid,
                  temp.test_variant_code as experiment_variant_code,
                  temp.min_hit_data[0] as local_date,
@@ -70,12 +70,15 @@ insert into table platdev.ETL_HCOM_HEX_ASSIGNMENT_HIT PARTITION(year, month)
                                coalesce(c44, 'Unknown') as guid
                           from etl.etl_hcom_hit_data LATERAL VIEW explode(split(concat_ws(',',c154,c281),',')) tt as test_variant_code
                          where test_variant_code <> '' and test_variant_code NOT like '%.UID.%'
-                           and local_date = '${hiveconf:local.date}' 
+                           and ((local_date = '${hiveconf:start.date}' and local_hour >= '${hiveconf:start.hour}') or
+                                (local_date = '${hiveconf:end.date}' and local_hour <= '${hiveconf:end.hour}') or
+                                (local_date > '${hiveconf:start.date}' and local_date < '${hiveconf:end.date}')
+                               )
                            and is_ip_excluded = false AND is_user_agent_excluded = false and is_excluded_hit = false
                            and (length(trim(c154)) > 0 or length(trim(c281)) > 0) 
                       group by cid, test_variant_code, c44) temp  
- left outer join platdev.ETL_HCOM_HEX_ASSIGNMENT_HIT test1 
+ left outer join ${hiveconf:hex.fah.db}.${hiveconf:hex.fah.table} test1 
               on (temp.guid = test1.guid
              and temp.test_variant_code = test1.experiment_variant_code
              and temp.cid = test1.cid)
-           where test1.guid is null;     
+           where test1.guid is null;
