@@ -1,8 +1,10 @@
 #!/bin/bash
 
 set -e
-
+mkdir -p $HEX_LOGS
+touch $HEX_LOGS/hex.fah.local.date
 source $HEX_HOME/conf/hex_etl.cfg
+
 BOOKMARK=$HEX_LOGS/hex.fah.local.date
 LAST_DT=`cat ${BOOKMARK}`
 START_DT=`date --date="${LAST_DT} +1 hours" '+%Y-%m-%d:%H'`
