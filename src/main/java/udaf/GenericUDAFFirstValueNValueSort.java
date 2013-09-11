@@ -254,8 +254,9 @@ public class GenericUDAFFirstValueNValueSort extends
 										stdSortKeysOI[i],
 										ObjectInspectorCopyOption.WRITABLE);
 					}
+					Object newVal = ObjectInspectorUtils.copyToStandardObject(data.getKey(), writableValueOI);
 					myagg.checkAndSet(stdSortKeys,
-							stdSortKeysOI, data.getKey());
+							stdSortKeysOI, newVal);
 				}
 			}
 		}
