@@ -69,7 +69,7 @@ insert into table ${hiveconf:hex.fah.db}.${hiveconf:hex.fah.table} PARTITION(yea
                                      "~~~") as min_hit_data,
                                cid,
                                test_variant_code,
-                               coalesce(c44, 'Unknown') as guid
+                               case when (c44 = '' or c44 is null) then 'Unknown' else c44 end as guid
                           from etl.etl_hcom_hit_data LATERAL VIEW explode(split(concat_ws(',',c154,c281),',')) tt as test_variant_code
                          where test_variant_code <> '' and test_variant_code NOT like '%.UID.%'
                            and ((local_date = '${hiveconf:start.date}' and local_hour >= '${hiveconf:start.hour}') or
