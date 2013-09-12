@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS ${hiveconf:hex.fah.db}.${hiveconf:hex.fah.table} (
   destination_id int, 
   property_destination_id int, 
   platform_type string, 
-  day_until_stay int, 
+  days_until_stay int, 
   length_of_stay int, 
   number_of_rooms int, 
   number_of_adults int, 

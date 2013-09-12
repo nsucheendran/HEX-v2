@@ -16,10 +16,10 @@
 
 PLAT_HOME=/usr/local/edw/platform
 HWW_HOME=/usr/etl/HWW
-SCRIPT_PATH=$HWW_HOME/hww-hex-etl-hadoop/scripts/hql/R1
+SCRIPT_PATH=$HWW_HOME/hdp_hww_hex_etl/scripts/hql/R1
 HEX_LST_PATH=/app/etl/HWW/Omniture/listfiles
 HEX_LOGS=/usr/etl/HWW/log
-HEX_LIB=$HEX_HOME/hdp_first_assignment_hit/jars
+HEX_LIB=$HWW_HOME/hdp_hww_hex_etl/jars
 HEX_VERSION="1.0-SNAPSHOT"
 
 source $PLAT_HOME/common/sh_helpers.sh
@@ -57,7 +57,7 @@ FAH_DB=`_READ_PROCESS_CONTEXT $PROCESS_ID "FAH_DB"`
 JOB_QUEUE=`_READ_PROCESS_CONTEXT $PROCESS_ID "JOB_QUEUE"`
 LAST_DT=`_READ_PROCESS_CONTEXT $PROCESS_ID "BOOKMARK"`
 PROCESSING_TYPE=`_READ_PROCESS_CONTEXT $PROCESS_ID "PROCESSING_TYPE"`
-if [ PROCESSING_TYPE = 'R' ];
+if [ $PROCESSING_TYPE = "R" ];
 then
   START_YEAR=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPROCESS_START_YEAR"`
   START_MONTH=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPROCESS_START_MONTH"`
@@ -80,14 +80,15 @@ then
   # reprocess data in monthly chunks upto and including the bookmark date, do not change bookmark in HEMS
   CURR_YEAR=$START_YEAR
   CURR_MONTH=$START_MONTH
-  while [ "${CURR_YEAR}${CURR_MONTH}" -le "${END_YEAR}${END_MONTH}" ]
+
+  while [ "${CURR_YEAR}${CURR_MONTH}" \< "${END_YEAR}${END_MONTH}" -o "${CURR_YEAR}${CURR_MONTH}" = "${END_YEAR}${END_MONTH}" ]
   do
     START_DT=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00" '+%Y-%m-%d:%H'`
     END_DT=''
-    if [ "${CURR_YEAR}${CURR_MONTH}" -lt "${END_YEAR}${END_MONTH}"  ]
+    if [ "${CURR_YEAR}${CURR_MONTH}" \< "${END_YEAR}${END_MONTH}" ]
     then
       END_DT=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months -1 hours" '+%Y-%m-%d:%H'`
-    elif [ "${CURR_YEAR}${CURR_MONTH}" -eq "${END_YEAR}${END_MONTH}" ]
+    elif [ "${CURR_YEAR}${CURR_MONTH}" = "${END_YEAR}${END_MONTH}" ]
     then
       END_DT=`date --date="${LAST_DT}" '+%Y-%m-%d:%H'` 
     fi
@@ -108,10 +109,15 @@ then
       time hive -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -hiveconf hex.lib="${HEX_LIB}" -hiveconf hex.version="${HEX_VERSION}" -f $SCRIPT_PATH/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
     fi
 
-    NEW_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH} +1 months" '+%Y'`
-    CURR_MONTH=`date --date="${CURR_YEAR}-${CURR_MONTH} +1 months" '+%m'`
+    NEW_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%Y'`
+    CURR_MONTH=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%m'`
     CURR_YEAR=$NEW_YEAR
   done
+  if [ -z $LAST_DT ]; then
+    `_WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DATE $END_HOUR"`
+  fi
+  `_WRITE_PROCESS_CONTEXT "$PROCESS_ID" "PROCESSING_TYPE" "D"`
+  
 else
   # daily incremental load: uses list files to determine max contiguous delta upto 24 hrs available at source from the bookmark date
   START_DT=`date --date="${LAST_DT} +1 hours" '+%Y-%m-%d:%H'`
@@ -140,7 +146,7 @@ else
     END_DATE=${arr2[0]}
     END_HOUR=${arr2[1]}
     LOG_FILE_NAME="hdp_first_assignment_hit_${START_DATE}:${START_HOUR}-${END_DATE}:${END_HOUR}.log"
-    time hive -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -hiveconf hex.lib="${HEX_LIB}" -hiveconf hex.version="${HEX_VERSION}" -f $SCRIPT_PATH/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 && _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK "$END_DATE $END_HOUR" 
+    time hive -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -hiveconf hex.lib="${HEX_LIB}" -hiveconf hex.version="${HEX_VERSION}" -f $SCRIPT_PATH/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 && _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DATE $END_HOUR" 
   fi
 fi
 

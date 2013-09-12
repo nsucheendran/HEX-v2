@@ -2,11 +2,11 @@
 
 set -e
 
-PLAT_HOME=/usr/local/edw/platform
+export PLAT_HOME=/usr/local/edw/platform
 source $PLAT_HOME/common/sh_metadata_storage.sh
 
 HWW_HOME=/usr/etl/HWW
-SCRIPT_PATH=$HWW_HOME/hww-hex-etl-hadoop/scripts/hql/R1
+SCRIPT_PATH=$HWW_HOME/hdp_hww_hex_etl/scripts/hql/R1
 
 FAH_TABLE='ETL_HCOM_HEX_ASSIGNMENT_HIT_VALIDATE'
 FAH_DB='hwwdev'
@@ -21,6 +21,7 @@ FAH_PROCESS_DESCRIPTION="Loads HEX First Assignment Hit Data"
 
 FAH_PROCESS_ID=$(_GET_PROCESS_ID "$FAH_PROCESS_NAME")
 if [ -z "$FAH_PROCESS_ID" ]; then
+    hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/createTable_ETL_HEX_ASSIGNMENT_HIT.hql
     $PLAT_HOME/tools/metadata/add_process.sh "$FAH_PROCESS_NAME" "$FAH_PROCESS_DESCRIPTION"
     FAH_PROCESS_ID=$(_GET_PROCESS_ID "$FAH_PROCESS_NAME")
     `_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "FAH_TABLE" "$FAH_TABLE"`
@@ -30,8 +31,6 @@ if [ -z "$FAH_PROCESS_ID" ]; then
     `_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "PROCESSING_TYPE" "R"`
     `_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_YEAR" "$REPROCESS_START_YEAR"`
     `_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_MONTH" "$REPROCESS_START_MONTH"`
-
-    hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/createTable_ETL_HEX_ASSIGNMENT_HIT.hql
 else
     echo "Process $FAH_PROCESS_NAME already exists"
 fi
