@@ -16,7 +16,7 @@ set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCode
 use ${hiveconf:hex.fah.db};
 
 insert into table ${hiveconf:hex.fah.db}.${hiveconf:hex.fah.table} PARTITION(year, month)
-          select coalesce(temp.guid,'Unknown') as guid,
+          select temp.guid,
                  temp.cid,
                  temp.test_variant_code as experiment_variant_code,
                  temp.min_hit_data[0] as local_date,
