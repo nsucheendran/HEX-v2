@@ -123,7 +123,7 @@ then
       hive -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -hiveconf hex.lib="${HEX_LIB}" -hiveconf hex.version="${HEX_VERSION}" -f $SCRIPT_PATH/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
-        _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]"
+        _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
         _END_PROCESS $RUN_ID $ERROR_CODE
         _FREE_LOCK $HWW_FAH_LOCK_NAME
         exit 1
@@ -161,7 +161,7 @@ else
   done
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]"
+    _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE] while trying to derive delta range"
     _END_PROCESS $RUN_ID $ERROR_CODE
     _FREE_LOCK $HWW_FAH_LOCK_NAME
     exit 1
@@ -183,7 +183,7 @@ else
     hive -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -hiveconf hex.lib="${HEX_LIB}" -hiveconf hex.version="${HEX_VERSION}" -f $SCRIPT_PATH/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 && _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DATE $END_HOUR" 
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]"
+      _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
       _END_PROCESS $RUN_ID $ERROR_CODE
       _FREE_LOCK $HWW_FAH_LOCK_NAME
       exit 1
