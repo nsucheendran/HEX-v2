@@ -8,7 +8,7 @@ source $PLAT_HOME/common/sh_metadata_storage.sh
 HWW_HOME=/usr/etl/HWW
 SCRIPT_PATH=$HWW_HOME/hdp_hww_hex_etl/scripts/hql/R1
 
-FAH_TABLE='ETL_HCOM_HEX_ASSIGNMENT_HIT_VALIDATE'
+FAH_TABLE='ETL_HCOM_HEX_ASSIGNMENT_HIT'
 FAH_DB='hwwdev'
 JOB_QUEUE='edwdev'
 REPROCESS_START_YEAR='2013'
