@@ -68,12 +68,12 @@ then
   # drop monthly partitions that need to be reprocessed. reprocessing can only be specified at a year-month grain.
   CURR_YEAR=$START_YEAR
   CURR_MONTH=$START_MONTH
-  while [ "${CURR_YEAR}${CURR_MONTH}" -le "${END_YEAR}${END_MONTH}" ]
+  while [ "${CURR_YEAR}${CURR_MONTH}" \< "${END_YEAR}${END_MONTH}" -o "${CURR_YEAR}${CURR_MONTH}" = "${END_YEAR}${END_MONTH}" ]
   do
     LOG_FILE_NAME="hdp_first_assignment_hit_reprocess_${CURR_YEAR}-${CURR_MONTH}.log"
     time hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/delete_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
-    NEW_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH} +1 months" '+%Y'`
-    CURR_MONTH=`date --date="${CURR_YEAR}-${CURR_MONTH} +1 months" '+%m'`
+    NEW_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%Y'`
+    CURR_MONTH=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%m'`
     CURR_YEAR=$NEW_YEAR
   done
 
