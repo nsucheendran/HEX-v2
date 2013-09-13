@@ -12,5 +12,5 @@ create table ETL_HCOM_HEX_transactions (
   Omniture_Room_Nights smallint,
   BKG_Room_Nights smallint,
   Gross_Profit decimal,
-  purchase_flag boolean
+  purchase_flag string
   ) partitioned by (year smallint, month smallint);
