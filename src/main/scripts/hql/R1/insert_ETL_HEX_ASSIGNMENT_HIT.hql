@@ -14,7 +14,7 @@ set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCode
 
 use ${hiveconf:hex.fah.db};
 
-insert into table ${hiveconf:hex.fah.table} PARTITION(year, month)
+insert overwrite into table ${hiveconf:hex.fah.table} PARTITION(year, month)
           select temp.guid,
                  temp.cid,
                  temp.test_variant_code as experiment_variant_code,

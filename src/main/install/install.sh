@@ -43,19 +43,64 @@ FAH_PROCESS_DESCRIPTION="Loads HEX First Assignment Hit Data"
 FAH_PROCESS_ID=$(_GET_PROCESS_ID "$FAH_PROCESS_NAME")
 if [ -z "$FAH_PROCESS_ID" ]; then
     hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/createTable_ETL_HCOM_HEX_ASSIGNMENT_HIT.hql
+    if [ $? -ne 0 ]; then
+      _LOG "Error creating table. Installation FAILED."
+      $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+      exit 1
+    fi
     hdfs dfs -chmod -R 775 "/data/HWW/ETLDATA/${FAH_TABLE}" ;
     $PLAT_HOME/tools/metadata/add_process.sh "$FAH_PROCESS_NAME" "$FAH_PROCESS_DESCRIPTION"
+    if [ $? -ne 0 ]; then
+      _LOG "Error adding process. Installation FAILED."
+      $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+      exit 1
+    fi
     FAH_PROCESS_ID=$(_GET_PROCESS_ID "$FAH_PROCESS_NAME")
+    _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "FAH_TABLE" "$FAH_TABLE"
+    if [ $? -ne 0 ]; then
+      _LOG "Error writing process context. Installation FAILED."
+      $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+      exit 1
+    fi
+    _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "FAH_DB" "$FAH_DB"
+    if [ $? -ne 0 ]; then
+      _LOG "Error writing process context. Installation FAILED."
+      $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+      exit 1
+    fi
+    _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "JOB_QUEUE" "$JOB_QUEUE"
+    if [ $? -ne 0 ]; then
+      _LOG "Error writing process context. Installation FAILED."
+      $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+      exit 1
+    fi
+    _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK" ""
+    if [ $? -ne 0 ]; then
+      _LOG "Error writing process context. Installation FAILED."
+      $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+      exit 1
+    fi
+    _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "PROCESSING_TYPE" "R"
+    if [ $? -ne 0 ]; then
+      _LOG "Error writing process context. Installation FAILED."
+      $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+      exit 1
+    fi
+    _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_YEAR" "$REPROCESS_START_YEAR"
+    if [ $? -ne 0 ]; then
+      _LOG "Error writing process context. Installation FAILED."
+      $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+      exit 1
+    fi
+    _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_MONTH" "$REPROCESS_START_MONTH"
+    if [ $? -ne 0 ]; then
+      _LOG "Error writing process context. Installation FAILED."
+      $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+      exit 1
+    fi
 else
     _LOG "Process $FAH_PROCESS_NAME already exists"
 fi
-`_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "FAH_TABLE" "$FAH_TABLE"`
-`_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "FAH_DB" "$FAH_DB"`
-`_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "JOB_QUEUE" "$JOB_QUEUE"`
-`_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK" ""`
-`_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "PROCESSING_TYPE" "R"`
-`_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_YEAR" "$REPROCESS_START_YEAR"`
-`_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_MONTH" "$REPROCESS_START_MONTH"`
 
 # recreate the symbolic link to the deployed code 
 if [[ -r $MODULE_LN ]]; then 
