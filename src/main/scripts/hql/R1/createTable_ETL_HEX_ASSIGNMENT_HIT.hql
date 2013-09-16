@@ -1,4 +1,8 @@
-CREATE TABLE IF NOT EXISTS ${hiveconf:hex.fah.db}.${hiveconf:hex.fah.table} (
+use ${hiveconf:hex.fah.db};
+
+DROP TABLE IF EXISTS ${hiveconf:hex.fah.table};
+
+CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.fah.table} (
   guid string, 
   cid int, 
   experiment_variant_code string, 
@@ -26,5 +30,12 @@ CREATE TABLE IF NOT EXISTS ${hiveconf:hex.fah.db}.${hiveconf:hex.fah.table} (
 PARTITIONED BY ( 
   year int, 
   month int)
+
+FIELDS TERMINATED BY '\t'
+LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.fah.table}"
 STORED AS RCFILE;
+
+ALTER TABLE ${hiveconf:hex.fah.table} ENABLE NO DROP;
+
+! hdfs dfs -chmod -R 775 "/data/HWW/ETLDATA/${hiveconf:hex.fah.table}" ;
 
