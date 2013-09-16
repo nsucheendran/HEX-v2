@@ -19,7 +19,7 @@ source $PLAT_HOME/common/sh_metadata_storage.sh
 
 HWW_HOME=/usr/etl/HWW
 MODULE_NAME=hdp_hww_hex_etl
-MODULE_LN=$HWW_HOME/$MODULE_NAME/scripts
+MODULE_LN=$HWW_HOME/$MODULE_NAME
 export MODULE_PATH=$MODULE_LN
 
 CURR_PATH=`dirname $0`
@@ -43,6 +43,7 @@ FAH_PROCESS_DESCRIPTION="Loads HEX First Assignment Hit Data"
 FAH_PROCESS_ID=$(_GET_PROCESS_ID "$FAH_PROCESS_NAME")
 if [ -z "$FAH_PROCESS_ID" ]; then
     hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/createTable_ETL_HCOM_HEX_ASSIGNMENT_HIT.hql
+    hdfs dfs -chmod -R 775 "/data/HWW/ETLDATA/${FAH_TABLE}" ;
     $PLAT_HOME/tools/metadata/add_process.sh "$FAH_PROCESS_NAME" "$FAH_PROCESS_DESCRIPTION"
     FAH_PROCESS_ID=$(_GET_PROCESS_ID "$FAH_PROCESS_NAME")
 else
@@ -60,7 +61,7 @@ fi
 if [[ -r $MODULE_LN ]]; then 
   sudo -u $ETL_USER rm $MODULE_LN 
 fi 
-sudo -u $ETL_USER ln -sf $MODULE_DIR $MODULE_LN 
+sudo -u $ETL_USER ln -sf $MODULE_DIR/scripts $MODULE_LN 
 
 ln -sf "$JAR_PATH" "$JAR_DEST_PATH"
 
