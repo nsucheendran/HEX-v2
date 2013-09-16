@@ -42,17 +42,15 @@ FAH_PROCESS_DESCRIPTION="Loads HEX First Assignment Hit Data"
 
 FAH_PROCESS_ID=$(_GET_PROCESS_ID "$FAH_PROCESS_NAME")
 if [ -z "$FAH_PROCESS_ID" ]; then
-    hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/createTable_ETL_HCOM_HEX_ASSIGNMENT_HIT.hql
+    sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/createTable_ETL_HCOM_HEX_ASSIGNMENT_HIT.hql
     if [ $? -ne 0 ]; then
       _LOG "Error creating table. Installation FAILED."
-      $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
       exit 1
     fi
-    hdfs dfs -chmod -R 775 "/data/HWW/ETLDATA/${FAH_TABLE}" ;
+    sudo -E -u $ETL_USER hdfs dfs -chmod -R 775 "/data/HWW/ETLDATA/${FAH_TABLE}" ;
     $PLAT_HOME/tools/metadata/add_process.sh "$FAH_PROCESS_NAME" "$FAH_PROCESS_DESCRIPTION"
     if [ $? -ne 0 ]; then
       _LOG "Error adding process. Installation FAILED."
-      $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
       exit 1
     fi
     FAH_PROCESS_ID=$(_GET_PROCESS_ID "$FAH_PROCESS_NAME")
