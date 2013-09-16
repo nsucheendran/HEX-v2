@@ -82,7 +82,6 @@ insert into table ${hiveconf:hex.fah.table} PARTITION(year, month)
               on (temp.guid = test1.guid
              and temp.test_variant_code = test1.experiment_variant_code
              and temp.cid = test1.cid
-             and (test1.year > ${hiveconf:start.year} or (test1.year = ${hiveconf:start.year} and month > ${hiveconf:start.month}))
-                 )
-           where test1.guid is null
+             and test1.year >= ${hiveconf:start.year})
+           where test1.guid is null;
 
