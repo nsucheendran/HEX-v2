@@ -33,7 +33,7 @@ PARTITIONED BY (
 STORED AS RCFILE
 LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.fah.table}";
 
-ALTER TABLE ${hiveconf:hex.fah.table} ENABLE NO DROP;
+-- ALTER TABLE ${hiveconf:hex.fah.table} ENABLE NO_DROP;
 
 ! hdfs dfs -chmod -R 775 "/data/HWW/ETLDATA/${hiveconf:hex.fah.table}" ;
 
