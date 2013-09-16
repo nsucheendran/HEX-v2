@@ -1,4 +1,3 @@
-add jar ${hiveconf:hex.lib}/hdp_hww_hex_etl-${hiveconf:hex.version}.jar;
 CREATE TEMPORARY FUNCTION firstValueNSort AS 'udaf.GenericUDAFFirstValueNValueSort';
 
 set hive.exec.dynamic.partition.mode=nonstrict;

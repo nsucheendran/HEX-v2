@@ -25,6 +25,8 @@ export MODULE_PATH=$MODULE_LN
 CURR_PATH=`dirname $0`
 
 SCRIPT_PATH=$CURR_PATH/../scripts/hql/R1
+JAR_PATH=$(ls $CURR_PATH/../jars/${MODULE_NAME}*.jar)
+JAR_DEST_PATH=/app/edw/hive/auxlib/$MODULE_NAME.jar
 
 ETL_USER=hwwetl
 FAH_TABLE='ETL_HCOM_HEX_ASSIGNMENT_HIT'
@@ -59,6 +61,8 @@ if [[ -r $MODULE_LN ]]; then
   sudo -u $ETL_USER unlink $MODULE_LN 
 fi 
 sudo -u $ETL_USER ln -sf $MODULE_DIR $MODULE_LN 
+
+ln -sf "$JAR_PATH" "$JAR_DEST_PATH"
 
 _LOG "Process $FAH_PROCESS_NAME configured successfully"
 
