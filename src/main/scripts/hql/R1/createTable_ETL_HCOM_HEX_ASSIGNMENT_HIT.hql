@@ -30,9 +30,8 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.fah.table} (
 PARTITIONED BY ( 
   year int, 
   month int)
-FIELDS TERMINATED BY '\t'
-LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.fah.table}"
-STORED AS RCFILE;
+STORED AS RCFILE
+LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.fah.table}";
 
 ALTER TABLE ${hiveconf:hex.fah.table} ENABLE NO DROP;
 
