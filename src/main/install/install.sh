@@ -19,7 +19,7 @@ source $PLAT_HOME/common/sh_metadata_storage.sh
 
 HWW_HOME=/usr/etl/HWW
 MODULE_NAME=hdp_hww_hex_etl
-MODULE_LN=$HWW_HOME/$MODULE_NAME
+MODULE_LN=$HWW_HOME/$MODULE_NAME/scripts
 export MODULE_PATH=$MODULE_LN
 
 CURR_PATH=`dirname $0`
@@ -58,7 +58,7 @@ fi
 
 # recreate the symbolic link to the deployed code 
 if [[ -r $MODULE_LN ]]; then 
-  sudo -u $ETL_USER unlink $MODULE_LN 
+  sudo -u $ETL_USER rm $MODULE_LN 
 fi 
 sudo -u $ETL_USER ln -sf $MODULE_DIR $MODULE_LN 
 
