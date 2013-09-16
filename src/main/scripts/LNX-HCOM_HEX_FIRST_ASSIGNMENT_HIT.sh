@@ -101,8 +101,8 @@ then
       END_DT=`date --date="${LAST_DT}" '+%Y-%m-%d:%H'` 
     fi
    
-    FILTER_YEAR=date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 -1 years" '+%Y'` 
-    FILTER_MONTH=date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 -1 years" '+%m'` 
+    FILTER_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 -1 years" '+%Y'` 
+    FILTER_MONTH=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 -1 years" '+%m'` 
     OIFS=$IFS
     IFS=':'
     arr2=($START_DT)
