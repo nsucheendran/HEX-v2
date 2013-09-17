@@ -101,8 +101,7 @@ then
       END_DT=`date --date="${LAST_DT}" '+%Y-%m-%d:%H'` 
     fi
    
-    FILTER_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 -1 years" '+%Y'` 
-    FILTER_MONTH=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 -1 years" '+%m'` 
+    FILTER_YM=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 -1 years" '+%Y-%m'` 
     OIFS=$IFS
     IFS=':'
     arr2=($START_DT)
@@ -117,7 +116,7 @@ then
     LOG_FILE_NAME="hdp_first_assignment_hit_reprocess_${START_DATE}:${START_HOUR}-${END_DATE}:${END_HOUR}.log"
 
     _LOG "Reprocessing First Assignment Hit data between [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] in target: $FAH_DB.$FAH_TABLE"
-    hive -hiveconf into.overwrite="overwrite" -hiveconf start.year="${FILTER_YEAR}" -hiveconf start.month="${FILTER_MONTH}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+    hive -hiveconf into.overwrite="overwrite" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
@@ -144,8 +143,7 @@ else
 
   _LOG "Incremental First Assignment Hit data load (BOOKMARK=[$LAST_DT])"
   START_DT=`date --date="${LAST_DT} +1 hours" '+%Y-%m-%d:%H'`
-  FILTER_YEAR=`date --date="${LAST_DT} -1 years" '+%Y'`
-  FILTER_MONTH=`date --date="${LAST_DT} -1 years" '+%m'`
+  FILTER_YM=`date --date="${LAST_DT} -1 years" '+%Y-%m'`
   CURR_DATE=$LAST_DT
   END_DT=''
   for line in `cat $HEX_LST_PATH/hww_hex_*.lst|sort|grep -A23 $START_DT`;do
@@ -179,7 +177,7 @@ else
     END_HOUR=${arr2[1]}
     LOG_FILE_NAME="hdp_hcom_hex_first_assignment_hit_${START_DATE}:${START_HOUR}-${END_DATE}:${END_HOUR}.log"
     _LOG "Running First Assignment Hit incremental load for period: [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] (BOOKMARK=[$LAST_DT])"
-    hive -hiveconf into.overwrite="into" -hiveconf start.year="${FILTER_YEAR}" -hiveconf start.month="${FILTER_MONTH}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 && _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DATE $END_HOUR" 
+    hive -hiveconf into.overwrite="into" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 && _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DATE $END_HOUR" 
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
