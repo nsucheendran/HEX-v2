@@ -1,6 +1,6 @@
 use ${hiveconf:hex.fah.db};
 
-DROP TABLE IF EXISTS ${hiveconf:hex.fah.table};
+DROP TABLE IF EXISTS ${hiveconf:hex.fah.db};
 
 CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.fah.table} (
   guid string, 
@@ -29,8 +29,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.fah.table} (
   children_in_search int,
   operating_system string)
 PARTITIONED BY ( 
-  year int, 
-  month int)
+  year_month string)
 STORED AS RCFILE
 LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.fah.table}";
 

@@ -14,7 +14,7 @@ set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCode
 
 use ${hiveconf:hex.fah.db};
 
-insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year, month)
+insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year_month)
           select all_hits.guid,
                  all_hits.cid,
                  all_hits.test_variant_code as experiment_variant_code,
@@ -40,8 +40,7 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
                  all_hits.min_hit_data[19] as NUMBER_OF_CHILDREN,
                  all_hits.min_hit_data[20] as CHILDREN_IN_SEARCH,
                  all_hits.min_hit_data[21] as operating_system,
-                 year(all_hits.min_hit_data[0]) as year,
-                 month(all_hits.min_hit_data[0]) as month
+                 substr(all_hits.min_hit_data[0], 1, 7) as year_month
             from (      select split(firstValueNSort(concat_ws("~~~", 
                                                                local_date, 
                                                                cast(gmt as string), 
@@ -83,6 +82,6 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
               on (all_hits.guid = first_hits.guid
              and all_hits.test_variant_code = first_hits.experiment_variant_code
              and all_hits.cid = first_hits.cid
-             and first_hits.year >= ${hiveconf:start.year})
+             and first_hits.year_month >= ${hiveconf:start.ym})
            where first_hits.guid is null;
 
