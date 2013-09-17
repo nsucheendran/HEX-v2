@@ -16,10 +16,10 @@ set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCode
 -- we've to make sure that these queries are run only once for a day, otherwise duplicate entries will get created   
 
 -- add new purchases on a day, incrementally
-insert into table hwwdev.ETL_HCOM_HEX_transactions PARTITION(year, month)
+insert into table hwwdev.ETL_HCOM_HEX_transactions PARTITION(year_month)
 select guid, local_date, purchase_data[0] as gmt, purchase_data[1] as gmt_timestamp, purchase_id as itin_number, 
 purchase_data[2] as Omniture_GBV, 0 as BKG_GBV, purchase_data[3] as Omniture_Room_Nights, 0 as BKG_Room_Nights, 0 as Gross_Profit,
-true as purchase_flag, year(local_date) as year, month(local_date) as month from
+true as purchase_flag, substr(local_date, 1, 7) as year_month from
 (select split(firstValueNSort(concat_ws("~~~", cast(gmt as string), gmt_timestamp, cast(GBV_USD_OMNITURE as string), 
       cast(Room_Nights as string)),
       gmt_timestamp, hit_data_id), "~~~") as purchase_data,
@@ -27,7 +27,7 @@ true as purchase_flag, year(local_date) as year, month(local_date) as month from
       else c44 end as guid, cid, local_date
       from etl.etl_hcom_hit_data 
       where  
-      local_date>='2013-07-01' and local_date<='2013-07-31'    
+      local_date='2013-07-01'  
       and is_order = true
       and is_duplicate_order = false
       and is_excluded_hit = false
@@ -35,9 +35,9 @@ true as purchase_flag, year(local_date) as year, month(local_date) as month from
       group by purchase_id, c44, cid, local_date) temp;            
 
 -- pick aggregated purchase + cancellations for a day
-insert into table hwwdev.ETL_HCOM_HEX_transactions PARTITION(year, month)
-select guid, local_date, val[1] as gmt, val[0] as gmt_datetm, itin_number, 0 as Omniture_GBV, BKG_GBV, 0 as Omniture_Room_Nights, BKG_Room_Nights, Gross_Profit, purchase_flag, year,
-month
+insert into table hwwdev.ETL_HCOM_HEX_transactions PARTITION(year_month)
+select guid, local_date, val[1] as gmt, val[0] as gmt_datetm, itin_number, 0 as Omniture_GBV, BKG_GBV, 0 as Omniture_Room_Nights, BKG_Room_Nights, Gross_Profit, purchase_flag,
+substr(local_date, 1, 7) as year_month 
 from
 (select guid,
 FROM_UNIXTIME(UNIX_TIMESTAMP(trans_date, "yyyyMMdd"), "yyyy-MM-dd") as local_date, 
@@ -45,10 +45,9 @@ split(firstValueNSort(concat_ws("~~~", gmt_trans_datetm, cast(UNIX_TIMESTAMP(gmt
 itin_number, sum(GROSS_BKG_AMT_USd) as BKG_GBV, 
 sum(RM_NIGHT_CNT) as BKG_Room_Nights, sum(gross_profit_amt_usd) as Gross_Profit,
 case when cancel_count=1 then false else
-null end as purchase_flag, 
-substr(trans_date,1,4) as year, cast(substr(trans_date, 5, 2) as smallint) as month 
+null end as purchase_flag
 from platdev.ETLDM_HCOM_BKG_ORDER_XREF_final1 
 where year=2013 and month='2' and
-                trans_date>='20130201' and trans_date<='20130231' 
+                trans_date='20130201' 
                 and guid is not null and guid<>''
                 group by itin_number, guid, cancel_count, trans_date) temp;
