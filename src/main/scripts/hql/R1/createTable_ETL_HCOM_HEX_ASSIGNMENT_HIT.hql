@@ -1,6 +1,6 @@
 use ${hiveconf:hex.fah.db};
 
-DROP TABLE IF EXISTS ${hiveconf:hex.fah.db};
+DROP TABLE IF EXISTS ${hiveconf:hex.fah.table};
 
 CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.fah.table} (
   guid string, 
