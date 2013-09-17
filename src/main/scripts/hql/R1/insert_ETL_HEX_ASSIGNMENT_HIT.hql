@@ -15,32 +15,33 @@ set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCode
 use ${hiveconf:hex.fah.db};
 
 insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year, month)
-          select temp.guid,
-                 temp.cid,
-                 temp.test_variant_code as experiment_variant_code,
-                 temp.min_hit_data[0] as local_date,
-                 temp.min_hit_data[1] as gmt,
-                 temp.min_hit_data[2] as gmt_timestamp,
-                 temp.min_hit_data[3] as hit_data_id,
-                 temp.min_hit_data[4] as new_visitor_ind,
-                 temp.min_hit_data[5] as page_assigned_entry_page_name,
-                 temp.min_hit_data[6] as site_sectn_name,
-                 temp.min_hit_data[7] as user_cntext_name,
-                 temp.min_hit_data[8] as browser_height,
-                 temp.min_hit_data[9] as browser_width,
-                 temp.min_hit_data[10] as brwsr_id,
-                 temp.min_hit_data[11] as mobile_ind,
-                 temp.min_hit_data[12] as destination_id,
-                 temp.min_hit_data[13] as property_destination_id,
-                 temp.min_hit_data[14] as Platform_Type,
-                 temp.min_hit_data[15] as DAYS_UNTIL_STAY,
-                 temp.min_hit_data[16] as LENGTH_OF_STAY,
-                 temp.min_hit_data[17] as NUMBER_OF_ROOMS,
-                 temp.min_hit_data[18] as NUMBER_OF_ADULTS,
-                 temp.min_hit_data[19] as NUMBER_OF_CHILDREN,
-                 temp.min_hit_data[20] as CHILDREN_IN_SEARCH,
-                 year(temp.min_hit_data[0]) as year,
-                 month(temp.min_hit_data[0]) as month
+          select all_hits.guid,
+                 all_hits.cid,
+                 all_hits.test_variant_code as experiment_variant_code,
+                 all_hits.min_hit_data[0] as local_date,
+                 all_hits.min_hit_data[1] as gmt,
+                 all_hits.min_hit_data[2] as gmt_timestamp,
+                 all_hits.min_hit_data[3] as hit_data_id,
+                 all_hits.min_hit_data[4] as new_visitor_ind,
+                 all_hits.min_hit_data[5] as page_assigned_entry_page_name,
+                 all_hits.min_hit_data[6] as site_sectn_name,
+                 all_hits.min_hit_data[7] as user_cntext_name,
+                 all_hits.min_hit_data[8] as browser_height,
+                 all_hits.min_hit_data[9] as browser_width,
+                 all_hits.min_hit_data[10] as brwsr_id,
+                 all_hits.min_hit_data[11] as mobile_ind,
+                 all_hits.min_hit_data[12] as destination_id,
+                 all_hits.min_hit_data[13] as property_destination_id,
+                 all_hits.min_hit_data[14] as Platform_Type,
+                 all_hits.min_hit_data[15] as DAYS_UNTIL_STAY,
+                 all_hits.min_hit_data[16] as LENGTH_OF_STAY,
+                 all_hits.min_hit_data[17] as NUMBER_OF_ROOMS,
+                 all_hits.min_hit_data[18] as NUMBER_OF_ADULTS,
+                 all_hits.min_hit_data[19] as NUMBER_OF_CHILDREN,
+                 all_hits.min_hit_data[20] as CHILDREN_IN_SEARCH,
+                 all_hits.min_hit_data[21] as operating_system,
+                 year(all_hits.min_hit_data[0]) as year,
+                 month(all_hits.min_hit_data[0]) as month
             from (      select split(firstValueNSort(concat_ws("~~~", 
                                                                local_date, 
                                                                cast(gmt as string), 
@@ -77,11 +78,11 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
                                )
                            and is_ip_excluded = false AND is_user_agent_excluded = false and is_excluded_hit = false
                            and (length(trim(c154)) > 0 or length(trim(c281)) > 0) 
-                      group by cid, test_variant_code, c44) temp  
- left outer join ${hiveconf:hex.fah.table} test1 
-              on (temp.guid = test1.guid
-             and temp.test_variant_code = test1.experiment_variant_code
-             and temp.cid = test1.cid
-             and test1.year >= ${hiveconf:start.year})
-           where test1.guid is null;
+                      group by cid, test_variant_code, c44) all_hits  
+ left outer join ${hiveconf:hex.fah.table} first_hits 
+              on (all_hits.guid = first_hits.guid
+             and all_hits.test_variant_code = first_hits.experiment_variant_code
+             and all_hits.cid = first_hits.cid
+             and first_hits.year >= ${hiveconf:start.year})
+           where first_hits.guid is null;
 

@@ -26,7 +26,8 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.fah.table} (
   number_of_rooms int, 
   number_of_adults int, 
   number_of_children int, 
-  children_in_search int)
+  children_in_search int,
+  operating_system string)
 PARTITIONED BY ( 
   year int, 
   month int)
