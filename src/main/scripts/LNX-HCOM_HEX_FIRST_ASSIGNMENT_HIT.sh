@@ -102,17 +102,10 @@ then
     fi
    
     FILTER_YM=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 -1 years" '+%Y-%m'` 
-    OIFS=$IFS
-    IFS=':'
-    arr2=($START_DT)
-    IFS=$OIFS 
-    START_DATE=${arr2[0]}
-    START_HOUR=${arr2[1]}
-    IFS=':'
-    arr2=($END_DT)
-    IFS=$OIFS 
-    END_DATE=${arr2[0]}
-    END_HOUR=${arr2[1]}
+    START_DATE=`echo "$START_DT"|cut -f1 -d":"`
+    START_HOUR=`echo "$START_DT"|cut -f2 -d":"`
+    END_DATE=`echo "$END_DT"|cut -f1 -d":"`
+    END_HOUR=`echo "$END_DT"|cut -f2 -d":"`
     LOG_FILE_NAME="hdp_first_assignment_hit_reprocess_${START_DATE}:${START_HOUR}-${END_DATE}:${END_HOUR}.log"
 
     _LOG "Reprocessing First Assignment Hit data between [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] in target: $FAH_DB.$FAH_TABLE"
@@ -164,17 +157,10 @@ else
     exit 1
   fi
   if [ $END_DT ]; then
-    OIFS=$IFS
-    IFS=':'
-    arr2=($START_DT)
-    IFS=$OIFS 
-    START_DATE=${arr2[0]}
-    START_HOUR=${arr2[1]}
-    IFS=':'
-    arr2=($END_DT)
-    IFS=$OIFS 
-    END_DATE=${arr2[0]}
-    END_HOUR=${arr2[1]}
+    START_DATE=`echo "$START_DT"|cut -f1 -d":"`
+    START_HOUR=`echo "$START_DT"|cut -f2 -d":"`
+    END_DATE=`echo "$END_DT"|cut -f1 -d":"`
+    END_HOUR=`echo "$END_DT"|cut -f2 -d":"`
     LOG_FILE_NAME="hdp_hcom_hex_first_assignment_hit_${START_DATE}:${START_HOUR}-${END_DATE}:${END_HOUR}.log"
     _LOG "Running First Assignment Hit incremental load for period: [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] (BOOKMARK=[$LAST_DT])"
     hive -hiveconf into.overwrite="into" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 && _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DATE $END_HOUR" 

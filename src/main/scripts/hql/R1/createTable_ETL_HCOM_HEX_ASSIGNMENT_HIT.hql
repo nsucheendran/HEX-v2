@@ -27,11 +27,15 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.fah.table} (
   number_of_adults int, 
   number_of_children int, 
   children_in_search int,
-  operating_system string)
+  operating_system string,
+  all_mktg_seo string,
+  all_mktg_seo_direct string,
+  entry_page_name string
+)
 PARTITIONED BY ( 
   year_month string)
 STORED AS RCFILE
 LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.fah.table}";
 
--- ALTER TABLE ${hiveconf:hex.fah.table} ENABLE NO_DROP;
+ALTER TABLE ${hiveconf:hex.fah.table} ENABLE NO_DROP;
 

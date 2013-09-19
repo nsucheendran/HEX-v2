@@ -40,6 +40,9 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
                  all_hits.min_hit_data[19] as NUMBER_OF_CHILDREN,
                  all_hits.min_hit_data[20] as CHILDREN_IN_SEARCH,
                  all_hits.min_hit_data[21] as operating_system,
+                 all_hits.min_hit_data[22] as all_mktg_seo,
+                 all_hits.min_hit_data[23] as all_mktg_seo_direct,
+                 all_hits.min_hit_data[24] as entry_page_name,
                  substr(all_hits.min_hit_data[0], 1, 7) as year_month
             from (      select split(firstValueNSort(concat_ws("~~~", 
                                                                local_date, 
@@ -63,8 +66,14 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
                                                                cast(NUMBER_OF_ADULTS as string), 
                                                                cast(NUMBER_OF_CHILDREN as string), 
                                                                cast(CHILDREN_IN_SEARCH as string), 
-                                                               c93), 
-                                                     gmt, visit_page_number),
+                                                               c93,
+                                                               all_mktg_seo,
+                                                               all_mktg_seo_direct,
+                                                               c104
+                                                              ), 
+                                                     gmt,
+                                                     visit_page_number
+                                                    ),
                                      "~~~") as min_hit_data,
                                cid,
                                test_variant_code,

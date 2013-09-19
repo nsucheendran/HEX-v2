@@ -30,10 +30,31 @@ JAR_DEST_PATH=/app/edw/hive/auxlib/$MODULE_NAME.jar
 
 ETL_USER=hwwetl
 FAH_TABLE='ETL_HCOM_HEX_ASSIGNMENT_HIT'
-FAH_DB='etldata'
+FAH_DB='ETLDATA'
 JOB_QUEUE='hwwetl'
 REPROCESS_START_YEAR='2012'
 REPROCESS_START_MONTH='11'
+
+_LOG "(re-)creating table $FAH_TABLE ..." 
+_LOG "disable nodrop - OK if errors here." 
+set +o errexit 
+sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $FAH_TABLE disable NO_DROP;" 
+set -o errexit 
+_LOG "disable nodrop ended." 
+if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$FAH_TABLE; then 
+    _LOG "removing existing table files ... " 
+    sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$FAH_TABLE 
+    if [ $? -ne 0 ]; then
+        _LOG "Error deleting table files. Installation FAILED."
+        exit 1
+    fi
+fi 
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/createTable_ETL_HCOM_HEX_ASSIGNMENT_HIT.hql
+if [ $? -ne 0 ]; then
+    _LOG "Error creating table. Installation FAILED."
+    exit 1
+fi
+_LOG "(re-)creating table $FAH_TABLE Done." 
 
 FAH_PROCESS_NAME="ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT"
 _LOG "Configuring process $FAH_PROCESS_NAME ..."
@@ -42,12 +63,7 @@ FAH_PROCESS_DESCRIPTION="Loads HEX First Assignment Hit Data"
 
 FAH_PROCESS_ID=$(_GET_PROCESS_ID "$FAH_PROCESS_NAME")
 if [ -z "$FAH_PROCESS_ID" ]; then
-    sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/createTable_ETL_HCOM_HEX_ASSIGNMENT_HIT.hql
-    if [ $? -ne 0 ]; then
-      _LOG "Error creating table. Installation FAILED."
-      exit 1
-    fi
-    sudo -E -u $ETL_USER hdfs dfs -chmod -R 775 "/data/HWW/ETLDATA/${FAH_TABLE}" ;
+    sudo -E -u $ETL_USER hdfs dfs -chmod -R 775 "/data/HWW/$FAH_DB/${FAH_TABLE}" ;
     $PLAT_HOME/tools/metadata/add_process.sh "$FAH_PROCESS_NAME" "$FAH_PROCESS_DESCRIPTION"
     if [ $? -ne 0 ]; then
       _LOG "Error adding process. Installation FAILED."
