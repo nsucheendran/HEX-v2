@@ -88,7 +88,7 @@ if [ -z "$FAH_PROCESS_ID" ]; then
       $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
       exit 1
     fi
-    _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK" ""
+    _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK" "`date -d " -2 days" "+%Y-%m-%d 00"`"
     if [ $? -ne 0 ]; then
       _LOG "Error writing process context. Installation FAILED."
       $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
