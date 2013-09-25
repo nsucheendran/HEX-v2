@@ -15,6 +15,8 @@
 # achadha       2013-09-11      Wrapper to incrementally load/reprocess first assignment hit data
 # achadha       2013-09-23      Added functionality to load transactions
 
+set -m
+
 PLAT_HOME=/usr/local/edw/platform
 HWW_HOME=/usr/etl/HWW
 SCRIPT_PATH_R1=$HWW_HOME/hdp_hww_hex_etl/hql/R1
