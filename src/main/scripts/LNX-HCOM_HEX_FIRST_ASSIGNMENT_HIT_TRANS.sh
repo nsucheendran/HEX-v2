@@ -75,7 +75,7 @@ then
   _LOG "Starting Reprocessing [REPROCESS_SCOPE=$REPROCESS_SCOPE] for period: $START_YEAR-$START_MONTH to $END_YEAR-$END_MONTH (BOOKMARK=[$LAST_DT])"
 
   # drop monthly partitions that need to be reprocessed. reprocessing can only be specified at a year-month grain.
-  if [ $REPROCESS_SCOPE = "R1" ] -o [ $REPROCESS_SCOPE = "B" ];
+  if [ $REPROCESS_SCOPE = "R1" -o $REPROCESS_SCOPE = "B" ];
   then
     CURR_YEAR=$START_YEAR
     CURR_MONTH=$START_MONTH
@@ -96,7 +96,7 @@ then
     done
   fi
 
-  if [ $REPROCESS_SCOPE = "R2" ] -o [ $REPROCESS_SCOPE = "B" ];
+  if [ $REPROCESS_SCOPE = "R2" -o $REPROCESS_SCOPE = "B" ];
   then    
     CURR_YEAR=$START_YEAR
     CURR_MONTH=$START_MONTH
@@ -138,7 +138,7 @@ then
 
     _LOG "Reprocessing First Assignment Hit data between [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] in target: $FAH_DB.$FAH_TABLE"
 
-    if [ $REPROCESS_SCOPE = "R1" ] -o [ $REPROCESS_SCOPE = "B" ]; then
+    if [ $REPROCESS_SCOPE = "R1" -o $REPROCESS_SCOPE = "B" ]; then
       hive -hiveconf into.overwrite="overwrite" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_R1/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
@@ -149,7 +149,7 @@ then
       fi
     fi
 
-    if [ $REPROCESS_SCOPE = "R2" ] -o [ $REPROCESS_SCOPE = "B" ]; then
+    if [ $REPROCESS_SCOPE = "R2" -o $REPROCESS_SCOPE = "B" ]; then
       hive -hiveconf into.overwrite="overwrite" -hiveconf -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_R2/insert_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
@@ -166,7 +166,7 @@ then
   done
   _LOG "Done Reprocessing"
 
-  if [ -z $LAST_DT ]; then
+  if [ -z "$LAST_DT" ]; then
     _LOG "Updating BOOKMARK (since none existed) as $END_DATE $END_HOUR"
     `_WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DATE $END_HOUR"`
   fi
