@@ -139,23 +139,31 @@ then
     _LOG "Reprocessing First Assignment Hit data between [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] in target: $FAH_DB.$FAH_TABLE"
 
     if [ $REPROCESS_SCOPE = "R1" -o $REPROCESS_SCOPE = "B" ]; then
-      hive -hiveconf into.overwrite="overwrite" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_R1/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+      hive -hiveconf into.overwrite="overwrite" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_R1/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 & 
+    fi
+
+    _LOG "Reprocessing Omniture Transactions data between [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] in target: $FAH_DB.$TRANS_TABLE"
+
+    if [ $REPROCESS_SCOPE = "R2" -o $REPROCESS_SCOPE = "B" ]; then
+      hive -hiveconf into.overwrite="overwrite" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_R2/insert_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 & 
+    fi
+    
+    if [ $REPROCESS_SCOPE = "R1" -o $REPROCESS_SCOPE = "B" ]; then
+      fg
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
-        _LOG "R1: First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
+        _LOG "R2: Omniture Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
         _END_PROCESS $RUN_ID $ERROR_CODE
         _FREE_LOCK $HWW_FAH_LOCK_NAME
         exit 1
       fi
     fi
 
-    _LOG "Reprocessing Omniture Transactions data between [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] in target: $FAH_DB.$TRANS_TABLE"
-
     if [ $REPROCESS_SCOPE = "R2" -o $REPROCESS_SCOPE = "B" ]; then
-      hive -hiveconf into.overwrite="overwrite" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_R2/insert_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+      fg
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
-        _LOG "R2: Omniture Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
+        _LOG "R1: First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
         _END_PROCESS $RUN_ID $ERROR_CODE
         _FREE_LOCK $HWW_FAH_LOCK_NAME
         exit 1
@@ -207,18 +215,10 @@ else
     END_HOUR=`echo "$END_DT"|cut -f2 -d":"`
     LOG_FILE_NAME="hdp_hcom_hex_first_assignment_hit_${START_DATE}:${START_HOUR}-${END_DATE}:${END_HOUR}.log"
     _LOG "Running First Assignment Hit incremental load for period: [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] (BOOKMARK=[$LAST_DT])"
-    hive -hiveconf into.overwrite="into" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_R1/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
-    ERROR_CODE=$?
-    if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
-      _END_PROCESS $RUN_ID $ERROR_CODE
-      _FREE_LOCK $HWW_FAH_LOCK_NAME
-      exit 1
-    fi
-    _LOG "First Assignment Hit incremental load done."
+    hive -hiveconf into.overwrite="into" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_R1/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 & 
     
     _LOG "Running Omniture Transactions incremental load for period: [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] (BOOKMARK=[$LAST_DT])"
-    hive -hiveconf into.overwrite="into" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_R2/insert_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+    hive -hiveconf into.overwrite="into" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_R2/insert_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "Omniture Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
@@ -227,6 +227,16 @@ else
       exit 1
     fi
     _LOG "Omniture Transactions incremental load done."
+
+    fg
+    ERROR_CODE=$?
+    if [[ $ERROR_CODE -ne 0 ]]; then
+      _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
+      _END_PROCESS $RUN_ID $ERROR_CODE
+      _FREE_LOCK $HWW_FAH_LOCK_NAME
+      exit 1
+    fi
+    _LOG "First Assignment Hit incremental load done."
 
     _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DATE $END_HOUR"
     if [[ $ERROR_CODE -ne 0 ]]; then
