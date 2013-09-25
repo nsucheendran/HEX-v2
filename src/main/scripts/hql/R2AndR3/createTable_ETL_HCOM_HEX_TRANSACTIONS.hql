@@ -1,7 +1,8 @@
-use hwwdev;
-drop table if exists ETL_HCOM_HEX_transactions;
+use ${hiveconf:hex.fah.db};
 
-create table ETL_HCOM_HEX_transactions (
+DROP TABLE IF EXISTS ${hiveconf:hex.trans.table};
+
+CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.trans.table} (
   guid string,
   local_date string,
   gmt bigint,
@@ -13,4 +14,10 @@ create table ETL_HCOM_HEX_transactions (
   BKG_Room_Nights smallint,
   Gross_Profit decimal,
   purchase_flag boolean
-  ) partitioned by (year_month string);
+) 
+PARTITIONED BY (
+  year_month string)
+STORED AS RCFILE
+LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.trans.table}";
+
+ALTER TABLE ${hiveconf:hex.trans.table} ENABLE NO_DROP;

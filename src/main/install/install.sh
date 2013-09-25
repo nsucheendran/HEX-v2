@@ -24,12 +24,14 @@ export MODULE_PATH=$MODULE_LN
 
 CURR_PATH=`dirname $0`
 
-SCRIPT_PATH=$CURR_PATH/../scripts/hql/R1
+SCRIPT_PATH_R1=$CURR_PATH/../scripts/hql/R1
+SCRIPT_PATH_R2_R3=$CURR_PATH/../scripts/hql/R1
 JAR_PATH=$(ls $CURR_PATH/../jars/${MODULE_NAME}*.jar)
 JAR_DEST_PATH=/app/edw/hive/auxlib/$MODULE_NAME.jar
 
 ETL_USER=hwwetl
 FAH_TABLE='ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT'
+TRANS_TABLE='ETL_HCOM_HEX_TRANSACTIONS'
 FAH_DB='ETLDATA'
 JOB_QUEUE='hwwetl'
 REPROCESS_START_YEAR='2012'
@@ -42,21 +44,43 @@ sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $FAH_TABLE disable NO_DRO
 set -o errexit 
 _LOG "disable nodrop ended." 
 if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$FAH_TABLE; then 
-    _LOG "removing existing table files ... " 
-    sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$FAH_TABLE 
-    if [ $? -ne 0 ]; then
-        _LOG "Error deleting table files. Installation FAILED."
-        exit 1
-    fi
-fi 
-sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH/createTable_ETL_HCOM_HEX_ASSIGNMENT_HIT.hql
-if [ $? -ne 0 ]; then
-    _LOG "Error creating table. Installation FAILED."
+  _LOG "removing existing table files ... " 
+  sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$FAH_TABLE 
+  if [ $? -ne 0 ]; then
+    _LOG "Error deleting table files. Installation FAILED."
     exit 1
+  fi
+fi 
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_R1/createTable_ETL_HCOM_HEX_ASSIGNMENT_HIT.hql
+if [ $? -ne 0 ]; then
+  _LOG "Error creating table. Installation FAILED."
+  exit 1
 fi
 _LOG "(re-)creating table $FAH_TABLE Done." 
 
-FAH_PROCESS_NAME="ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT"
+# to be moved to a hotfix
+_LOG "(re-)creating table $TRANS_TABLE ..." 
+_LOG "disable nodrop - OK if errors here." 
+set +o errexit 
+sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $TRANS_TABLE disable NO_DROP;" 
+set -o errexit 
+_LOG "disable nodrop ended." 
+if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$TRANS_TABLE; then 
+  _LOG "removing existing table files ... " 
+  sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$TRANS_TABLE 
+  if [ $? -ne 0 ]; then
+    _LOG "Error deleting table files. Installation FAILED."
+    exit 1
+  fi
+fi 
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_R2_R3/createTable_ETL_HCOM_HEX_TRANSACTIONS.hql
+if [ $? -ne 0 ]; then
+  _LOG "Error creating table. Installation FAILED."
+  exit 1
+fi
+_LOG "(re-)creating table $TRANS_TABLE Done." 
+
+FAH_PROCESS_NAME="ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS"
 _LOG "Configuring process $FAH_PROCESS_NAME ..."
 
 FAH_PROCESS_DESCRIPTION="Loads HEX First Assignment Hit Data"
@@ -64,6 +88,8 @@ FAH_PROCESS_DESCRIPTION="Loads HEX First Assignment Hit Data"
 FAH_PROCESS_ID=$(_GET_PROCESS_ID "$FAH_PROCESS_NAME")
 if [ -z "$FAH_PROCESS_ID" ]; then
   sudo -E -u $ETL_USER hdfs dfs -chmod -R 775 "/data/HWW/$FAH_DB/${FAH_TABLE}" ;
+  sudo -E -u $ETL_USER hdfs dfs -chmod -R 775 "/data/HWW/$FAH_DB/${TRANS_TABLE}" ;
+
   $PLAT_HOME/tools/metadata/add_process.sh "$FAH_PROCESS_NAME" "$FAH_PROCESS_DESCRIPTION"
   if [ $? -ne 0 ]; then
     _LOG "Error adding process. Installation FAILED."
@@ -88,34 +114,47 @@ if [ -z "$FAH_PROCESS_ID" ]; then
     $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
     exit 1
   fi
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK" "`date -d " -2 days" "+%Y-%m-%d 00"`"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "DELTA_CAP" "23"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "PROCESSING_TYPE" "R"
+  if [ $? -ne 0 ]; then
+     _LOG "Error writing process context. Installation FAILED."
+     $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+     exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_SCOPE" "B"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_YEAR" "$REPROCESS_START_YEAR"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_MONTH" "$REPROCESS_START_MONTH"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+    exit 1
+  fi
 else
   _LOG "Process $FAH_PROCESS_NAME already exists"
 fi
 
-_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK" "`date -d " -2 days" "+%Y-%m-%d 00"`"
-if [ $? -ne 0 ]; then
-  _LOG "Error writing process context. Installation FAILED."
-  $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-  exit 1
-fi
-_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "PROCESSING_TYPE" "R"
-if [ $? -ne 0 ]; then
-   _LOG "Error writing process context. Installation FAILED."
-   $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-   exit 1
-fi
-_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_YEAR" "$REPROCESS_START_YEAR"
-if [ $? -ne 0 ]; then
-  _LOG "Error writing process context. Installation FAILED."
-  $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-  exit 1
-fi
-_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_MONTH" "$REPROCESS_START_MONTH"
-if [ $? -ne 0 ]; then
-  _LOG "Error writing process context. Installation FAILED."
-  $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-  exit 1
-fi
+
 # recreate the symbolic link to the deployed code 
 if [[ -r $MODULE_LN ]]; then 
   sudo -u $ETL_USER rm $MODULE_LN 
