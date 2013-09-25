@@ -58,7 +58,7 @@ if [ $? -ne 0 ]; then
 fi
 _LOG "(re-)creating table $FAH_TABLE Done." 
 
-# to be moved to a hotfix
+
 _LOG "(re-)creating table $TRANS_TABLE ..." 
 _LOG "disable nodrop - OK if errors here." 
 set +o errexit 
@@ -120,37 +120,7 @@ if [ -z "$FAH_PROCESS_ID" ]; then
     $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
     exit 1
   fi
-  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK" "`date -d " -2 days" "+%Y-%m-%d 00"`"
-  if [ $? -ne 0 ]; then
-    _LOG "Error writing process context. Installation FAILED."
-    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-    exit 1
-  fi
   _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "DELTA_CAP" "23"
-  if [ $? -ne 0 ]; then
-    _LOG "Error writing process context. Installation FAILED."
-    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-    exit 1
-  fi
-  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "PROCESSING_TYPE" "R"
-  if [ $? -ne 0 ]; then
-     _LOG "Error writing process context. Installation FAILED."
-     $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-     exit 1
-  fi
-  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_SCOPE" "B"
-  if [ $? -ne 0 ]; then
-    _LOG "Error writing process context. Installation FAILED."
-    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-    exit 1
-  fi
-  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_YEAR" "$REPROCESS_START_YEAR"
-  if [ $? -ne 0 ]; then
-    _LOG "Error writing process context. Installation FAILED."
-    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-    exit 1
-  fi
-  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_MONTH" "$REPROCESS_START_MONTH"
   if [ $? -ne 0 ]; then
     _LOG "Error writing process context. Installation FAILED."
     $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
@@ -159,6 +129,102 @@ if [ -z "$FAH_PROCESS_ID" ]; then
 else
   _LOG "Process $FAH_PROCESS_NAME already exists"
 fi
+
+_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK" "`date -d " -2 days" "+%Y-%m-%d 00"`"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "PROCESSING_TYPE" "R"
+if [ $? -ne 0 ]; then
+   _LOG "Error writing process context. Installation FAILED."
+   $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+   exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_SCOPE" "B"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_YEAR" "$REPROCESS_START_YEAR"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_MONTH" "$REPROCESS_START_MONTH"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+  exit 1
+fi
+
+##########################
+# R3 Deployment
+##########################
+
+TRANS_PROCESS_NAME="ETL_HCOM_HEX_TRANSACTIONS_BOOKING"
+_LOG "Configuring process $TRANS_PROCESS_NAME ..."
+
+TRANS_PROCESS_DESCRIPTION="Loads HEX Booking Transactions Data"
+
+TRANS_PROCESS_ID=$(_GET_PROCESS_ID "$TRANS_PROCESS_NAME")
+if [ -z "$TRANS_PROCESS_ID" ]; then
+  $PLAT_HOME/tools/metadata/add_process.sh "$TRANS_PROCESS_NAME" "$TRANS_PROCESS_DESCRIPTION"
+  if [ $? -ne 0 ]; then
+    _LOG "Error adding process. Installation FAILED."
+    exit 1
+  fi
+  TRANS_PROCESS_ID=$(_GET_PROCESS_ID "$TRANS_PROCESS_NAME")
+  _WRITE_PROCESS_CONTEXT $TRANS_PROCESS_ID "TRANS_TABLE" "$TRANS_TABLE"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$TRANS_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "TRANS_DB" "$FAH_DB"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$TRANS_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $TRANS_PROCESS_ID "JOB_QUEUE" "$JOB_QUEUE"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$TRANS_PROCESS_NAME"
+    exit 1
+  fi
+else
+  _LOG "Process $TRANS_PROCESS_NAME already exists"
+fi
+
+_WRITE_PROCESS_CONTEXT $TRANS_PROCESS_ID "BOOKMARK" "`date -d " -1 days" "+%Y-%m-%d"`"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$TRANS_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $TRANS_PROCESS_ID "PROCESSING_TYPE" "R"
+if [ $? -ne 0 ]; then
+   _LOG "Error writing process context. Installation FAILED."
+   $PLAT_HOME/tools/metadata/delete_process.sh "$TRANS_PROCESS_NAME"
+   exit 1
+fi
+_WRITE_PROCESS_CONTEXT $TRANS_PROCESS_ID "REPROCESS_START_YEAR" "$REPROCESS_START_YEAR"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$TRANS_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $TRANS_PROCESS_ID "REPROCESS_START_MONTH" "$REPROCESS_START_MONTH"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$TRANS_PROCESS_NAME"
+  exit 1
+fi
+
 
 
 # recreate the symbolic link to the deployed code 
