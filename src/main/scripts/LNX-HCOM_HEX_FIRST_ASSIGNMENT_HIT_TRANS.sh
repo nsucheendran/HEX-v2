@@ -75,10 +75,10 @@ then
   _LOG "Starting Reprocessing [REPROCESS_SCOPE=$REPROCESS_SCOPE] for period: $START_YEAR-$START_MONTH to $END_YEAR-$END_MONTH (BOOKMARK=[$LAST_DT])"
 
   # drop monthly partitions that need to be reprocessed. reprocessing can only be specified at a year-month grain.
-  CURR_YEAR=$START_YEAR
-  CURR_MONTH=$START_MONTH
   if [ $REPROCESS_SCOPE = "R1" ] -o [ $REPROCESS_SCOPE = "B" ];
   then
+    CURR_YEAR=$START_YEAR
+    CURR_MONTH=$START_MONTH
     while [ "${CURR_YEAR}${CURR_MONTH}" \< "${END_YEAR}${END_MONTH}" -o "${CURR_YEAR}${CURR_MONTH}" = "${END_YEAR}${END_MONTH}" ]
     do
       LOG_FILE_NAME="hdp_first_assignment_hit_reprocess_${CURR_YEAR}-${CURR_MONTH}.log"
@@ -98,7 +98,10 @@ then
 
   if [ $REPROCESS_SCOPE = "R2" ] -o [ $REPROCESS_SCOPE = "B" ];
   then    
+    CURR_YEAR=$START_YEAR
+    CURR_MONTH=$START_MONTH
     while [ "${CURR_YEAR}${CURR_MONTH}" \< "${END_YEAR}${END_MONTH}" -o "${CURR_YEAR}${CURR_MONTH}" = "${END_YEAR}${END_MONTH}" ]
+    do
       _LOG "Dropping partition [$CURR_YEAR-$CURR_MONTH] from target: $FAH_DB.$TRANS_TABLE"
       hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_R2/delete_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
       ERROR_CODE=$?
