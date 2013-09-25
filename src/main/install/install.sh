@@ -25,7 +25,7 @@ export MODULE_PATH=$MODULE_LN
 CURR_PATH=`dirname $0`
 
 SCRIPT_PATH_R1=$CURR_PATH/../scripts/hql/R1
-SCRIPT_PATH_R2_R3=$CURR_PATH/../scripts/hql/R1
+SCRIPT_PATH_R2_R3=$CURR_PATH/../scripts/hql/R2AndR3
 JAR_PATH=$(ls $CURR_PATH/../jars/${MODULE_NAME}*.jar)
 JAR_DEST_PATH=/app/edw/hive/auxlib/$MODULE_NAME.jar
 
