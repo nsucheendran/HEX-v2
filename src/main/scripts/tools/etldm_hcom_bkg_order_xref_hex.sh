@@ -17,5 +17,5 @@ export HIVE_PARTITION_KEY=
 export PRIMARY_KEY=
 
 export HWW_HOME=/usr/etl/HWW
-$HWW_HOME/hdp_hww_hex_etl/tools/check_entity_hex.sh "Omniture Day and Booking XREF Complete" || exit 0
-$HWW_HOME/hdp_hww_hex_etl/tools/run_dbsync_hex.sh || exit 1
+sudo -E -u hwwetl $HWW_HOME/hdp_hww_hex_etl/tools/check_entity_hex.sh "Omniture Day and Booking XREF Complete" || exit 0
+sudo -E -u platdev $HWW_HOME/hdp_hww_hex_etl/tools/run_dbsync_hex.sh || exit 1
