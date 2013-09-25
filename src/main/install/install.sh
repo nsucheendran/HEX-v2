@@ -102,6 +102,12 @@ if [ -z "$FAH_PROCESS_ID" ]; then
     $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
     exit 1
   fi
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "TRANS_TABLE" "$TRANS_TABLE"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+    exit 1
+  fi
   _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "FAH_DB" "$FAH_DB"
   if [ $? -ne 0 ]; then
     _LOG "Error writing process context. Installation FAILED."
