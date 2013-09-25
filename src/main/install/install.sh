@@ -161,11 +161,13 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+_LOG "Process $FAH_PROCESS_NAME configured successfully"
+
 ##########################
 # R3 Deployment
 ##########################
 
-TRANS_PROCESS_NAME="ETL_HCOM_HEX_TRANSACTIONS_BOOKING"
+TRANS_PROCESS_NAME="ETL_HCOM_HEX_TRANSACTIONS_BKG"
 _LOG "Configuring process $TRANS_PROCESS_NAME ..."
 
 TRANS_PROCESS_DESCRIPTION="Loads HEX Booking Transactions Data"
@@ -184,7 +186,7 @@ if [ -z "$TRANS_PROCESS_ID" ]; then
     $PLAT_HOME/tools/metadata/delete_process.sh "$TRANS_PROCESS_NAME"
     exit 1
   fi
-  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "TRANS_DB" "$FAH_DB"
+  _WRITE_PROCESS_CONTEXT $TRANS_PROCESS_ID "TRANS_DB" "$FAH_DB"
   if [ $? -ne 0 ]; then
     _LOG "Error writing process context. Installation FAILED."
     $PLAT_HOME/tools/metadata/delete_process.sh "$TRANS_PROCESS_NAME"
@@ -225,7 +227,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-
+_LOG "Process $TRANS_PROCESS_NAME configured successfully"
 
 # recreate the symbolic link to the deployed code 
 if [[ -r $MODULE_LN ]]; then 
@@ -235,5 +237,4 @@ sudo -u $ETL_USER ln -sf $MODULE_DIR/scripts $MODULE_LN
 
 ln -sf "$JAR_PATH" "$JAR_DEST_PATH"
 
-_LOG "Process $FAH_PROCESS_NAME configured successfully"
-
+_LOG "Module hdp_hww_hex_etl deployed successfully"

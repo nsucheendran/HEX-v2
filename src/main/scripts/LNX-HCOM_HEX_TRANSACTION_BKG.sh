@@ -21,6 +21,7 @@ HWW_HOME=/usr/etl/HWW
 SCRIPT_PATH_TOOLS=$HWW_HOME/hdp_hww_hex_etl/tools
 SCRIPT_PATH=$HWW_HOME/hdp_hww_hex_etl/hql/R3
 HEX_LOGS=/usr/etl/HWW/log
+ETL_USER='hwwetl'
 
 source $PLAT_HOME/common/sh_helpers.sh
 source $PLAT_HOME/common/sh_metadata_storage.sh
@@ -89,7 +90,7 @@ then
 
     _LOG "Reprocessing Booking Transactions data between [$START_DT to $END_DT] in target: $TRANS_BKG_DB.$TRANS_BKG_TABLE"
 
-    $SCRIPT_PATH_TOOLS/etldm_hcom_bkg_order_xref_hex.sh "$START_DT" "$END_DT"
+    sudo -E -u $ETL_USER bash $SCRIPT_PATH_TOOLS/etldm_hcom_bkg_order_xref_hex.sh "$START_DT" "$END_DT"
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "R3: Booking Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
@@ -113,8 +114,8 @@ then
   _LOG "Done Reprocessing"
 
   if [ -z "$LAST_DT" ]; then
-    _LOG "Updating BOOKMARK (since none existed) as $END_DT $END_HOUR"
-    `_WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DT $END_HOUR"`
+    _LOG "Updating BOOKMARK (since none existed) as $END_DT"
+    `_WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DT"`
   fi
   _LOG "Setting PROCESSING_TYPE to [D] for next run"
   `_WRITE_PROCESS_CONTEXT "$PROCESS_ID" "PROCESSING_TYPE" "D"`
@@ -126,7 +127,7 @@ else
   START_DT=`date --date="${LAST_DT} +1 days" '+%Y-%m-%d'`
   END_DT=$START_DT
 
-  $SCRIPT_PATH_TOOLS/etldm_hcom_bkg_order_xref_hex.sh "$START_DT" "$END_DT"
+  sudo -E -u $ETL_USER bash $SCRIPT_PATH_TOOLS/etldm_hcom_bkg_order_xref_hex.sh "$START_DT" "$END_DT"
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "R3: Booking Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
