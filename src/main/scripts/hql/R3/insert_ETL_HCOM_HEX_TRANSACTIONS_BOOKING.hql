@@ -29,7 +29,7 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                   substr(local_date, 1, 7) as year_month
              from (  select FROM_UNIXTIME(UNIX_TIMESTAMP(trans_date, "yyyyMMdd"), "yyyy-MM-dd") as local_date,
                             split(firstValueNSort(concat_ws("~~~", 
-                                                            gmt_trans_datetm, 
+                                                            cast(gmt_trans_datetm as string), 
                                                             cast(UNIX_TIMESTAMP(gmt_trans_datetm, "yyyy-MM-dd-HH.mm.ss") as string), 
                                                             guid
                                                            ),
@@ -41,7 +41,7 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                             sum(RM_NIGHT_CNT) as BKG_Room_Nights, 
                             sum(gross_profit_amt_usd) as Gross_Profit,
                             case when cancel_count=1 then false else null end as purchase_flag
-                       from ${hive.fah.db}.ETLDM_HCOM_BKG_ORDER_XREF_HEX
+                       from ETLDM_HCOM_BKG_ORDER_XREF_HEX
                       where trans_date between '${hiveconf:start.date}' and '${hiveconf:end.date}'
                         and year_month = '${hiveconf:month}'
                         and guid is not null and guid<>''
