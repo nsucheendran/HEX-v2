@@ -30,7 +30,8 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.fah.table} (
   operating_system string,
   all_mktg_seo string,
   all_mktg_seo_direct string,
-  entry_page_name string
+  entry_page_name string,
+  supplier_property_id string
 )
 PARTITIONED BY ( 
   year_month string)
