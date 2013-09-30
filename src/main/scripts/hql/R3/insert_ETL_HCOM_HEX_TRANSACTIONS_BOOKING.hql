@@ -43,7 +43,7 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                             case when cancel_count=1 then false else null end as purchase_flag
                        from ${hive.fah.db}.ETLDM_HCOM_BKG_ORDER_XREF_HEX
                       where trans_date between '${hiveconf:start.date}' and '${hiveconf:end.date}'
-                        and year_month = ${hiveconf:month}
+                        and year_month = '${hiveconf:month}'
                         and guid is not null and guid<>''
                    group by itin_number, cancel_count, trans_date) temp;
 
