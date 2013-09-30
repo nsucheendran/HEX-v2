@@ -5,7 +5,7 @@ export ETL_USER=platetl
 export PLAT_HOME=/usr/local/edw/platform
 
 #DBSYNC variables
-export DS_NAME=EDW_DB2_LDR
+export DS_NAME=EDW_DB2
 export FILE_LAYOUT="SEQUENCE"
 export COMPRESSION_TYPE="snappy"
 export HIVE_TABLE="$HIVE_SCHEMA.$HIVE_TABLE_NAME"
