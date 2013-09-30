@@ -71,7 +71,7 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
                                                                all_mktg_seo,
                                                                all_mktg_seo_direct,
                                                                c104,
-                                                               SupplierPropertyID
+                                                               supplier_property_id
                                                               ), 
                                                      gmt,
                                                      visit_page_number
