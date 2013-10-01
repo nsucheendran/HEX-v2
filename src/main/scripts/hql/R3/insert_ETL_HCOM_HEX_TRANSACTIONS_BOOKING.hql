@@ -14,7 +14,7 @@ set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCode
 
 use ${hiveconf:hex.fah.db};
 
-insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(year_month)
+insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(year_month, source)
            select val[2] as guid, 
                   local_date, 
                   val[1] as gmt, 
@@ -27,7 +27,7 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                   Gross_Profit, 
                   purchase_flag,
                   substr(local_date, 1, 7) as year_month,
-                  'BKG' as source
+                  'booking' as source
              from (  select FROM_UNIXTIME(UNIX_TIMESTAMP(trans_date, "yyyyMMdd"), "yyyy-MM-dd") as local_date,
                             split(firstValueNSort(concat_ws("~~~", 
                                                             cast(gmt_trans_datetm as string), 

@@ -18,6 +18,7 @@ set -m
 export PLAT_HOME=/usr/local/edw/platform
 export HWW_HOME=/usr/etl/HWW
 SCRIPT_PATH=$HWW_HOME/hdp_hww_hex_etl/hql/R3
+SCRIPT_PATH_R2=$HWW_HOME/hdp_hww_hex_etl/hql/R2
 HEX_LOGS=/usr/etl/HWW/log
 
 source $PLAT_HOME/common/sh_helpers.sh
@@ -62,6 +63,9 @@ _LOG "LAST_DT=$LAST_DT"
 if [ $PROCESSING_TYPE = "R" ];
 then
 # R3 Reprocessing assumes that R2 reprocessing starting the same period has been done already. in order to reprocess R3 safely, both R2 and R3 need to be reprocessed together, always.
+
+
+
   START_YEAR=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPROCESS_START_YEAR"`
   START_MONTH=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPROCESS_START_MONTH"`
 
@@ -69,6 +73,22 @@ then
   END_MONTH=`date --date="${LAST_DT}" '+%m'`
 
   _LOG "Starting Reprocessing for period: $START_YEAR-$START_MONTH to $END_YEAR-$END_MONTH (BOOKMARK=[$LAST_DT])"
+
+  CURR_YEAR=$START_YEAR
+  CURR_MONTH=$START_MONTH
+  while [ "${CURR_YEAR}${CURR_MONTH}" \< "${END_YEAR}${END_MONTH}" -o "${CURR_YEAR}${CURR_MONTH}" = "${END_YEAR}${END_MONTH}" ]
+  do
+    _LOG "Dropping partition [$CURR_YEAR-$CURR_MONTH] from target: $FAH_DB.$TRANS_TABLE"
+    hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf part.source="booking" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_R2/delete_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+    ERROR_CODE=$?
+    if [[ $ERROR_CODE -ne 0 ]]; then
+      _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]"
+    fi
+
+    NEW_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%Y'`
+    CURR_MONTH=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%m'`
+    CURR_YEAR=$NEW_YEAR
+  done
 
   # reprocess data in monthly chunks upto and including the bookmark date, do not change bookmark in HEMS
   CURR_YEAR=$START_YEAR
@@ -89,7 +109,7 @@ then
 
     _LOG "Reprocessing Booking Transactions data between [$START_DT to $END_DT] in target: $TRANS_BKG_DB.$TRANS_BKG_TABLE"
 
-    hive -hiveconf into.overwrite="into" -hiveconf month="${MONTH}" -hiveconf start.date="${START_DT}" -hiveconf end.date="${END_DT}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${TRANS_BKG_DB}" -hiveconf hex.trans.table="${TRANS_BKG_TABLE}" -f $SCRIPT_PATH/insert_ETL_HCOM_HEX_TRANSACTIONS_BOOKING.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+    hive -hiveconf into.overwrite="overwrite" -hiveconf month="${MONTH}" -hiveconf start.date="${START_DT}" -hiveconf end.date="${END_DT}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${TRANS_BKG_DB}" -hiveconf hex.trans.table="${TRANS_BKG_TABLE}" -f $SCRIPT_PATH/insert_ETL_HCOM_HEX_TRANSACTIONS_BOOKING.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "R3: Booking Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."

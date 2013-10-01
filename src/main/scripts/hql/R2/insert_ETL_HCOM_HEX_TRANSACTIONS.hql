@@ -14,7 +14,7 @@ set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCode
 
 use ${hiveconf:hex.fah.db};
 
-insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(year_month)
+insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(year_month, source)
            select purchase_data[4] as guid, 
                   purchase_data[5] as local_date, 
                   purchase_data[0] as gmt, 
