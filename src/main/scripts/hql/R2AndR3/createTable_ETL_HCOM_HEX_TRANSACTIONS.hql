@@ -16,7 +16,8 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.trans.table} (
   purchase_flag boolean
 ) 
 PARTITIONED BY (
-  year_month string)
+  year_month string,
+  source string)
 STORED AS RCFILE
 LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.trans.table}";
 

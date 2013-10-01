@@ -26,7 +26,8 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                   0 as BKG_Room_Nights, 
                   0 as Gross_Profit,
                   true as purchase_flag, 
-                  substr(purchase_data[5], 1, 7) as year_month 
+                  substr(purchase_data[5], 1, 7) as year_month,
+                  'omniture' as source 
              from (  select split(firstValueNSort(concat_ws("~~~", 
                                                             cast(gmt as string), 
                                                             gmt_timestamp, 
