@@ -19,4 +19,5 @@ cd /tmp
 source $PLAT_HOME/tools/sh_dbsync/dbsync_helpers.sh
 _SYNCHRONIZE_TABLE || exit 1
 
-$PLAT_HOME/tools/data_validation/db2hive_counts_validation.sh || exit 1
+# validation doesn't work as expected (always validates only the latest partition)
+# $PLAT_HOME/tools/data_validation/db2hive_counts_validation.sh || exit 1

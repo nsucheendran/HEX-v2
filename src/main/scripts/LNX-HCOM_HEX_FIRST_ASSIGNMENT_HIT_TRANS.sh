@@ -19,8 +19,8 @@ set -m
 
 PLAT_HOME=/usr/local/edw/platform
 HWW_HOME=/usr/etl/HWW
-SCRIPT_PATH_R1=$HWW_HOME/hdp_hww_hex_etl/hql/R1
-SCRIPT_PATH_R2=$HWW_HOME/hdp_hww_hex_etl/hql/R2
+SCRIPT_PATH_OMNI_HIT=$HWW_HOME/hdp_hww_hex_etl/hql/OMNI_HIT
+SCRIPT_PATH_OMNI_TRANS=$HWW_HOME/hdp_hww_hex_etl/hql/OMNI_TRANS
 HEX_LST_PATH=/app/etl/HWW/Omniture/listfiles
 HEX_LOGS=/usr/etl/HWW/log
 
@@ -31,7 +31,7 @@ HWW_FAH_LOCK_NAME="hdp_hww_hex_first_assignment_hit.lock"
 MESSAGE="LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT.sh failed: Previous script still running"
 _ACQUIRE_LOCK $HWW_FAH_LOCK_NAME "$MESSAGE" 30
 
-STAGE_NAME="R1: HEX First Assignment Hit"
+STAGE_NAME="OMNI_HIT: HEX First Assignment Hit"
 _LOG_START_STAGE "$STAGE_NAME"
 
 PROCESS_NAME="ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS"
@@ -77,7 +77,7 @@ then
   _LOG "Starting Reprocessing [REPROCESS_SCOPE=$REPROCESS_SCOPE] for period: $START_YEAR-$START_MONTH to $END_YEAR-$END_MONTH (BOOKMARK=[$LAST_DT])"
 
   # drop monthly partitions that need to be reprocessed. reprocessing can only be specified at a year-month grain.
-  if [ $REPROCESS_SCOPE = "R1" -o $REPROCESS_SCOPE = "B" ];
+  if [ $REPROCESS_SCOPE = "OMNI_HIT" -o $REPROCESS_SCOPE = "OMNI_HIT_TRANS" ];
   then
     CURR_YEAR=$START_YEAR
     CURR_MONTH=$START_MONTH
@@ -86,7 +86,7 @@ then
       LOG_FILE_NAME="hdp_first_assignment_hit_reprocess_${CURR_YEAR}-${CURR_MONTH}.log"
 
       _LOG "Dropping partition [$CURR_YEAR-$CURR_MONTH] from target: $FAH_DB.$FAH_TABLE"
-      hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_R1/delete_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+      hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_OMNI_HIT/delete_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
         _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]"
@@ -98,14 +98,14 @@ then
     done
   fi
 
-  if [ $REPROCESS_SCOPE = "R2" -o $REPROCESS_SCOPE = "B" ];
+  if [ $REPROCESS_SCOPE = "OMNI_TRANS" -o $REPROCESS_SCOPE = "OMNI_HIT_TRANS" ];
   then    
     CURR_YEAR=$START_YEAR
     CURR_MONTH=$START_MONTH
     while [ "${CURR_YEAR}${CURR_MONTH}" \< "${END_YEAR}${END_MONTH}" -o "${CURR_YEAR}${CURR_MONTH}" = "${END_YEAR}${END_MONTH}" ]
     do
       _LOG "Dropping partition [$CURR_YEAR-$CURR_MONTH] from target: $FAH_DB.$TRANS_TABLE"
-      hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf part.source="omniture" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_R2/delete_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+      hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf part.source="omniture" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_OMNI_TRANS/delete_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
         _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]"
@@ -140,32 +140,32 @@ then
 
     _LOG "Reprocessing First Assignment Hit data between [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] in target: $FAH_DB.$FAH_TABLE"
 
-    if [ $REPROCESS_SCOPE = "R1" -o $REPROCESS_SCOPE = "B" ]; then
-      hive -hiveconf into.overwrite="overwrite" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_R1/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 & 
+    if [ $REPROCESS_SCOPE = "OMNI_HIT" -o $REPROCESS_SCOPE = "OMNI_HIT_TRANS" ]; then
+      hive -hiveconf into.overwrite="overwrite" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_OMNI_HIT/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 & 
     fi
 
     _LOG "Reprocessing Omniture Transactions data between [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] in target: $FAH_DB.$TRANS_TABLE"
 
-    if [ $REPROCESS_SCOPE = "R2" -o $REPROCESS_SCOPE = "B" ]; then
-      hive -hiveconf into.overwrite="overwrite" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_R2/insert_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 & 
+    if [ $REPROCESS_SCOPE = "OMNI_TRANS" -o $REPROCESS_SCOPE = "OMNI_HIT_TRANS" ]; then
+      hive -hiveconf into.overwrite="overwrite" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_OMNI_TRANS/insert_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 & 
     fi
     
-    if [ $REPROCESS_SCOPE = "R1" -o $REPROCESS_SCOPE = "B" ]; then
+    if [ $REPROCESS_SCOPE = "OMNI_HIT" -o $REPROCESS_SCOPE = "OMNI_HIT_TRANS" ]; then
       fg
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
-        _LOG "R2: Omniture Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
+        _LOG "OMNI_TRANS: Omniture Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
         _END_PROCESS $RUN_ID $ERROR_CODE
         _FREE_LOCK $HWW_FAH_LOCK_NAME
         exit 1
       fi
     fi
 
-    if [ $REPROCESS_SCOPE = "R2" -o $REPROCESS_SCOPE = "B" ]; then
+    if [ $REPROCESS_SCOPE = "OMNI_TRANS" -o $REPROCESS_SCOPE = "OMNI_HIT_TRANS" ]; then
       fg
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
-        _LOG "R1: First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
+        _LOG "OMNI_HIT: First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
         _END_PROCESS $RUN_ID $ERROR_CODE
         _FREE_LOCK $HWW_FAH_LOCK_NAME
         exit 1
@@ -217,10 +217,10 @@ else
     END_HOUR=`echo "$END_DT"|cut -f2 -d":"`
     LOG_FILE_NAME="hdp_hcom_hex_first_assignment_hit_${START_DATE}:${START_HOUR}-${END_DATE}:${END_HOUR}.log"
     _LOG "Running First Assignment Hit incremental load for period: [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] (BOOKMARK=[$LAST_DT])"
-    hive -hiveconf into.overwrite="into" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_R1/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 & 
+    hive -hiveconf into.overwrite="into" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_OMNI_HIT/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 & 
     
     _LOG "Running Omniture Transactions incremental load for period: [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] (BOOKMARK=[$LAST_DT])"
-    hive -hiveconf into.overwrite="into" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_R2/insert_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+    hive -hiveconf into.overwrite="into" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_OMNI_TRANS/insert_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "Omniture Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."

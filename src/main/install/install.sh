@@ -24,8 +24,8 @@ export MODULE_PATH=$MODULE_LN
 
 CURR_PATH=`dirname $0`
 
-SCRIPT_PATH_R1=$CURR_PATH/../scripts/hql/R1
-SCRIPT_PATH_R2_R3=$CURR_PATH/../scripts/hql/R2AndR3
+SCRIPT_PATH_OMNI_HIT=$CURR_PATH/../scripts/hql/OMNI_HIT
+SCRIPT_PATH_OMNI_TRANS_R3=$CURR_PATH/../scripts/hql/OMNI_TRANSAndR3
 JAR_PATH=$(ls $CURR_PATH/../jars/${MODULE_NAME}*.jar)
 JAR_DEST_PATH=/app/edw/hive/auxlib/$MODULE_NAME.jar
 
@@ -51,7 +51,7 @@ if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$FAH_TABLE; then
     exit 1
   fi
 fi 
-sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_R1/createTable_ETL_HCOM_HEX_ASSIGNMENT_HIT.hql
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_OMNI_HIT/createTable_ETL_HCOM_HEX_ASSIGNMENT_HIT.hql
 if [ $? -ne 0 ]; then
   _LOG "Error creating table. Installation FAILED."
   exit 1
@@ -73,7 +73,7 @@ if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$TRANS_TABLE; then
     exit 1
   fi
 fi 
-sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_R2_R3/createTable_ETL_HCOM_HEX_TRANSACTIONS.hql
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_OMNI_TRANS_R3/createTable_ETL_HCOM_HEX_TRANSACTIONS.hql
 if [ $? -ne 0 ]; then
   _LOG "Error creating table. Installation FAILED."
   exit 1
@@ -142,7 +142,7 @@ if [ $? -ne 0 ]; then
    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
    exit 1
 fi
-_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_SCOPE" "B"
+_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_SCOPE" "OMNI_HIT_TRANS"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
   $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
