@@ -25,7 +25,7 @@ export MODULE_PATH=$MODULE_LN
 CURR_PATH=`dirname $0`
 
 SCRIPT_PATH_OMNI_HIT=$CURR_PATH/../scripts/hql/OMNI_HIT
-SCRIPT_PATH_OMNI_TRANS_BKG_TRANS=$CURR_PATH/../scripts/hql/OMNI_TRANS_BKG_TRANS
+SCRIPT_PATH_TRANS=$CURR_PATH/../scripts/hql/TRANS
 JAR_PATH=$(ls $CURR_PATH/../jars/${MODULE_NAME}*.jar)
 JAR_DEST_PATH=/app/edw/hive/auxlib/$MODULE_NAME.jar
 
@@ -73,7 +73,7 @@ if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$TRANS_TABLE; then
     exit 1
   fi
 fi 
-sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_OMNI_TRANS_BKG_TRANS/createTable_ETL_HCOM_HEX_TRANSACTIONS.hql
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_TRANS/createTable_ETL_HCOM_HEX_TRANSACTIONS.hql
 if [ $? -ne 0 ]; then
   _LOG "Error creating table. Installation FAILED."
   exit 1
