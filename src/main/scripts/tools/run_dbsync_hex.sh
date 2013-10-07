@@ -39,7 +39,7 @@ if [ "$PROCESS_ID" == "" ] || (( $RETURN_CODE != 0 )); then
 fi
 
 BOOKMARK=`_READ_PROCESS_CONTEXT $PROCESS_ID "BOOKMARK"`
-BOOKMARK=`date --date="${BOOKMARK}" +1 days "${BOOKMARK_PATTERN}"`
+export BOOKMARK=`date --date="${BOOKMARK}" +1 days "${BOOKMARK_PATTERN}"`
 # validation doesn't work as expected (always validates only the latest partition)
 
 $SCRIPT_PATH/tools/db2hive_counts_validation.sh || exit 1
