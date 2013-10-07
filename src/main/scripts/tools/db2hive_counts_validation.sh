@@ -1,8 +1,9 @@
 #!/bin/bash
 
+export PLAT_HOME=/usr/local/edw/platform
 source $PLAT_HOME/common/sh_helpers.sh
 
-SCRIPTS_FOLDER=$(dirname $0)
+SCRIPTS_FOLDER=$PLAT_HOME/tools/data_validation
 
 source $SCRIPTS_FOLDER/data_validation_helper.sh
 source $PLAT_HOME/common/sh_metadata_storage.sh
@@ -28,13 +29,14 @@ if (( $ERROR_CODE == 0 )); then
     TEST_CASE_HIVE=" select count(*) from $HIVE_TABLE "; 
 
     if [[ $HIVE_PARTITION_KEY != "" ]]; then
-        echo "get last partition"
-        LAST_PARTITION=$(basename $(hadoop fs -ls /data/common/${HIVE_TABLE%.*}/${HIVE_TABLE#*.} | awk '{ print $8 }' | tail -1))
+        echo "get partition and bookmark"
+        HIVE_PARTITION=`date --date="${BOOKMARK}" '$HIVE_PARTITION_PATTERN'`
+        DB2_UNIT=`date --date="${BOOKMARK}" '$DB2_UNIT_PATTERN'`
         ERROR_CODE=$?
-        TEST_CASE_DB2=$(_ADD_WHERE_CLAUSE "$TEST_CASE_DB2" " date($PARTITION_BY_FIELD)=date('$LAST_PARTITION')");
-        TEST_CASE_HIVE=$(_ADD_WHERE_CLAUSE "$TEST_CASE_HIVE" " $HIVE_PARTITION_KEY='$LAST_PARTITION'"); 
+        TEST_CASE_DB2=$(_ADD_WHERE_CLAUSE "$TEST_CASE_DB2" " date($PARTITION_BY_FIELD)=date('$DB2_UNIT')");
+        TEST_CASE_HIVE=$(_ADD_WHERE_CLAUSE "$TEST_CASE_HIVE" " $HIVE_PARTITION_KEY='$HIVE_PARTITION' and $BOOKMARK_FIELD='$DB2_UNIT'"); 
     fi
-
+    
     if [[ $WHERE_CLAUSE != "" ]]; then
         TEST_CASE_DB2=$(_ADD_WHERE_CLAUSE "$TEST_CASE_DB2" "$WHERE_CLAUSE");
     fi
