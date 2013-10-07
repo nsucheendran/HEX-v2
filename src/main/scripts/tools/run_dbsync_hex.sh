@@ -6,7 +6,7 @@ export PLAT_HOME=/usr/local/edw/platform
 export HWW_HOME=/usr/etl/HWW
 SCRIPT_PATH=$HWW_HOME/hdp_hww_hex_etl
 
-DBSYNC variables
+# DBSYNC variables
 export DS_NAME=EDW_DB2
 export FILE_LAYOUT="SEQUENCE"
 export COMPRESSION_TYPE="snappy"

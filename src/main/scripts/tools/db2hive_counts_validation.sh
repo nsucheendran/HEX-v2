@@ -30,8 +30,8 @@ if (( $ERROR_CODE == 0 )); then
 
     if [[ $HIVE_PARTITION_KEY != "" ]]; then
         echo "get partition and bookmark"
-        HIVE_PARTITION=`date --date="${BOOKMARK}" '$HIVE_PARTITION_PATTERN'`
-        DB2_UNIT=`date --date="${BOOKMARK}" '$DB2_UNIT_PATTERN'`
+        HIVE_PARTITION=`date --date="${BOOKMARK}" "${HIVE_PARTITION_PATTERN}"`
+        DB2_UNIT=`date --date="${BOOKMARK}" "${DB2_UNIT_PATTERN}"`
         ERROR_CODE=$?
         TEST_CASE_DB2=$(_ADD_WHERE_CLAUSE "$TEST_CASE_DB2" " date($PARTITION_BY_FIELD)=date('$DB2_UNIT')");
         TEST_CASE_HIVE=$(_ADD_WHERE_CLAUSE "$TEST_CASE_HIVE" " $HIVE_PARTITION_KEY='$HIVE_PARTITION' and $BOOKMARK_FIELD='$DB2_UNIT'"); 
