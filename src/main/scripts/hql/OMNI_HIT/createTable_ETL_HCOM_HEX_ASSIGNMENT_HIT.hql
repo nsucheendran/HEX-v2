@@ -28,8 +28,8 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.fah.table} (
   number_of_children int, 
   children_in_search int,
   operating_system string,
-  all_mktg_seo string,
-  all_mktg_seo_direct string,
+  all_mktg_seo_30_day string,
+  all_mktg_seo_30_day_direct string,
   entry_page_name string,
   supplier_property_id string
 )
