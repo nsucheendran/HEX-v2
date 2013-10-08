@@ -7,6 +7,7 @@ bkg_room_nights smallint,
 gross_profit decimal,
 guid string,
 cid int, 
+itin_number string,
 local_date string,
 trans_date string,
 variant_code string,
@@ -35,4 +36,4 @@ all_mktg_seo_direct string,
 entry_page_name string
 ) 
 partitioned by(year_month string, source string)
-stored as RCFILE;
+stored as sequencefile;
