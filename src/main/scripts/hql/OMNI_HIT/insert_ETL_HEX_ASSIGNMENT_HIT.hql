@@ -77,7 +77,7 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
                                                      visit_page_number
                                                     ),
                                      "~~~") as min_hit_data,
-                               cid,
+                               case when (cid = '' or cid is null) then 'Unknown' else cid end as cid,
                                test_variant_code,
                                case when (c44 = '' or c44 is null) then 'Unknown' else c44 end as guid
                           from etl.etl_hcom_hit_data LATERAL VIEW explode(split(concat_ws(',',c154,c281),',')) tt as test_variant_code
