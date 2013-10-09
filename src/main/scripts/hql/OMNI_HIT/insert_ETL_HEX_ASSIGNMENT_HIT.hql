@@ -93,6 +93,6 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
               on (all_hits.guid = first_hits.guid
              and all_hits.test_variant_code = first_hits.experiment_variant_code
              and all_hits.cid = first_hits.cid
-             and first_hits.year_month >= ${hiveconf:start.ym})
+             and first_hits.year_month >= '${hiveconf:start.ym}')
            where first_hits.guid is null;
 
