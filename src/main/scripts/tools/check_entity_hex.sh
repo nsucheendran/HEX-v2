@@ -43,6 +43,7 @@ source $HWW_HOME/common/sh_hww_helpers.sh
 
 export ENTITY=$1
 
+_LOG "running source data availability check for: entity = $ENTITY and data = $END_DATE"
 _DBCONNECT
 
 STATUS=$($DB2_HOME/sqllib/bin/db2 -x "select count(*) from etl.etl_fileprocess where entity = '$ENTITY' and data = '$END_DATE' with ur")
