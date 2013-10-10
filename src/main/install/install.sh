@@ -202,7 +202,7 @@ else
   _LOG "Process $TRANS_PROCESS_NAME already exists"
 fi
 
-_WRITE_PROCESS_CONTEXT $TRANS_PROCESS_ID "BOOKMARK" "`date -d " -1 days" "+%Y-%m-%d"`"
+_WRITE_PROCESS_CONTEXT $TRANS_PROCESS_ID "BOOKMARK" "`date -d " -2 days" "+%Y-%m-%d"`"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
   $PLAT_HOME/tools/metadata/delete_process.sh "$TRANS_PROCESS_NAME"
