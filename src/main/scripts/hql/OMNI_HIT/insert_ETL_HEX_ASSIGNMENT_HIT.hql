@@ -88,7 +88,7 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
                                )
                            and is_ip_excluded = false AND is_user_agent_excluded = false and is_excluded_hit = false
                            and (length(trim(c154)) > 0 or length(trim(c281)) > 0) 
-                      group by cid, test_variant_code, c44) all_hits  
+                      group by case when (cid is null) then -9998 else cid end, test_variant_code, case when (c44 = '' or c44 is null) then 'Unknown' else c44 end) all_hits  
  left outer join ${hiveconf:hex.fah.table} first_hits 
               on (all_hits.guid = first_hits.guid
              and all_hits.test_variant_code = first_hits.experiment_variant_code
