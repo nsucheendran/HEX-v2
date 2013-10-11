@@ -227,6 +227,9 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# 
+sudo -E -u $ETL_USER hdfs dfs -rm /etl/common/ETLDATA/meta-inf/V_ETLDM_HCOM_BKG_ORDER_XREF_HEX.mf
+
 _LOG "Process $TRANS_PROCESS_NAME configured successfully"
 
 # recreate the symbolic link to the deployed code 
