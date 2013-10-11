@@ -30,6 +30,7 @@ JAR_PATH=$(ls $CURR_PATH/../jars/${MODULE_NAME}*.jar)
 JAR_DEST_PATH=/app/edw/hive/auxlib/$MODULE_NAME.jar
 
 ETL_USER=hwwetl
+PLAT_USER=platetl
 FAH_TABLE='ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT'
 TRANS_TABLE='ETL_HCOM_HEX_TRANSACTIONS'
 FAH_DB='ETLDATA'
@@ -228,7 +229,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # 
-sudo -E -u $ETL_USER hdfs dfs -rm /etl/common/ETLDATA/meta-inf/V_ETLDM_HCOM_BKG_ORDER_XREF_HEX.mf
+sudo -E -u $PLAT_USER hdfs dfs -rm /etl/common/ETLDATA/meta-inf/V_ETLDM_HCOM_BKG_ORDER_XREF_HEX.mf
 
 _LOG "Process $TRANS_PROCESS_NAME configured successfully"
 
