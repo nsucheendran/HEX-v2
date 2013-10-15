@@ -1,6 +1,8 @@
-use platdev;
+use ${hiveconf:hex.rawfact.db};
 
-create table ETL_HCOM_HEX_transactions_first_hits_aggregate(
+DROP TABLE IF EXISTS ${hiveconf:hex.rawfact.table};
+
+CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.rawfact.table} (
 num_transactions int,
 bkg_gbv double,
 bkg_room_nights smallint,
@@ -33,7 +35,10 @@ children_in_search int,
 operating_system string,
 all_mktg_seo string,
 all_mktg_seo_direct string,
-entry_page_name string
+entry_page_name string,
+supplier_property_id int
 ) 
 partitioned by(year_month string, source string)
-stored as sequencefile;
+stored as sequencefile
+LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.rawfact.table}";
+

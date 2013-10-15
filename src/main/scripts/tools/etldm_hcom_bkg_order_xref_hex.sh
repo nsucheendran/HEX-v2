@@ -18,6 +18,14 @@ export PROCESS_BOOKMARK_FIELD='TRANS_DATE'
 export PRIMARY_KEY="BK_DATETM,TPID,TRL,TRANS_SEQUENCE"
  
 export HWW_HOME=/usr/etl/HWW
-sudo -E -u hwwetl $HWW_HOME/hdp_hww_hex_etl/tools/check_entity_hex.sh "Omniture Day and Booking XREF Complete" || exit 0
-sudo -E -u platetl $HWW_HOME/hdp_hww_hex_etl/tools/run_dbsync_hex.sh || exit 1
+
+sudo -E -u hwwetl $HWW_HOME/hdp_hww_hex_etl/tools/check_entity_hex.sh "Omniture Day and Booking XREF Complete"
+if [ $? -ne 0 ]; then
+  exit -1
+else
+  sudo -E -u platetl $HWW_HOME/hdp_hww_hex_etl/tools/run_dbsync_hex.sh
+  if [ $? -ne 0 ]; then
+    exit 1
+  fi;
+fi;
 
