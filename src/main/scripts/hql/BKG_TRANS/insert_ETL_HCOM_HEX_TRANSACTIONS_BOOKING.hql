@@ -31,7 +31,7 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
              from (  select FROM_UNIXTIME(UNIX_TIMESTAMP(trans_date, "yyyy-MM-dd"), "yyyy-MM-dd") as local_date,
                             split(firstValueNSort(concat_ws("~~~", 
                                                             cast(gmt_trans_datetm as string), 
-                                                            cast(UNIX_TIMESTAMP(gmt_trans_datetm, "yyyy-MM-dd-HH.mm.ss") as string), 
+                                                            cast(UNIX_TIMESTAMP(gmt_trans_datetm, "yyyy-MM-dd HH:mm:ss") as string), 
                                                             guid
                                                            ),
                                                   gmt_trans_datetm

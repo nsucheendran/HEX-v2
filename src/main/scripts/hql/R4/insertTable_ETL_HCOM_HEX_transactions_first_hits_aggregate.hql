@@ -15,6 +15,18 @@ R4.max_booking_record_date=min(R4.max_report_date, Booking_bookmark_date)
 R4.max_omniture_record_yr_month=year-month(R4.max_omniture_record_date)
 R4.max_booking_record_yr_month=year-month(R4.max_booking_record_date)
 
+set hive.exec.dynamic.partition.mode=nonstrict;
+set hive.exec.dynamic.partition=true;
+set hive.exec.max.dynamic.partitions=2000;
+set hive.exec.max.dynamic.partitions.pernode=1024;
+set hive.exec.compress.output=true;
+set mapred.max.split.size=256000000;
+set mapred.output.compression.type=BLOCK;
+set mapred.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
+set mapred.compress.map.output=true;
+set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
+
+
 set R4.min_report_date='2013-07-10';
 set R4.min_report_date_yrmonth='2013-07';
 set R4.max_report_date='2013-08-27';
@@ -25,9 +37,10 @@ set R4.max_omniture_record_yr_month='2013-08';
 set R4.max_booking_record_yr_month='2013-08';
 set R4.max_trans_record_date='2013-08-27';
 set R4.max_trans_record_date_yr_month='2013-08'; 
-set R4.min_src_bookmark='2012-10-31';               -- min(R4.src_bookmark_omni, R4.src_bookmark_bkg)
+set R4.min_src_bookmark='2012-10-31'; 
 set R4.src_bookmark_omni='2013-10-13';
 set R4.src_bookmark_bkg='2013-10-13';
+
 
 use ${hiveconf:hex.rawfact.db};
 
@@ -70,7 +83,7 @@ insert into table ${hiveconf:hex.rawfact.table} partition(year_month, source)
                  entry_page_name,
                  supplier_property_id,
                  substr(local_date, 1, 7) as year_month,
-                 case when source is null then 'omniture' else source end as source 
+                 case when source is null then 'omniture' else source end as source
             from (          select count(1) as num_transactions,
                                    hits_by_report.variant_code,
                                    experiment_code,
