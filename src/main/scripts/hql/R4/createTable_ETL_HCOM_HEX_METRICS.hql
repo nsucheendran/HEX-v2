@@ -1,0 +1,47 @@
+use hwwdev;
+
+create table hwwdev.ETL_HCOM_HEX_METRICS(
+num_unique_viewers int,
+num_unique_purchasers int,
+num_unique_cancellers int,
+num_active_purchasers int,
+num_nil_net_order_purchasers int,
+total_cancellations int,
+net_orders int,
+net_bkg_gbv double,
+net_bkg_room_nights int,
+net_gross_profit double,
+num_repeat_purchasers int,
+cid int, 
+local_date string,
+new_visitor_ind smallint, 
+page_assigned_entry_page_name string, 
+site_sectn_name string, 
+user_cntext_name string, 
+browser_height smallint, 
+browser_width smallint, 
+brwsr_id smallint, 
+mobile_ind string, 
+destination_id int, 
+property_destination_id int, 
+platform_type string, 
+days_until_stay int, 
+length_of_stay int, 
+number_of_rooms int, 
+number_of_adults int, 
+number_of_children int, 
+children_in_search int,
+operating_system string,
+all_mktg_seo string,
+all_mktg_seo_direct string,
+entry_page_name string,
+experiment_name string,
+variant_name string,
+status string,
+experiment_test_id string
+) partitioned by (
+variant_code string,
+experiment_code string,
+version_number smallint
+) 
+stored as sequencefile;
