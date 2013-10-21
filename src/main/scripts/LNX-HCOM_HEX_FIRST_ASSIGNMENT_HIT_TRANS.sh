@@ -21,6 +21,7 @@ PLAT_HOME=/usr/local/edw/platform
 HWW_HOME=/usr/etl/HWW
 SCRIPT_PATH_OMNI_HIT=$HWW_HOME/hdp_hww_hex_etl/hql/OMNI_HIT
 SCRIPT_PATH_OMNI_TRANS=$HWW_HOME/hdp_hww_hex_etl/hql/OMNI_TRANS
+SCRIPT_PATH_TRANS=$HWW_HOME/hdp_hww_hex_etl/hql/TRANS
 HEX_LST_PATH=/app/etl/HWW/Omniture/listfiles
 HEX_LOGS=/usr/etl/HWW/log
 
@@ -83,7 +84,7 @@ then
     CURR_MONTH=$START_MONTH
     while [ "${CURR_YEAR}${CURR_MONTH}" \< "${END_YEAR}${END_MONTH}" -o "${CURR_YEAR}${CURR_MONTH}" = "${END_YEAR}${END_MONTH}" ]
     do
-      LOG_FILE_NAME="hdp_first_assignment_hit_reprocess_${CURR_YEAR}-${CURR_MONTH}.log"
+      LOG_FILE_NAME="hdp_first_assignment_hit_drop_partition_${CURR_YEAR}-${CURR_MONTH}.log"
 
       _LOG "Dropping partition [$CURR_YEAR-$CURR_MONTH] from target: $FAH_DB.$FAH_TABLE"
       hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_OMNI_HIT/delete_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
@@ -104,8 +105,10 @@ then
     CURR_MONTH=$START_MONTH
     while [ "${CURR_YEAR}${CURR_MONTH}" \< "${END_YEAR}${END_MONTH}" -o "${CURR_YEAR}${CURR_MONTH}" = "${END_YEAR}${END_MONTH}" ]
     do
+      LOG_FILE_NAME="hdp_transactions_omni_drop_partition_${CURR_YEAR}-${CURR_MONTH}.log"
+
       _LOG "Dropping partition [$CURR_YEAR-$CURR_MONTH] from target: $FAH_DB.$TRANS_TABLE"
-      hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf part.source="omniture" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_OMNI_TRANS/delete_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+      hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf part.source="omniture" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_TRANS/delete_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
         _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]"
