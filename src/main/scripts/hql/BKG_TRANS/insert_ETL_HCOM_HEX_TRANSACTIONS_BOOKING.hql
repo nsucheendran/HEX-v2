@@ -37,7 +37,7 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                                                   gmt_trans_datetm
                                                  ), 
                                   "~~~") as val,
-                            case when (itin_number=='' or itin_number is null) then 'Unknown' else itin_number end as itin_number,
+                            itin_number,
                             sum(GROSS_BKG_AMT_USd) as BKG_GBV,
                             sum(RM_NIGHT_CNT) as BKG_Room_Nights, 
                             sum(gross_profit_amt_usd) as Gross_Profit,
@@ -46,4 +46,5 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                       where trans_date between '${hiveconf:start.date}' and '${hiveconf:end.date}'
                         and year_month = '${hiveconf:month}'
                         and guid is not null and guid<>''
-                   group by case when (itin_number=='' or itin_number is null) then 'Unknown' else itin_number end, cancel_count, trans_date) temp;
+                   group by itin_number, cancel_count, trans_date) temp;
+
