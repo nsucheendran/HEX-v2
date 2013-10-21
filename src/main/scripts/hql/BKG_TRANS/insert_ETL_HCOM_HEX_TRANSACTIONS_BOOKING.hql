@@ -21,10 +21,10 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                   val[0] as gmt_datetm, 
                   itin_number, 
                   0 as Omniture_GBV, 
-                  case when (BKG_GBV is null or BKG_GBV=='') then 0.0 else BKG_GBV end as BKG_GBV, 
+                  case when (BKG_GBV is null) then 0.0 else BKG_GBV end as BKG_GBV, 
                   0 as Omniture_Room_Nights, 
-                  case when (BKG_Room_Nights is null or BKG_Room_Nights=='') then cast(0 as bigint) else BKG_Room_Nights end as BKG_Room_Nights, 
-                  case when (Gross_Profit is null or Gross_Profit=='') then 0.0 else Gross_Profit end as Gross_Profit,  
+                  case when (BKG_Room_Nights is null) then cast(0 as bigint) else BKG_Room_Nights end as BKG_Room_Nights, 
+                  case when (Gross_Profit is null) then 0.0 else Gross_Profit end as Gross_Profit,  
                   purchase_flag,
                   substr(local_date, 1, 7) as year_month,
                   'booking' as source
