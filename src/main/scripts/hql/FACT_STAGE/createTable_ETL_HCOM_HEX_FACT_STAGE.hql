@@ -1,8 +1,8 @@
-use ${hiveconf:hex.rawfact.db};
+use ${hiveconf:hex.db};
 
-DROP TABLE IF EXISTS ${hiveconf:hex.rawfact.table};
+DROP TABLE IF EXISTS ${hiveconf:hex.table};
 
-CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.rawfact.table} (
+CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.table} (
 num_transactions int,
 bkg_gbv double,
 bkg_room_nights smallint,
@@ -40,5 +40,5 @@ supplier_property_id int
 ) 
 partitioned by(year_month string, source string)
 stored as sequencefile
-LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.rawfact.table}";
+LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.table}";
 

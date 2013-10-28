@@ -1,19 +1,19 @@
 Omniture_bookmark_date='2013-10-08.57.00.000000' (R1 & R2 common bookmark)
 Booking_bookmark_date='2012-10-07' (R3 bookmark)
 -- omniture's last transaction considered timestamp
-R4.src_bookmark_omni='2012-10-31' (after run, update to {Omniture_bookmark_date})
+src_bookmark_omni='2012-10-31' (after run, update to {Omniture_bookmark_date})
 -- bkg_xref's last transaction considered timestamp
-R4.src_bookmark_bkg='2012-10-31' (after run, update to min{Omniture_bookmark_date, Booking_bookmark_date})
-R4.min_src_bookmark=min(R4.src_bookmark_omni,R4.src_bookmark_bkg)
-R4.min_report_date='2012-11-01' (min report_start_date of currently active reporting requirements)
-R4.min_report_date_yrmonth=year-month(R4.min_report_date)
-R4.max_report_date='2013-10-08' (max report_end_date of currently active reporting requirements)
-R4.max_trans_record_date=max(R4.max_omniture_record_date, R4.max_booking_record_date)
-R4.max_trans_record_date_yr_month=year-month(R4.max_trans_record_date)
-R4.max_omniture_record_date=min(R4.max_report_date, Omniture_bookmark_date)
-R4.max_booking_record_date=min(R4.max_report_date, Booking_bookmark_date)
-R4.max_omniture_record_yr_month=year-month(R4.max_omniture_record_date)
-R4.max_booking_record_yr_month=year-month(R4.max_booking_record_date)
+src_bookmark_bkg='2012-10-31' (after run, update to min{Omniture_bookmark_date, Booking_bookmark_date})
+min_src_bookmark=min(src_bookmark_omni,src_bookmark_bkg)
+min_report_date='2012-11-01' (min report_start_date of currently active reporting requirements)
+min_report_date_yrmonth=year-month(min_report_date)
+max_report_date='2013-10-08' (max report_end_date of currently active reporting requirements)
+max_trans_record_date=max(max_omniture_record_date, max_booking_record_date)
+max_trans_record_date_yr_month=year-month(max_trans_record_date)
+max_omniture_record_date=min(max_report_date, Omniture_bookmark_date)
+max_booking_record_date=min(max_report_date, Booking_bookmark_date)
+max_omniture_record_yr_month=year-month(max_omniture_record_date)
+max_booking_record_yr_month=year-month(max_booking_record_date)
 
 set hive.exec.dynamic.partition.mode=nonstrict;
 set hive.exec.dynamic.partition=true;
@@ -25,26 +25,25 @@ set mapred.output.compression.type=BLOCK;
 set mapred.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 set mapred.compress.map.output=true;
 set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
+set mapred.job.queue.name=${job.queue}
 
+set min_report_date='2013-07-10';
+set min_report_date_yrmonth='2013-07';
+set max_report_date='2013-08-27';
+set max_report_date_yrmonth='2013-08';
+set max_omniture_record_date='2013-08-27';
+set max_booking_record_date='2013-08-27';
+set max_omniture_record_yr_month='2013-08';
+set max_booking_record_yr_month='2013-08';
+set max_trans_record_date='2013-08-27';
+set max_trans_record_date_yr_month='2013-08'; 
+set min_src_bookmark='2012-10-31'; 
+set src_bookmark_omni='2013-10-13';
+set src_bookmark_bkg='2013-10-13';
 
-set R4.min_report_date='2013-07-10';
-set R4.min_report_date_yrmonth='2013-07';
-set R4.max_report_date='2013-08-27';
-set R4.max_report_date_yrmonth='2013-08';
-set R4.max_omniture_record_date='2013-08-27';
-set R4.max_booking_record_date='2013-08-27';
-set R4.max_omniture_record_yr_month='2013-08';
-set R4.max_booking_record_yr_month='2013-08';
-set R4.max_trans_record_date='2013-08-27';
-set R4.max_trans_record_date_yr_month='2013-08'; 
-set R4.min_src_bookmark='2012-10-31'; 
-set R4.src_bookmark_omni='2013-10-13';
-set R4.src_bookmark_bkg='2013-10-13';
+use ${hiveconf:hex.db};
 
-
-use ${hiveconf:hex.rawfact.db};
-
-insert into table ${hiveconf:hex.rawfact.table} partition(year_month, source)
+insert into table ${hiveconf:hex.table} partition(year_month, source)
           select case when purchase_flag=false then 0-num_transactions
                       when purchase_flag=true then num_transactions
                       else cast(0 as bigint)
@@ -130,12 +129,12 @@ insert into table ${hiveconf:hex.rawfact.table} partition(year_month, source)
                                                      source,
                                                      itin_number 
                                                 from ETLDATA.ETL_HCOM_HEX_TRANSACTIONS
-                                               where year_month>=${hiveconf:R4.min_report_date_yrmonth}
-                                                 and year_month<=${hiveconf:R4.max_trans_record_date_yr_month}
-                                                 and local_date>=${hiveconf:R4.min_report_date} 
-                                                 and ((source='omniture' and local_date<=${hiveconf:R4.max_omniture_record_date})
+                                               where year_month>='${hiveconf:min_report_date_yrmonth}'
+                                                 and year_month<='${hiveconf:max_trans_record_date_yr_month}'
+                                                 and local_date>='${hiveconf:min_report_date}'
+                                                 and ((source='omniture' and local_date<='${hiveconf:max_omniture_record_date}')
                                                       or 
-                                                      (source='booking' and local_date<=${hiveconf:R4.max_booking_record_date})
+                                                      (source='booking' and local_date<='${hiveconf:max_booking_record_date}')
                                                      )
                                    ) trans
                   right outer join (          select /*+ MAPJOIN(rep) */ cid,
@@ -199,10 +198,10 @@ insert into table ${hiveconf:hex.rawfact.table} partition(year_month, source)
                                                                        entry_page_name,
                                                                        supplier_property_id
                                                                   from etldata.etl_hcom_hex_first_assignment_hit 
-                                                                 where year_month>=${hiveconf:R4.min_report_date_yrmonth}
-                                                                   and year_month<=${hiveconf:R4.max_omniture_record_yr_month}
-                                                                   and local_date<=${hiveconf:R4.max_omniture_record_date}
-                                                                   and local_date>=${hiveconf:R4.min_report_date}
+                                                                 where year_month>='${hiveconf:min_report_date_yrmonth}'
+                                                                   and year_month<='${hiveconf:max_omniture_record_yr_month}'
+                                                                   and local_date<='${hiveconf:max_omniture_record_date}'
+                                                                   and local_date>='${hiveconf:min_report_date}'
                                                      ) first_hits
                                           inner join (          select variant_code,
                                                                        experiment_code,
@@ -212,9 +211,9 @@ insert into table ${hiveconf:hex.rawfact.table} partition(year_month, source)
                                                                        last_updated_dt,
                                                                        trans_date
                                                                   from hwwdev.HEX_REPORTING_REQUIREMENTS
-                                                                 where last_updated_dt>=${hiveconf:R4.min_src_bookmark}
-                                                                    or (    report_start_date<=${hiveconf:R4.min_src_bookmark}
-                                                                        and report_end_date>=${hiveconf:R4.min_src_bookmark})
+                                                                 where last_updated_dt>='${hiveconf:min_src_bookmark}'
+                                                                    or (    report_start_date<='${hiveconf:min_src_bookmark}'
+                                                                        and report_end_date>='${hiveconf:min_src_bookmark}')
                                                      ) rep
                                                   on first_hits.experiment_variant_code=rep.variant_code
                                                where first_hits.local_date>=rep.report_start_date
@@ -224,17 +223,17 @@ insert into table ${hiveconf:hex.rawfact.table} partition(year_month, source)
                              where trans.guid is null
                                 or (    trans.trans_date<=hits_by_report.trans_date
                                     and hits_by_report.gmt<=trans.gmt
-                                    and (    (    hits_by_report.last_updated_dt>=${hiveconf:R4.min_src_bookmark} 
+                                    and (    (    hits_by_report.last_updated_dt>='${hiveconf:min_src_bookmark}'
                                               and trans.trans_date>=hits_by_report.report_start_date
                                              )
-                                          or (    (    hits_by_report.last_updated_dt='' 
+                                          or (    (    hits_by_report.last_updated_dt=''
                                                     or hits_by_report.last_updated_dt is null
                                                   ) 
-                                              and (    (    trans.source='booking' 
-                                                        and trans.trans_date>${hiveconf:R4.src_bookmark_bkg}
+                                              and (    (    trans.source='booking'
+                                                        and trans.trans_date>'${hiveconf:src_bookmark_bkg}'
                                                        ) 
                                                     or (    trans.source='omniture' 
-                                                        and trans.trans_date>${hiveconf:R4.src_bookmark_omni}
+                                                        and trans.trans_date>'${hiveconf:src_bookmark_omni}'
                                                        )
                                                   )
                                              )
@@ -243,7 +242,7 @@ insert into table ${hiveconf:hex.rawfact.table} partition(year_month, source)
                           group by hits_by_report.variant_code,
                                    experiment_code,
                                    version_number,
-                                   trans.guid,
+                                   hits_by_report.guid,
                                    cid,
                                    trans.purchase_flag,
                                    hits_by_report.local_date,
