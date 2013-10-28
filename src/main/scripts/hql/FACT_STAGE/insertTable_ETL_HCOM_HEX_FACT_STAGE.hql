@@ -56,7 +56,7 @@ insert into table ${hiveconf:hex.table} partition(year_month, source)
                  itin_number,
                  local_date,
                  trans_date,
-                 variant_code,
+                 rep_variant_code as variant_code,
                  experiment_code,
                  version_number,
                  new_visitor_ind,
@@ -84,7 +84,7 @@ insert into table ${hiveconf:hex.table} partition(year_month, source)
                  substr(local_date, 1, 7) as year_month,
                  case when source is null then 'omniture' else source end as source
             from (          select count(1) as num_transactions,
-                                   hits_by_report.variant_code,
+                                   hits_by_report.rep_variant_code,
                                    experiment_code,
                                    version_number,
                                    trans.guid,
@@ -137,8 +137,8 @@ insert into table ${hiveconf:hex.table} partition(year_month, source)
                                                       (source='booking' and local_date<='${hiveconf:max_booking_record_date}')
                                                      )
                                    ) trans
-                  right outer join (          select /*+ MAPJOIN(rep) */ cid,
-                                                     variant_code,
+                              join (          select /*+ MAPJOIN(rep) */ cid,
+                                                     rep_variant_code,
                                                      experiment_code,
                                                      version_number,
                                                      guid,
@@ -216,12 +216,11 @@ insert into table ${hiveconf:hex.table} partition(year_month, source)
                                                                         and report_end_date>='${hiveconf:min_src_bookmark}')
                                                      ) rep
                                                   on first_hits.experiment_variant_code=rep.variant_code
-                                               where first_hits.local_date>=rep.report_start_date
-                                                 and first_hits.local_date<=rep.report_end_date
+                                                  where first_hits.local_date>=rep.report_start_date
+                                                    and first_hits.local_date<=rep.report_end_date
                                    ) hits_by_report
                                 on hits_by_report.guid=trans.guid
-                             where trans.guid is null
-                                or (    trans.trans_date<=hits_by_report.trans_date
+                             where (    trans.trans_date<=hits_by_report.trans_date
                                     and hits_by_report.gmt<=trans.gmt
                                     and (    (    hits_by_report.last_updated_dt>='${hiveconf:min_src_bookmark}'
                                               and trans.trans_date>=hits_by_report.report_start_date
@@ -239,7 +238,7 @@ insert into table ${hiveconf:hex.table} partition(year_month, source)
                                              )
                                         )
                                    )
-                          group by hits_by_report.variant_code,
+                          group by hits_by_report.rep_variant_code,
                                    experiment_code,
                                    version_number,
                                    hits_by_report.guid,

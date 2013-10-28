@@ -50,9 +50,9 @@ insert overwrite table hwwdev.ETL_HCOM_HEX_METRICS partition(variant_code, exper
 		sum(net_bkg_gbv_by_itin) as net_bkg_gbv, 
 		sum(net_bkg_room_nights_by_itin) as net_bkg_room_nights, 
 		sum(net_gross_profit_by_itin) as net_gross_profit, 
-		case when sum(min_trans_by_itin)==0 and count(distinct booking_date_for_active_itin)>2 then 1 
+		case when min(min_trans_by_itin)==0 and count(distinct booking_date_for_active_itin)>2 then 1 
 			 else 
-			 	case when sum(min_trans_by_itin)<0 and count(distinct booking_date_for_active_itin)>3 then 1 
+			 	case when min(min_trans_by_itin)<0 and count(distinct booking_date_for_active_itin)>3 then 1 
 			         else 0 
 			 		 end 
 			 end as repeat_purchaser,

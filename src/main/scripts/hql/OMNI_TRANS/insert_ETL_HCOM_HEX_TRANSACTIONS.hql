@@ -20,9 +20,9 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                   purchase_data[0] as gmt, 
                   purchase_data[1] as gmt_datetm, 
                   purchase_id as itin_number, 
-                  purchase_data[2] as Omniture_GBV, 
+                  case when (purchase_data[2] is null) then '0' else purchase_data[2] end as Omniture_GBV, 
                   0 as BKG_GBV, 
-                  purchase_data[3] as Omniture_Room_Nights, 
+                  case when (purchase_data[3] is null) then '0' else purchase_data[3] end as Omniture_Room_Nights, 
                   0 as BKG_Room_Nights, 
                   0 as Gross_Profit,
                   true as purchase_flag, 
@@ -53,4 +53,3 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                         and is_excluded_hit = false
                         and purchase_id is not null and purchase_id<>''
                    group by purchase_id) temp;
-
