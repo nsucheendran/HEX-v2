@@ -18,6 +18,7 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
           select all_hits.guid,
                  all_hits.cid,
                  all_hits.test_variant_code as experiment_variant_code,
+                 concat(substr(all_hits.test_variant_code, 0, instr(all_hits.test_variant_code, ".")),"%") as parent_variant_code,
                  all_hits.min_hit_data[0] as local_date,
                  all_hits.min_hit_data[1] as gmt,
                  all_hits.min_hit_data[2] as gmt_timestamp,

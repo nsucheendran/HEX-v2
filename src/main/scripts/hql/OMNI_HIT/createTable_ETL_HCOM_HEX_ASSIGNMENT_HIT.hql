@@ -5,7 +5,8 @@ DROP TABLE IF EXISTS ${hiveconf:hex.fah.table};
 CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.fah.table} (
   guid string, 
   cid int, 
-  experiment_variant_code string, 
+  experiment_variant_code string,
+  parent_variant_code string, 
   local_date string, 
   gmt int, 
   gmt_timestamp string, 
@@ -39,4 +40,3 @@ STORED AS RCFILE
 LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.fah.table}";
 
 ALTER TABLE ${hiveconf:hex.fah.table} ENABLE NO_DROP;
-
