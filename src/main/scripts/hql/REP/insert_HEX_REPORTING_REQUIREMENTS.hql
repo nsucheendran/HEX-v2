@@ -48,6 +48,7 @@ select experiment_code,
        reporting_variant_code, 
        variant_name, 
        version_number, 
+       report_start_date,
        report_end_date, 
        status, 
        trans_date, 
@@ -63,6 +64,7 @@ select experiment_code,
                    variant_code as reporting_variant_code, 
                    variant_name, 
                    version_number, 
+                   report_start_date,
                    report_end_date, 
                    status, 
                    trans_date, 
@@ -74,12 +76,14 @@ select experiment_code,
             from HEX_REPORTING_REQUIREMENTS_STAGING
             where variant_code not like '%\\%'
         union all
-            select /*+ MAPJOIN(pvc_rep) */ experiment_code,
+            select /*+ MAPJOIN(pvc_rep) */ 
+                   distinct experiment_code,
                    experiment_name, 
                    variant_code, 
                    first_hits.experiment_variant_code as reporting_variant_code, 
                    variant_name, 
                    version_number, 
+                   report_start_date,
                    report_end_date, 
                    status, 
                    trans_date, 
@@ -91,7 +95,7 @@ select experiment_code,
             from
                 (  select * from HEX_REPORTING_REQUIREMENTS_STAGING where variant_code like '%\\%') pvc_rep
             join
-                (select parent_variant_code,experiment_variant_code, local_date from hwwdev.1stAssignPVC) first_hits 
+                (select parent_variant_code,experiment_variant_code, local_date from etldata.etl_hcom_hex_first_assignment_hit) first_hits 
             on (first_hits.parent_variant_code=pvc_rep.variant_code)
             where first_hits.local_date>=pvc_rep.report_start_date 
                 and first_hits.local_date<=pvc_rep.report_end_date 
