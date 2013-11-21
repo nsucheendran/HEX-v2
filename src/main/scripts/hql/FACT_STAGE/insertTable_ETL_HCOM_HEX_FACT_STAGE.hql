@@ -26,6 +26,8 @@ set mapred.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 set mapred.compress.map.output=true;
 set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 set mapred.job.queue.name=${job.queue}
+set hive.auto.convert.join=true;
+set mapred.job.reduce.total.mem.bytes=99000000;
 
 set min_report_date='2013-07-10';
 set min_report_date_yrmonth='2013-07';
@@ -45,8 +47,8 @@ use ${hiveconf:hex.db};
 
 -- populate 1st assignment hits for the active reporting requirements in the reporting range
 insert overwrite table ${hiveconf:rep.first.hits.hex.table} partition(year_month)
-select cid,
-       variant_code,
+select /*+ MAPJOIN(rep) */ cid,
+       rep.variant_code,
        experiment_code,
        version_number,
        guid,
@@ -54,122 +56,79 @@ select cid,
        report_end_date,
        last_updated_dt, 
        trans_date,
-       cast(min_hit_data[0] as bigint) as gmt,
-       min_hit_data[1] as local_date,
-       min_hit_data[2] as new_visitor_ind,
-       min_hit_data[3] as page_assigned_entry_page_name, 
-       min_hit_data[4] as site_sectn_name,
-       min_hit_data[5] as user_cntext_name,
-       min_hit_data[6] as browser_height,
-       min_hit_data[7] as browser_width,
-       min_hit_data[8] as brwsr_id,
-       min_hit_data[9] as mobile_ind,
-       min_hit_data[10] as destination_id,
-       min_hit_data[11] as property_destination_id,
-       min_hit_data[12] as platform_type, 
-       min_hit_data[13] as days_until_stay,
-       min_hit_data[14] as length_of_stay,
-       min_hit_data[15] as number_of_rooms,
-       min_hit_data[16] as number_of_adults,
-       min_hit_data[17] as number_of_children,
-       min_hit_data[18] as children_in_search,
-       min_hit_data[19] as operating_system_id,
-       min_hit_data[20] as all_mktg_seo_30_day,
-       min_hit_data[21] as all_mktg_seo_30_day_direct,
-       min_hit_data[22] as entry_page_name,
-       min_hit_data[23] as supplier_property_id,
-       substr(min_hit_data[1], 1, 7) as year_month
+       gmt,
+       local_date,
+       new_visitor_ind,
+       page_assigned_entry_page_name, 
+       site_sectn_name,
+       user_cntext_name,
+       browser_height,
+       browser_width,
+       brwsr_id,
+       mobile_ind,
+       destination_id,
+       property_destination_id,
+       platform_type, 
+       days_until_stay,
+       length_of_stay,
+       number_of_rooms,
+       number_of_adults,
+       number_of_children,
+       children_in_search,
+       operating_system_id,
+       all_mktg_seo_30_day,
+       all_mktg_seo_30_day_direct,
+       entry_page_name,
+       supplier_property_id,
+       substr(local_date, 1, 7) as year_month
 from (
-           select /*+ MAPJOIN(rep) */ cid,
-                  variant_code,
+           select guid,
+                  cid,
+                  local_date,
+                  gmt,
+                  experiment_variant_code,
+                  new_visitor_ind,
+                  page_assigned_entry_page_name, 
+                  site_sectn_name,
+                  user_cntext_name,
+                  browser_height,
+                  browser_width,
+                  brwsr_id, 
+                  mobile_ind,
+                  destination_id,
+                  property_destination_id,
+                  platform_type, 
+                  days_until_stay,
+                  length_of_stay,
+                  number_of_rooms,
+                  number_of_adults,
+                  number_of_children,
+                  children_in_search,
+                  operating_system_id,
+                  all_mktg_seo_30_day,
+                  all_mktg_seo_30_day_direct,
+                  entry_page_name,
+                  supplier_property_id
+           from etldata.etl_hcom_hex_first_assignment_hit 
+           where year_month>='${hiveconf:min_report_date_yrmonth}'
+                 and year_month<='${hiveconf:max_omniture_record_yr_month}'
+                 and local_date<='${hiveconf:max_omniture_record_date}'
+                 and local_date>='${hiveconf:min_report_date}'
+     ) first_hits
+     inner join 
+     (          
+           select variant_code,
                   experiment_code,
                   version_number,
-                  guid,
-                  report_start_date, 
+                  report_start_date,
                   report_end_date,
-                  last_updated_dt, 
-                  trans_date,
-                  split(firstValueNSort(concat_ws("~~~", 
-                                                        cast(gmt as string),
-                                                        local_date,
-                                                        cast(new_visitor_ind as string),
-                                                        page_assigned_entry_page_name, 
-                                                        site_sectn_name,
-                                                        user_cntext_name,
-                                                        cast(browser_height as string),
-                                                        cast(browser_width as string),
-                                                        cast(brwsr_id as string),
-                                                        mobile_ind,
-                                                        cast(destination_id as string),
-                                                        cast(property_destination_id as string),
-                                                        platform_type, 
-                                                        cast(days_until_stay as string),
-                                                        cast(length_of_stay as string),
-                                                        cast(number_of_rooms as string),
-                                                        cast(number_of_adults as string),
-                                                        cast(number_of_children as string),
-                                                        cast(children_in_search as string),
-                                                        cast(operating_system_id as string),
-                                                        all_mktg_seo_30_day,
-                                                        all_mktg_seo_30_day_direct,
-                                                        entry_page_name,
-                                                        cast(supplier_property_id as string)
-                                                 ), gmt
-                                        ),"~~~"
-                       ) as min_hit_data 
-           from (          
-                       select guid,
-                              cid,
-                              local_date,
-                              gmt,
-                              experiment_variant_code,
-                              new_visitor_ind,
-                              page_assigned_entry_page_name, 
-                              site_sectn_name,
-                              user_cntext_name,
-                              browser_height,
-                              browser_width,
-                              brwsr_id, 
-                              mobile_ind,
-                              destination_id,
-                              property_destination_id,
-                              platform_type, 
-                              days_until_stay,
-                              length_of_stay,
-                              number_of_rooms,
-                              number_of_adults,
-                              number_of_children,
-                              children_in_search,
-                              operating_system_id,
-                              all_mktg_seo_30_day,
-                              all_mktg_seo_30_day_direct,
-                              entry_page_name,
-                              supplier_property_id
-                       from etldata.etl_hcom_hex_first_assignment_hit 
-                       where year_month>='${hiveconf:min_report_date_yrmonth}'
-                             and year_month<='${hiveconf:max_omniture_record_yr_month}'
-                             and local_date<='${hiveconf:max_omniture_record_date}'
-                             and local_date>='${hiveconf:min_report_date}'
-                ) first_hits
-           inner join 
-                (          
-                       select variant_code,
-                              experiment_code,
-                              reporting_variant_code,
-                              version_number,
-                              report_start_date,
-                              report_end_date,
-                              last_updated_dt,
-                              trans_date
-                       from hwwdev.HEX_REPORTING_REQUIREMENTS
-                ) rep
-           on first_hits.experiment_variant_code=rep.reporting_variant_code
-           where first_hits.local_date>=rep.report_start_date
-                 and first_hits.local_date<=rep.report_end_date
-           group by guid, cid, variant_code,experiment_code,
-                    version_number, report_start_date, report_end_date, 
-                    last_updated_dt, trans_date  
-     ) hits_by_report;  
+                  last_updated_dt,
+                  trans_date
+           from hwwdev.HEX_REPORTING_REQUIREMENTS
+      ) rep
+      on first_hits.experiment_variant_code=rep.variant_code
+      where first_hits.local_date>=rep.report_start_date
+            and first_hits.local_date<=rep.report_end_date;
 
 -- pick first assignment hits incrementally
 insert into table ${hiveconf:hex.table} partition(year_month, source)
@@ -213,12 +172,12 @@ select guid,
        'omniture' as source 
 from ${hiveconf:rep.first.hits.hex.table} 
 where (    
-           last_updated_dt>='${hiveconf:src_bookmark_omni}'
+           last_updated_dt>'${hiveconf:src_bookmark_omni}'
       )
       or 
       (    
            (   last_updated_dt is null
-               or last_updated_dt<='${hiveconf:min_src_bookmark}'
+               or last_updated_dt<='${hiveconf:src_bookmark_omni}'
            ) 
            and 
            (    
@@ -226,7 +185,6 @@ where (
            )
       );
       
-
 insert into table ${hiveconf:hex.table} partition(year_month, source)
           select guid,
                  cid,
@@ -280,6 +238,8 @@ insert into table ${hiveconf:hex.table} partition(year_month, source)
                                    trans.trans_date as trans_date,
                                    sum(bkg_gbv) as bkg_gbv,
                                    sum(bkg_room_nights) as bkg_room_nights,
+                                   sum(omniture_gbv) as omniture_gbv,
+                                   sum(omniture_room_nights) as omniture_room_nights,
                                    sum(gross_profit) as gross_profit, 
                                    new_visitor_ind,
                                    page_assigned_entry_page_name,
@@ -311,6 +271,8 @@ insert into table ${hiveconf:hex.table} partition(year_month, source)
                                                      gmt,
                                                      bkg_gbv,
                                                      bkg_room_nights,
+                                                     omniture_gbv,
+                                                     omniture_room_nights,
                                                      gross_profit,
                                                      source,
                                                      itin_number 
@@ -328,7 +290,7 @@ insert into table ${hiveconf:hex.table} partition(year_month, source)
                                     where (    trans.trans_date<=hits_by_report.trans_date
                                                and hits_by_report.gmt<=trans.gmt
                                                and (    
-                                                      (    hits_by_report.last_updated_dt>='${hiveconf:min_src_bookmark}'
+                                                      (    hits_by_report.last_updated_dt>'${hiveconf:min_src_bookmark}'
                                                             and trans.trans_date>=hits_by_report.report_start_date
                                                       )
                                                       or 

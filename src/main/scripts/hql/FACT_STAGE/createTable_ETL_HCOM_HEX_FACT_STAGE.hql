@@ -2,6 +2,8 @@ use ${hiveconf:hex.db};
 
 DROP TABLE IF EXISTS ${hiveconf:hex.table};
 
+DROP TABLE IF EXISTS ${hiveconf:rep.first.hits.hex.table};
+
 CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:rep.first.hits.hex.table} (
 cid int, 
 variant_code string,
