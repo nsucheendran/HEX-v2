@@ -1,6 +1,6 @@
 use hwwdev;
 
-create table hwwdev.ETL_HCOM_HEX_METRICS(
+create table hwwdev.ETL_HCOM_HEX_FACT(
 num_unique_viewers bigint,
 num_unique_purchasers bigint,
 num_unique_cancellers bigint,
@@ -10,6 +10,8 @@ total_cancellations bigint,
 net_orders bigint,
 net_bkg_gbv double,
 net_bkg_room_nights bigint,
+net_omniture_gbv double,
+net_omniture_room_nights bigint,
 net_gross_profit double,
 num_repeat_purchasers bigint,
 cid int, 
@@ -38,7 +40,8 @@ entry_page_name string,
 experiment_name string,
 variant_name string,
 status string,
-experiment_test_id string
+experiment_test_id string,
+supplier_property_id int
 ) partitioned by (
 variant_code string,
 experiment_code string,
