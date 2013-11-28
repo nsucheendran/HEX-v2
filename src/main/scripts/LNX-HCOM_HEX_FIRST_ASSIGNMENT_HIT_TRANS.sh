@@ -192,13 +192,13 @@ else
   # daily incremental load: uses list files to determine max contiguous delta upto 24 hrs available at source from the bookmark date
 
   _LOG "Incremental First Assignment Hit data load (BOOKMARK=[$LAST_DT])"
-  START_DT=`date --date="${LAST_DT} +1 hours" '+%Y-%m-%d:%H'`
+  START_DT=`date -u --date="${LAST_DT} +1 hours" '+%Y-%m-%d:%H'`
   FILTER_YM=`date --date="${LAST_DT} -1 years" '+%Y-%m'`
   CURR_DATE=$LAST_DT
   END_DT=''
   for line in `cat $HEX_LST_PATH/hww_hex_*.lst|sort|grep -A$DELTA_CAP $START_DT`;do
     CURR_DATE=`echo $CURR_DATE|sed -e "s/:/ /g"`
-    CURR_DATE=`date --date="${CURR_DATE} +1 hours" '+%Y-%m-%d:%H'`
+    CURR_DATE=`date -u --date="${CURR_DATE} +1 hours" '+%Y-%m-%d:%H'`
     if [ $line = $CURR_DATE ];
     then
       END_DT=$line

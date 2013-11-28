@@ -34,9 +34,9 @@ public interface Constants {
 	
 	int CID_SEGMENTATION_KEY = 1;
 
-	String OUT_DELIIM = "\t";
+    String COL_DELIM = new String(new char[] { 1 });
 	
-    Pattern TAB_SEP_PATTERN = Pattern.compile(OUT_DELIIM);
+    Pattern TAB_SEP_PATTERN = Pattern.compile(COL_DELIM);
     
     String SEGMENTATION_DATA_PATH_KEY = "segmentationDataPath";
     

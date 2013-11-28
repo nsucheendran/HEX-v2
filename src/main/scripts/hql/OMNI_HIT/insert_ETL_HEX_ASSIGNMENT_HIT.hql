@@ -1,4 +1,5 @@
 CREATE TEMPORARY FUNCTION firstValueNSort AS 'udaf.GenericUDAFFirstValueNValueSort';
+CREATE TEMPORARY FUNCTION matchAndApplyPattern AS 'udf.GenericUDFApplyPatternOnList';
 
 set hive.exec.dynamic.partition.mode=nonstrict;
 set hive.exec.dynamic.partition=true;
@@ -83,8 +84,8 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
                                case when (c44 = '' or c44 is null) then 'Unknown' else c44 end as guid
                           from etl.etl_hcom_hit_data LATERAL VIEW explode(matchAndApplyPattern(split(concat_ws(',',c154,c281),','), "([^\\.]*)([\\.])(.*)", "$1$2%", true)) tt as test_variant_code
                          where test_variant_code <> '' and test_variant_code NOT like '%.UID.%'
-                           and ((local_date = '${hiveconf:start.date}' and local_hour >= '${hiveconf:start.hour}') or
-                                (local_date = '${hiveconf:end.date}' and local_hour <= '${hiveconf:end.hour}') or
+                           and ((local_date = '${hiveconf:start.date}' and local_hour >= ${hiveconf:start.hour}) or
+                                (local_date = '${hiveconf:end.date}' and local_hour <= ${hiveconf:end.hour}) or
                                 (local_date > '${hiveconf:start.date}' and local_date < '${hiveconf:end.date}')
                                )
                            and is_ip_excluded = false AND is_user_agent_excluded = false and is_excluded_hit = false
@@ -96,3 +97,4 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
              and all_hits.cid = first_hits.cid
              and first_hits.year_month >= '${hiveconf:start.ym}')
            where first_hits.guid is null;
+

@@ -1,56 +1,101 @@
 package mr.aggregation;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import static mr.Constants.TAB_SEP_PATTERN;
+
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import mr.dto.TextMultiple;
 
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapreduce.Mapper;
 
-import static mr.Constants.*;
+public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMultiple> {
 
-public class R4Mapper extends MapReduceBase implements Mapper<Text, Text, TextMultiple, TextMultiple> {
-	
-	/*public void configure(JobConf conf) {
-		BufferedReader br = new BufferedReader(new FileReader(conf.get(SEGMENTATION_DATA_PATH_KEY)));
-		String line;
+    private int[] lhsKeyPositions;
+    private int[] lhsValPositions;
+    private int[] rhsKeyPositions;
+    // private int[] rhsValPositions;
+    private Map<Integer, Integer> join = new HashMap<Integer, Integer>();
+    private String[][] rtable;
 
-		while ((line = br.readLine()) != null) {
-			String fields[] = line.split(OUT_DELIIM);
-			endTrans.put(fields[FIELD_DM_RPT_INPUT_KEY],
-					fields[FIELD_DM_RPT_END_TRANSACTION_DATE]);
-		}
-		br.close();
-			
-		}
-		catch(Exception e){
-			initErrorString = e.toString();
-			initError = true;
-		}
-    }*/
-	
-    public void map(Text key, Text value, OutputCollector<TextMultiple, TextMultiple> output, Reporter reporter)
-            throws IOException {
-        String line = value.toString();
-        //output.collect(null, line);
-        String[] columns = TAB_SEP_PATTERN.split( line );
-        output.collect( new TextMultiple(Integer.toString(CID_SEGMENTATION_KEY), 
-        		columns[EXPERIMENT_CODE_POSITION].equals(HIVE_NULL_VALUE)?"":columns[EXPERIMENT_CODE_POSITION], 
-        		columns[VARIANT_CODE_POSITION].equals(HIVE_NULL_VALUE)?"":columns[VARIANT_CODE_POSITION], 
-        		columns[VERSION_NUMBER_POSITION].equals(HIVE_NULL_VALUE)?"":columns[VERSION_NUMBER_POSITION], 
-        		columns[CID_POSITION].equals(HIVE_NULL_VALUE)?"":columns[CID_POSITION],
-                columns[LOCAL_DATE_POSITION].equals(HIVE_NULL_VALUE)?"":columns[LOCAL_DATE_POSITION]), new TextMultiple(columns[GUID_POSITION], 
-                		columns[TRANS_DATE_POSITION], columns[NUM_TRANS_POSITION], 
-                		columns[BKG_GBV_POSITION],
-                        columns[BKG_RN_POSITION],
-                        columns[GROSS_PROFIT_POSITION]));
+    public R4Mapper() {
+        super();
+    }
+
+    @Override
+    public void setup(Context context) {
+        lhsKeyPositions = getPositions(context, "lhsKeys");
+        lhsValPositions = getPositions(context, "lhsVals");
+
+        rhsKeyPositions = getPositions(context, "rhsKeys");
+        // rhsValPositions = getPositions(context, "rhsVals");
+
+        String[] joins = context.getConfiguration().get("join").split(",");
+        for (String j : joins) {
+            String[] vals = j.split("=");
+            join.put(Integer.parseInt(vals[0]), Integer.parseInt(vals[1]));
+        }
+        
+        String[] lines = context.getConfiguration().get("data").split("\n");
+        rtable = new String[lines.length][];
+        int i = 0;
+        for (String line : lines) {
+            rtable[i++] = line.split("\t");
+        }
+
+    }
+
+    private int[] getPositions(Context context, String attr) {
+        String[] posStrs = context.getConfiguration().get(attr).split(",");
+        int[] positions = new int[posStrs.length];
+        int i = 0;
+        for (String posStr : posStrs) {
+            positions[i++] = Integer.parseInt(posStr);
+        }
+        return positions;
+    }
+
+
+    private final String[] filter(String[] lrow) {
+
+        for (String[] rrow : rtable) {
+            boolean res = true;
+            for (int lpos : join.keySet()) {
+                int rpos = join.get(lpos);
+                res = res && lrow[lpos].equals(rrow[rpos]);
+                if (!res)
+                    break;
+            }
+            if (res) {
+                return stripe(rrow, rhsKeyPositions);
+            }
+        }
+        return null;
+    }
+
+    private String[] stripe(String[] rrow, int[] pos) {
+        String[] row = new String[pos.length];
+        int i = 0;
+        for (int p : pos) {
+            row[i++] = rrow[p];
+        }
+        return row;
+    }
+
+    @Override
+    public void map(BytesWritable key, Text value, Context context) throws IOException, InterruptedException {
+        String[] columns = TAB_SEP_PATTERN.split(value.toString());
+        String[] rkeys;
+        if ((rkeys = filter(columns)) != null) {
+            TextMultiple keys = new TextMultiple(columns, lhsKeyPositions);
+            TextMultiple vals = new TextMultiple(columns, lhsValPositions);
+            
+            keys = new TextMultiple(keys, rkeys);
+
+            context.write(keys, vals);
+        }
     }
 }

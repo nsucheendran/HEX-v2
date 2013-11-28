@@ -1,12 +1,12 @@
 package mr.dto;
 
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparable;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
+
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparable;
 
 public class TextMultiple implements WritableComparable<TextMultiple> {
 
@@ -23,10 +23,43 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
         }
     }
 
+    public TextMultiple(TextMultiple... others) {
+        int size = 0;
+        for (TextMultiple other : others) {
+            size += others.length;
+        }
+        this.texts = new Text[size];
+        int i = 0;
+        for (TextMultiple other : others) {
+            for (Text ot : other.texts)
+                this.texts[i++] = ot;
+        }
+
+    }
+
+    public TextMultiple(TextMultiple other, String... texts) {
+        this.texts = new Text[texts.length+other.texts.length];
+        int i;
+        for (i = 0; i < other.texts.length; i++) {
+            this.texts[i] = other.texts[i];
+        }
+        for (int j = 0; j < texts.length; j++) {
+            this.texts[i + j] = new Text(texts[j]);
+        }
+    }
+
+    public TextMultiple(String[] texts, int[] pos) {
+        this.texts = new Text[pos.length];
+        for (int i = 0; i < pos.length; i++) {
+            this.texts[i] = new Text(texts[pos[i]]);
+        }
+    }
+
     public Text getTextElementAt(int position) {
         return texts[position];
     }
 
+    @Override
     public void write(DataOutput out) throws IOException {
         out.writeInt(texts.length);
         for ( Text text : texts ) {
@@ -34,6 +67,7 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
         }
     }
 
+    @Override
     public void readFields(DataInput in) throws IOException {
         int length = in.readInt();
         if ( texts.length < length ) {
@@ -49,6 +83,7 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
         }
     }
 
+    @Override
     public int compareTo(TextMultiple tm) {
         for ( int i = 0; i < texts.length && i < tm.texts.length; i++ ) {
             int cmp = texts[i].compareTo( tm.texts[i] );

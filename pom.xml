@@ -17,7 +17,7 @@
         <plugins>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.2-beta-5</version>
+                <version>2.2.1</version>
                 <configuration>
                     <descriptors>
                         <descriptor>assembly.xml</descriptor>
@@ -71,27 +71,32 @@
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-core</artifactId>
-            <version>2.0.0-mr1-cdh4.1.2</version>
+            <version>2.0.0-mr1-cdh4.2.1</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
-            <version>2.0.0-cdh4.1.2</version>
+            <version>2.0.0-cdh4.2.1</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-hdfs</artifactId>
-            <version>2.0.0-cdh4.1.2</version>
+            <version>2.0.0-cdh4.2.1</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
-            <version>0.9.0-cdh4.1.2</version>
+            <version>0.10.0-cdh4.2.1</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>it.unimi.dsi</groupId>
             <artifactId>fastutil</artifactId>
-            <version>6.5.6</version>
+            <version>6.5.11</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -109,20 +114,20 @@
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-test</artifactId>
-            <version>2.0.0-mr1-cdh4.1.2</version>
+            <version>2.0.0-mr1-cdh4.2.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-hdfs</artifactId>
-            <version>2.0.0-cdh4.1.2</version>
+            <version>2.0.0-cdh4.2.1</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
-            <version>2.0.0-cdh4.1.2</version>
+            <version>2.0.0-cdh4.2.1</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
