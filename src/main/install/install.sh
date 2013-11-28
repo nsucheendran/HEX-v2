@@ -229,7 +229,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # 
-sudo -E -u $PLAT_USER hdfs dfs -rm /etl/common/ETLDATA/meta-inf/V_ETLDM_HCOM_BKG_ORDER_XREF_HEX.mf
+sudo -E -u $PLAT_USER hdfs dfs -rm -f /etl/common/ETLDATA/meta-inf/V_ETLDM_HCOM_BKG_ORDER_XREF_HEX.mf
 
 _LOG "Process $TRANS_PROCESS_NAME configured successfully"
 
