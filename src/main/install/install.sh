@@ -26,6 +26,7 @@ CURR_PATH=`dirname $0`
 
 SCRIPT_PATH_OMNI_HIT=$CURR_PATH/../scripts/hql/OMNI_HIT
 SCRIPT_PATH_TRANS=$CURR_PATH/../scripts/hql/TRANS
+SCRIPT_PATH_FACT=$CURR_PATH/../scripts/hql/FACT
 JAR_PATH=$(ls $CURR_PATH/../jars/${MODULE_NAME}*.jar)
 JAR_DEST_PATH=/app/edw/hive/auxlib/$MODULE_NAME.jar
 
@@ -33,6 +34,14 @@ ETL_USER=hwwetl
 PLAT_USER=platetl
 FAH_TABLE='ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT'
 TRANS_TABLE='ETL_HCOM_HEX_TRANSACTIONS'
+
+ACTIVE_FAH_TABLE='ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HIT'
+FACT_STAGE_TABLE='ETL_HCOM_HEX_FACT_STAGING'
+REPORT_TABLE='ETL_HEX_REPORTING'
+REPORT_TABLE='/tmp/HEX_REPORTING_INPUT.csv'
+
+HEX_DB='DM'
+
 FAH_DB='ETLDATA'
 JOB_QUEUE='hwwetl'
 REPROCESS_START_YEAR='2012'
@@ -80,6 +89,30 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 _LOG "(re-)creating table $TRANS_TABLE Done." 
+
+
+_LOG "(re-)creating table $FACT_STAGE_TABLE ..." 
+_LOG "disable nodrop - OK if errors here." 
+set +o errexit 
+sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $FACT_STAGE_TABLE disable NO_DROP;" 
+set -o errexit 
+_LOG "disable nodrop ended." 
+if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$FACT_STAGE_TABLE; then 
+  _LOG "removing existing table files ... " 
+  sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$FACT_STAGE_TABLE 
+  if [ $? -ne 0 ]; then
+    _LOG "Error deleting table files. Installation FAILED."
+    exit 1
+  fi
+fi 
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${FAH_DB}" -hiveconf hex.table="${FACT_STAGE_TABLE}" -f $SCRIPT_PATH_FACT/createTable_ETL_HCOM_HEX_FACT_STAGE.hql
+if [ $? -ne 0 ]; then
+  _LOG "Error creating table. Installation FAILED."
+  exit 1
+fi
+_LOG "(re-)creating table $FACT_STAGE_TABLE Done." 
+
+
 
 FAH_PROCESS_NAME="ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS"
 _LOG "Configuring process $FAH_PROCESS_NAME ..."
@@ -232,6 +265,105 @@ fi
 sudo -E -u $PLAT_USER hdfs dfs -rm -f /etl/common/ETLDATA/meta-inf/V_ETLDM_HCOM_BKG_ORDER_XREF_HEX.mf
 
 _LOG "Process $TRANS_PROCESS_NAME configured successfully"
+
+
+##########################
+# FACT load Deployment
+##########################
+
+FACT_PROCESS_NAME="ETL_HCOM_HEX_FACT"
+_LOG "Configuring process $FACT_PROCESS_NAME ..."
+
+FACT_PROCESS_DESCRIPTION="Loads HEX FACT Data"
+
+FACT_PROCESS_ID=$(_GET_PROCESS_ID "$FACT_PROCESS_NAME")
+if [ -z "$FACT_PROCESS_ID" ]; then
+  $PLAT_HOME/tools/metadata/add_process.sh "$FACT_PROCESS_NAME" "$FACT_PROCESS_DESCRIPTION"
+  if [ $? -ne 0 ]; then
+    _LOG "Error adding process. Installation FAILED."
+    exit 1
+  fi
+  
+  FACT_PROCESS_ID=$(_GET_PROCESS_ID "$FACT_PROCESS_NAME")
+  _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "ACTIVE_FAH_TABLE" "$ACTIVE_FAH_TABLE"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "FACT_STAGE_TABLE" "$FACT_STAGE_TABLE"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REPORT_TABLE" "$REPORT_TABLE"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REPORT_FILE" "$REPORT_FILE"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+    exit 1
+  fi
+  
+  _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STAGE_DB" "$FAH_DB"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "JOB_QUEUE" "$JOB_QUEUE"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+    exit 1
+  fi
+else
+  _LOG "Process $FACT_PROCESS_NAME already exists"
+fi
+
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SRC_BOOKMARK_OMNI" "2012-11-01"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SRC_BOOKMARK_BKG" "2012-11-01"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "PROCESSING_TYPE" "D"
+if [ $? -ne 0 ]; then
+   _LOG "Error writing process context. Installation FAILED."
+   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+   exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REPROCESS_START_YEAR" "$REPROCESS_START_YEAR"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REPROCESS_START_MONTH" "$REPROCESS_START_MONTH"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+
+_LOG "Process $FACT_PROCESS_NAME configured successfully"
+
+
+############################
+# jar deployment
+############################
+
 
 # recreate the symbolic link to the deployed code 
 if [[ -r $MODULE_LN ]]; then 

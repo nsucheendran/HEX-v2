@@ -1,13 +1,14 @@
-set mapred.job.queue.name=edwdev;
 SET hive.exec.compress.output=true;
 SET mapred.output.compression.type=BLOCK;
 SET mapred.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 set mapred.compress.map.output=true;
 set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 
--- hiveconf:min_src_bookmark=R4 staging bookmark in MM/dd/yyyy format 
+set min_src_bookmark=${hiveconf:min_src_bookmark} -- R4 staging bookmark in yyyy/MM/dd format 
 
-insert overwrite table HEX_REPORTING_REQUIREMENTS
+use ${hiveconf:hex.db}
+
+insert overwrite table ${hiveconf:hex.report.table}
 select experiment_code,
        experiment_name, 
        variant_code, 
@@ -31,12 +32,22 @@ select experiment_code,
             then FROM_UNIXTIME(UNIX_TIMESTAMP(last_updated_datetm, "MM/dd/yyyy HH:mm"), "yyyy-MM-dd HH:mm") 
             else null 
        end as last_updated_dt
-       from hwwdev.HEX_REPORTING_REQUIREMENTS_RAW
+       from HEX_REPORTING_REQUIREMENTS_RAW
        where experiment_name<>'EXPERIMNT_NAME'
              and experiment_code<>'' and experiment_name<>''
              and variant_name<>'' and version_number is not null and report_start_date<>'' and status<>'' and status<>'Deleted'
-             and (last_updated_datetm>='${hiveconf:min_src_bookmark}' 
-             or (report_start_date<='${hiveconf:min_src_bookmark}'
-                  and (report_end_date>='${hiveconf:min_src_bookmark}' or report_end_date is null or report_end_date='')
+             and ((case when last_updated_datetm<>'' and last_updated_datetm is not null 
+                        then FROM_UNIXTIME(UNIX_TIMESTAMP(last_updated_datetm, "MM/dd/yyyy HH:mm"), "yyyy-MM-dd HH:mm") 
+                        else null 
+                   end) >='${hiveconf:min_src_bookmark}' 
+             or (FROM_UNIXTIME(UNIX_TIMESTAMP(report_start_date, "MM/dd/yyyy"), "yyyy-MM-dd")<='${hiveconf:min_src_bookmark}'
+                  and (case when report_end_date<>'' and report_end_date is not null 
+                            then FROM_UNIXTIME(UNIX_TIMESTAMP(report_end_date, "MM/dd/yyyy"), "yyyy-MM-dd") 
+                            else '9999-99-99' 
+                       end>='${hiveconf:min_src_bookmark}' 
+                       or 
+                       report_end_date is null 
+                       or 
+                       report_end_date='')
                 )
-             );      
+             );
