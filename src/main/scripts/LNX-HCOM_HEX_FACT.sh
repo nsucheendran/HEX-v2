@@ -61,6 +61,10 @@ SRC_BOOKMARK_OMNI=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_OMNI"`
 SRC_BOOKMARK_BKG=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_BKG"`
 PROCESSING_TYPE=`_READ_PROCESS_CONTEXT $PROCESS_ID "PROCESSING_TYPE"`
 
+FAH_PROCESS_ID=`_READ_PROCESS_CONTEXT $PROCESS_ID "FAH_PROCESS_ID"`
+FAH_BOOKMARK_DATE=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK"`
+FAH_BOOKMARK_DATE=`date --date="$FAH_BOOKMARK_DATE" '+%Y-%m-%d'`
+
 if [ "${SRC_BOOKMARK_OMNI}" \< "${SRC_BOOKMARK_BKG}" ]
 then
   MIN_SRC_BOOKMARK=$SRC_BOOKMARK_OMNI
@@ -68,12 +72,13 @@ else
   MIN_SRC_BOOKMARK=$SRC_BOOKMARK_BKG
 fi
 
+
 _LOG "PROCESSING_TYPE=$PROCESSING_TYPE"
-_LOG "LAST_DT=$LAST_DT"
+_LOG "MIN_SRC_BOOKMARK=$MIN_SRC_BOOKMARK"
 
 
 LOG_FILE_NAME="hdp_hex_fact_populate_reporting_table_${SRC_BOOKMARK_OMNI}-${SRC_BOOKMARK_BKG}.log"
-_LOG "loading reporting requirements table $REPORT_TABLE"
+_LOG "loading raw reporting requirements table ${REPORT_TABLE}_RAW"
 hive -hiveconf hex.report.file="${REPORT_FILE}" -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_REP/createTable_HEX_REPORTING_REQUIREMENTS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
 ERROR_CODE=$?
 if [[ $ERROR_CODE -ne 0 ]]; then
@@ -82,7 +87,9 @@ if [[ $ERROR_CODE -ne 0 ]]; then
   _FREE_LOCK $HWW_LOCK_NAME
   exit 1
 fi
+_LOG "Done loading raw reporting requirements table ${REPORT_TABLE}_RAW"
 
+_LOG "loading raw reporting requirements table $REPORT_TABLE"
 hive -hiveconf min_src_bookmark="${MIN_SRC_BOOKMARK}" -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_REP/insert_HEX_REPORTING_REQUIREMENTS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
 ERROR_CODE=$?
 if [[ $ERROR_CODE -ne 0 ]]; then
@@ -93,7 +100,6 @@ if [[ $ERROR_CODE -ne 0 ]]; then
 fi
 _LOG "Done loading reporting requirements table $REPORT_TABLE"
 
-exit 0;
 
 if [ $PROCESSING_TYPE = "R" ];
 then
@@ -165,14 +171,24 @@ then
   _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "PROCESSING_TYPE" "D"
 else
   # daily incremental load
-  _LOG "Incremental Booking Fact Staging data load (SRC_BOOKMARK_OMNI=[$SRC_BOOKMARK_OMNI], SRC_BOOKMARK_BKG=[$SRC_BOOKMARK_BKG])"
-  #START_DT=`date --date="${LAST_DT} +1 days" '+%Y-%m-%d'`
-  #END_DT=$START_DT
+  _LOG "Incremental Booking Fact Staging data load (SRC_BOOKMARK_OMNI=[$SRC_BOOKMARK_OMNI], SRC_BOOKMARK_BKG=[$SRC_BOOKMARK_BKG], MIN_SRC_BOOKMARK=[$MIN_SRC_BOOKMARK])"
+  
+  LOG_FILE_NAME="hdp_hex_fact_stage_active_hits_${SRC_BOOKMARK_OMNI}-${SRC_BOOKMARK_BKG}.log"
+  #MONTH=`date --date="${START_DT}" '+%Y-%m'`
 
-  LOG_FILE_NAME="hdp_hex_fact_stage_incremental_${SRC_BOOKMARK_OMNI}-${SRC_BOOKMARK_BKG}.log"
-  MONTH=`date --date="${START_DT}" '+%Y-%m'`
-
-  hive -hiveconf into.overwrite="into" -hiveconf month="${MONTH}" -hiveconf start.date="${START_DT}" -hiveconf end.date="${END_DT}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${DB}" -hiveconf hex.table="${TABLE}" -f $SCRIPT_PATH/insert_ETL_HCOM_HEX_FACT_STAGE.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  MIN_REPORT_DATE=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select min(report_start_date) from ${STAGE_DB}.${REPORT_TABLE};"`
+  MIN_REPORT_DATE_YM=`date --date="${MIN_REPORT_DATE}" '+%Y-%m'`
+  
+  MAX_REPORT_DATE=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select max(report_end_date) from ${STAGE_DB}.${REPORT_TABLE};"`
+  if [ "${FAH_BOOKMARK_DATE}" \< "${MAX_REPORT_DATE}" ]
+  then 
+    MAX_OMNI_DATE=${FAH_BOOKMARK_DATE}
+  else
+    MAX_OMNI_DATE=${MAX_REPORT_DATE}
+    
+  MAX_OMNI_DATE_YM=`date --date="$MAX_OMNI_DATE" '+%Y-%m'`
+  
+  hive -hiveconf max_omniture_record_yr_month="${MAX_OMNI_DATE_YM}" -hiveconf max_omniture_record_date="${MAX_OMNI_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf hex.rep.table="${REPORT_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${ACTIVE_FAH_TABLE}" -f $SCRIPT_PATH/insert_ETL_HCOM_HEX_FACT_STAGE.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
@@ -180,6 +196,8 @@ else
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
+
+  exit 0;
 
   _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DT"
   if [[ $ERROR_CODE -ne 0 ]]; then

@@ -1,8 +1,8 @@
 use ${hiveconf:hex.db};
 
-DROP TABLE IF EXISTS ${hiveconf:rep.first.hits.hex.table};
+DROP TABLE IF EXISTS ${hiveconf:hex.table};
 
-CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:rep.first.hits.hex.table} (
+CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.table} (
 cid int, 
 variant_code string,
 experiment_code string,
@@ -39,5 +39,5 @@ supplier_property_id int
 ) 
 partitioned by(year_month string)
 stored as sequencefile
-LOCATION "/data/HWW/ETLDATA/${hiveconf:rep.first.hits.hex.table}";
+LOCATION "/data/HWW/${hiveconf:hex.db}/${hiveconf:hex.table}";
 

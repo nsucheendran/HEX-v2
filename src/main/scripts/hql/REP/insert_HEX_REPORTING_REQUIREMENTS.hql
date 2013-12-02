@@ -8,7 +8,7 @@ set min_src_bookmark=${hiveconf:min_src_bookmark} -- R4 staging bookmark in yyyy
 
 use ${hiveconf:hex.db};
 
-insert overwrite table ${hiveconf:hex.report.table}
+insert overwrite table ${hiveconf:hex.db}.${hiveconf:hex.report.table}
 select experiment_code,
        experiment_name, 
        variant_code, 

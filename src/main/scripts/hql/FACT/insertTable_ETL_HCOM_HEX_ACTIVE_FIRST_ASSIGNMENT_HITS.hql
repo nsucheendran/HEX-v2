@@ -24,7 +24,7 @@ set max_omniture_record_yr_month='${hiveconf:max_omniture_record_yr_month}';
 use ${hiveconf:hex.db};
 
 -- populate 1st assignment hits for the active reporting requirements in the reporting range
-insert overwrite table ${hiveconf:rep.first.hits.hex.table} partition(year_month)
+insert overwrite table ${hiveconf:hex.db}.${hiveconf:hex.table} partition(year_month)
 select /*+ MAPJOIN(rep) */ cid,
        rep.variant_code,
        experiment_code,
@@ -102,7 +102,7 @@ from (
                   report_end_date,
                   last_updated_dt,
                   trans_date
-           from hwwdev.HEX_REPORTING_REQUIREMENTS
+           from ${hiveconf:hex.db}.${hiveconf:hex.rep.table}
       ) rep
       on first_hits.experiment_variant_code=rep.variant_code
       where first_hits.local_date>=rep.report_start_date
