@@ -89,7 +89,7 @@ if [[ $ERROR_CODE -ne 0 ]]; then
 fi
 _LOG "Done loading raw reporting requirements table ${REPORT_TABLE}_RAW"
 
-_LOG "loading raw reporting requirements table $REPORT_TABLE"
+_LOG "loading reporting requirements table $REPORT_TABLE"
 hive -hiveconf min_src_bookmark="${MIN_SRC_BOOKMARK}" -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_REP/insert_HEX_REPORTING_REQUIREMENTS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
 ERROR_CODE=$?
 if [[ $ERROR_CODE -ne 0 ]]; then
@@ -185,10 +185,13 @@ else
     MAX_OMNI_DATE=${FAH_BOOKMARK_DATE}
   else
     MAX_OMNI_DATE=${MAX_REPORT_DATE}
-    
-  MAX_OMNI_DATE_YM=`date --date="$MAX_OMNI_DATE" '+%Y-%m'`
+  fi
   
-  hive -hiveconf max_omniture_record_yr_month="${MAX_OMNI_DATE_YM}" -hiveconf max_omniture_record_date="${MAX_OMNI_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf hex.rep.table="${REPORT_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${ACTIVE_FAH_TABLE}" -f $SCRIPT_PATH/insert_ETL_HCOM_HEX_FACT_STAGE.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  MAX_OMNI_DATE_YM=`date --date="$MAX_OMNI_DATE" '+%Y-%m'`
+  _LOG "MAX_REPORT_DATE=$MAX_REPORT_DATE, MAX_REPORT_DATE_YM=$MAX_REPORT_DATE_YM, MAX_OMNI_DATE=$MAX_OMNI_DATE, MAX_OMNI_DATE_YM=$MAX_OMNI_DATE_YM"
+  
+  _LOG "loading first assignment hits for active reporting requirements into $ACTIVE_FAH_TABLE ..."
+  hive -hiveconf max_omniture_record_yr_month="${MAX_OMNI_DATE_YM}" -hiveconf max_omniture_record_date="${MAX_OMNI_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf hex.rep.table="${REPORT_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${ACTIVE_FAH_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HITS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
@@ -196,6 +199,11 @@ else
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
+  _LOG "Done loading first assignment hits for active reporting requirements into $ACTIVE_FAH_TABLE"
+
+
+  _END_PROCESS $RUN_ID $ERROR_CODE
+  _FREE_LOCK $HWW_LOCK_NAME
 
   exit 0;
 
