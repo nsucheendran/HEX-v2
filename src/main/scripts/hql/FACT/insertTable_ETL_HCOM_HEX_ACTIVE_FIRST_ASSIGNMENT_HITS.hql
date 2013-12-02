@@ -9,16 +9,9 @@ set mapred.output.compression.type=BLOCK;
 set mapred.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 set mapred.compress.map.output=true;
 set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
-set mapred.job.queue.name=${job.queue};
+set mapred.job.queue.name=${hiveconf:job.queue};
 set hive.auto.convert.join=true;
 set mapred.job.reduce.total.mem.bytes=99000000;
-
-
--- set min_report_date='${hiveconf:min_report_date}';
--- set min_report_date_yrmonth='${hiveconf:min_report_date_yrmonth}';
--- max_omniture_record_date=min(max_report_date, r1_bookmark_date)
--- set max_omniture_record_date='${hiveconf:max_omniture_record_date}';
--- set max_omniture_record_yr_month='${hiveconf:max_omniture_record_yr_month}';
 
 
 use ${hiveconf:hex.db};

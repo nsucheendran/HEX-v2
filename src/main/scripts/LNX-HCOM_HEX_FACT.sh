@@ -204,6 +204,18 @@ else
   fi
   _LOG "Done loading first assignment hits for active reporting requirements into $ACTIVE_FAH_TABLE"
 
+  _LOG "loading incremental first_assignment_hits into $STAGE_TABLE ..."
+  hive -hiveconf src_bookmark_omni="${SRC_BOOKMARK_OMNI}" -hiveconf hex.rep.table="${REPORT_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT_STAGE_OMNITURE.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  ERROR_CODE=$?
+  if [[ $ERROR_CODE -ne 0 ]]; then
+    _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
+  _LOG "Done loading incremental first_assignment_hits into $STAGE_TABLE"
+
+  
 
   _END_PROCESS $RUN_ID $ERROR_CODE
   _FREE_LOCK $HWW_LOCK_NAME
