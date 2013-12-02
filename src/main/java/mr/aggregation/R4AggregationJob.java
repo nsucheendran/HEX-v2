@@ -117,7 +117,7 @@ public class R4AggregationJob extends Configured implements Tool {
         String outputPath = "/user/hive/warehouse/hwwdev.db/hex_fact_adi";
         String reportFilePath = "/user/hive/warehouse/hwwdev.db/hex_reporting_requirements/000000_0";
         String reportTableName = "hex_reporting_requirements";
-        int numReduceTasks = 50;
+        int numReduceTasks = 100;
 
         JobConf conf = new JobConf(super.getConf());
 
@@ -155,7 +155,6 @@ public class R4AggregationJob extends Configured implements Tool {
             int i = 0;
             int kj = 0;
             int vj = 0;
-            int ljj = 0;
             // Map<String, Integer> fieldMap = new LinkedHashMap<String, Integer>(fields.size());
             StringBuilder keySb = new StringBuilder();
             StringBuilder valSb = new StringBuilder();
