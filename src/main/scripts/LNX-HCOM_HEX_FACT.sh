@@ -179,6 +179,7 @@ else
   MIN_REPORT_DATE=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select min(report_start_date) from ${STAGE_DB}.${REPORT_TABLE};"`
   MIN_REPORT_DATE_YM=`date --date="${MIN_REPORT_DATE}" '+%Y-%m'`
   
+  
   MAX_REPORT_DATE=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select max(report_end_date) from ${STAGE_DB}.${REPORT_TABLE};"`
   if [ "${FAH_BOOKMARK_DATE}" \< "${MAX_REPORT_DATE}" ]
   then 
@@ -188,7 +189,9 @@ else
   fi
   
   MAX_OMNI_DATE_YM=`date --date="$MAX_OMNI_DATE" '+%Y-%m'`
-  _LOG "MAX_REPORT_DATE=$MAX_REPORT_DATE, MAX_REPORT_DATE_YM=$MAX_REPORT_DATE_YM, MAX_OMNI_DATE=$MAX_OMNI_DATE, MAX_OMNI_DATE_YM=$MAX_OMNI_DATE_YM"
+  
+  
+  _LOG "MIN_REPORT_DATE=$MIN_REPORT_DATE, MIN_REPORT_DATE_YM=$MIN_REPORT_DATE_YM, MAX_OMNI_DATE=$MAX_OMNI_DATE, MAX_OMNI_DATE_YM=$MAX_OMNI_DATE_YM"
   
   _LOG "loading first assignment hits for active reporting requirements into $ACTIVE_FAH_TABLE ..."
   hive -hiveconf max_omniture_record_yr_month="${MAX_OMNI_DATE_YM}" -hiveconf max_omniture_record_date="${MAX_OMNI_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf hex.rep.table="${REPORT_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${ACTIVE_FAH_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HITS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
