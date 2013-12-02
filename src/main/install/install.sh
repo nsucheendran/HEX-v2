@@ -336,6 +336,12 @@ if [ -z "$FACT_PROCESS_ID" ]; then
     $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
     exit 1
   fi
+  _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "BKG_PROCESS_ID" "$TRANS_PROCESS_ID"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+    exit 1
+  fi
   
   _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STAGE_DB" "$FAH_DB"
   if [ $? -ne 0 ]; then

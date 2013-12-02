@@ -57,7 +57,7 @@ select guid,
        0 as gross_profit,
        substr(local_date, 1, 7) as year_month,
        'omniture' as source 
-from ${hiveconf:hex.db}.${hiveconf:hex.rep.table} 
+from ${hiveconf:hex.db}.${hiveconf:hex.active.hits.table} 
 where (    
            last_updated_dt>'${hiveconf:src_bookmark_omni}'
       )

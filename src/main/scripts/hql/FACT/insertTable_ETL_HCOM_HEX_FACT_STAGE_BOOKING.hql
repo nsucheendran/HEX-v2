@@ -124,7 +124,7 @@ insert into table ${hiveconf:hex.table} partition(year_month, source)
                                                       (source='booking' and local_date<='${hiveconf:max_booking_record_date}')
                                                      )
                                    ) trans
-                              join ${rep.first.hits.hex.table} hits_by_report
+                              inner join ${hex.db}.${hex.active.hits.table} hits_by_report
                                     on hits_by_report.guid=trans.guid
                                     where (    trans.trans_date<=hits_by_report.trans_date
                                                and hits_by_report.gmt<=trans.gmt

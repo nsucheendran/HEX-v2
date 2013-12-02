@@ -65,6 +65,9 @@ FAH_PROCESS_ID=`_READ_PROCESS_CONTEXT $PROCESS_ID "FAH_PROCESS_ID"`
 FAH_BOOKMARK_DATE=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK"`
 FAH_BOOKMARK_DATE=`date --date="$FAH_BOOKMARK_DATE" '+%Y-%m-%d'`
 
+BKG_PROCESS_ID=`_READ_PROCESS_CONTEXT $PROCESS_ID "BKG_PROCESS_ID"`
+BKG_BOOKMARK_DATE=`_READ_PROCESS_CONTEXT $BKG_PROCESS_ID "BOOKMARK"`
+
 if [ "${SRC_BOOKMARK_OMNI}" \< "${SRC_BOOKMARK_BKG}" ]
 then
   MIN_SRC_BOOKMARK=$SRC_BOOKMARK_OMNI
@@ -187,8 +190,8 @@ else
   else
     MAX_OMNI_DATE=${MAX_REPORT_DATE}
   fi
-  
   MAX_OMNI_DATE_YM=`date --date="$MAX_OMNI_DATE" '+%Y-%m'`
+  
   
   
   _LOG "MIN_REPORT_DATE=$MIN_REPORT_DATE, MIN_REPORT_DATE_YM=$MIN_REPORT_DATE_YM, MAX_OMNI_DATE=$MAX_OMNI_DATE, MAX_OMNI_DATE_YM=$MAX_OMNI_DATE_YM"
@@ -205,7 +208,7 @@ else
   _LOG "Done loading first assignment hits for active reporting requirements into $ACTIVE_FAH_TABLE"
 
   _LOG "loading incremental first_assignment_hits into $STAGE_TABLE ..."
-  hive -hiveconf src_bookmark_omni="${SRC_BOOKMARK_OMNI}" -hiveconf hex.rep.table="${REPORT_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT_STAGE_OMNITURE.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  hive -hiveconf src_bookmark_omni="${SRC_BOOKMARK_OMNI}" -hiveconf hex.active.hits.table="${ACTIVE_FAH_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT_STAGE_OMNITURE.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
@@ -215,21 +218,50 @@ else
   fi
   _LOG "Done loading incremental first_assignment_hits into $STAGE_TABLE"
 
+  if [ "${BKG_BOOKMARK_DATE}" \< "${MAX_REPORT_DATE}" ]
+  then 
+    MAX_BKG_DATE=${BKG_BOOKMARK_DATE}
+  else
+    MAX_BKG_DATE=${MAX_REPORT_DATE}
+  fi
+  
+  if [ "${MAX_BKG_DATE}" \< "${MAX_OMNI_DATE}" ]
+  then
+    MAX_TRANS_DATE=${MAX_OMNI_DATE}
+  else
+    MAX_TRANS_DATE=${MAX_BKG_DATE}
+  fi
+  MAX_TRANS_YM=`date --date="${MAX_TRANS_DATE}" '+%Y-%m'`
+  
+  _LOG "loading incremental booking data into $STAGE_TABLE ..."
+  hive -hiveconf max_trans_record_date_yr_month="${MAX_TRANS_DATE}" -hiveconf max_booking_record_date="${MAX_BKG_DATE}" -hiveconf max_omniture_record_date="${MAX_OMNI_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf min_src_bookmark="${MIN_SRC_BOOKMARK}" -hiveconf src_bookmark_bkg="${SRC_BOOKMARK_BKG}" -hiveconf src_bookmark_omni="${SRC_BOOKMARK_OMNI}" -hiveconf hex.active.hits.table="${ACTIVE_FAH_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT_STAGE_BOOKING.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  ERROR_CODE=$?
+  if [[ $ERROR_CODE -ne 0 ]]; then
+    _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
+  _LOG "Done loading incremental booking data into $STAGE_TABLE"
   
 
-  _END_PROCESS $RUN_ID $ERROR_CODE
-  _FREE_LOCK $HWW_LOCK_NAME
-
-  exit 0;
-
-  _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DT"
+  _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "SRC_BOOKMARK_OMNI" "$FAH_BOOKMARK_DATE"
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!"
     _END_PROCESS $RUN_ID $ERROR_CODE
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
-  _LOG "Updated Bookmark to [$END_DT]"
+  _LOG "Updated Omniture source bookmark to to [$FAH_BOOKMARK_DATE]"
+  
+   _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "SRC_BOOKMARK_BKG" "$BKG_BOOKMARK_DATE"
+  if [[ $ERROR_CODE -ne 0 ]]; then
+    _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!"
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
+  _LOG "Updated Bookings source bookmark to to [$BKG_BOOKMARK_DATE]"
 fi
 
 _END_PROCESS $RUN_ID $ERROR_CODE
