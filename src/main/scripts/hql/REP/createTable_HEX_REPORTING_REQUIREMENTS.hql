@@ -1,6 +1,6 @@
 -- contains raw reporting data
 
-use ${hiveconf:hex.db}
+use ${hiveconf:hex.db};
 
 drop table if exists HEX_REPORTING_REQUIREMENTS_RAW;
 
@@ -22,12 +22,12 @@ last_updated_datetm string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ',';
 
 -- this csv contains all variant_codes in exploded form
-LOAD DATA LOCAL INPATH '${hex.report.file}' OVERWRITE INTO TABLE HEX_REPORTING_REQUIREMENTS_RAW;
+LOAD DATA LOCAL INPATH '${hiveconf:hex.report.file}' OVERWRITE INTO TABLE HEX_REPORTING_REQUIREMENTS_RAW;
 
 
-drop table if exists ${hex.report.table};
+drop table if exists ${hiveconf:hex.report.table};
 
-create table if not exists ${hex.report.table} (
+create table if not exists ${hiveconf:hex.report.table} (
 experiment_code string,
 experiment_name string,
 variant_code string,
