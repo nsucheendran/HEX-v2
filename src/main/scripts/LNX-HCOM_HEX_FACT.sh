@@ -126,7 +126,7 @@ then
   do
     LOG_FILE_NAME="hdp_hex_fact_drop_partition_${CURR_YEAR}-${CURR_MONTH}.log"
     _LOG "Dropping partition [year_month='$CURR_YEAR-$CURR_MONTH', source='omniture'] from target: $STAGE_DB.$STAGE_TABLE"
-    hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "alter table ${STAGE_DB}.${STAGE_TABLE} drop if exists partition (year_month='${CURR_YEAR}-${CURR_MONTH}', source='omniture')" >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+    hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "use ${STAGE_DB}; alter table ${STAGE_TABLE} drop if exists partition (year_month='${CURR_YEAR}-${CURR_MONTH}', source='omniture');" >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
@@ -136,7 +136,7 @@ then
     fi
     
     _LOG "Dropping partition [year_month='$CURR_YEAR-$CURR_MONTH', source='booking'] from target: $STAGE_DB.$STAGE_TABLE"
-    hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "alter table ${STAGE_DB}.${STAGE_TABLE} drop if exists partition (year_month='${CURR_YEAR}-${CURR_MONTH}', source='booking')" >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+    hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "use ${STAGE_DB}; alter table ${STAGE_TABLE} drop if exists partition (year_month='${CURR_YEAR}-${CURR_MONTH}', source='booking');" >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
