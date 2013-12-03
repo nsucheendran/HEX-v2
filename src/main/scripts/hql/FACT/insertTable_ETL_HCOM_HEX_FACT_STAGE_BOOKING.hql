@@ -24,7 +24,7 @@ set mapred.job.reduce.total.mem.bytes=99000000;
 
 use ${hiveconf:hex.db};
 
-insert into table ${hiveconf:hex.table} partition(year_month, source)
+insert into table ${hiveconf:hex.db}.${hiveconf:hex.table} partition(year_month, source)
           select guid,
                  cid,
                  itin_number,
@@ -124,7 +124,7 @@ insert into table ${hiveconf:hex.table} partition(year_month, source)
                                                       (source='booking' and local_date<='${hiveconf:max_booking_record_date}')
                                                      )
                                    ) trans
-                              inner join ${hex.db}.${hex.active.hits.table} hits_by_report
+                              inner join ${hiveconf:hex.db}.${hiveconf:hex.active.hits.table} hits_by_report
                                     on hits_by_report.guid=trans.guid
                                     where (    trans.trans_date<=hits_by_report.trans_date
                                                and hits_by_report.gmt<=trans.gmt
