@@ -42,6 +42,6 @@ gross_profit decimal
 ) 
 partitioned by(year_month string, source string)
 stored as sequencefile
-LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.table}";
+LOCATION "/data/HWW/${hiveconf:hex.db}/${hiveconf:hex.table}";
 
 ALTER TABLE ${hiveconf:hex.table} ENABLE NO_DROP;

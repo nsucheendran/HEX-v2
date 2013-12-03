@@ -13,8 +13,6 @@ set mapred.job.queue.name=${hiveconf:job.queue};
 set hive.auto.convert.join=true;
 set mapred.job.reduce.total.mem.bytes=99000000;
 
--- set src_bookmark_omni='${hiveconf:src_bookmark_omni}';
-
 use ${hiveconf:hex.db};
 
 -- insert first assignment hits incrementally

@@ -13,15 +13,6 @@ set mapred.job.queue.name=${hiveconf:job.queue};
 set hive.auto.convert.join=true;
 set mapred.job.reduce.total.mem.bytes=99000000;
 
--- set min_report_date='${hiveconf:min_report_date}';
--- set min_report_date_yrmonth='${hiveconf:min_report_date_yrmonth}';
--- set max_omniture_record_date='${hiveconf:max_omniture_record_date}';
--- set max_booking_record_date='${hiveconf:max_booking_record_date}';
--- set max_trans_record_date_yr_month='${hiveconf:max_trans_record_date_yr_month}';
--- set min_src_bookmark='${hiveconf:min_src_bookmark}'; 
--- set src_bookmark_omni='${hiveconf:src_bookmark_omni}';
--- set src_bookmark_bkg='${hiveconf:src_bookmark_bkg}';
-
 use ${hiveconf:hex.db};
 
 insert into table ${hiveconf:hex.db}.${hiveconf:hex.table} partition(year_month, source)

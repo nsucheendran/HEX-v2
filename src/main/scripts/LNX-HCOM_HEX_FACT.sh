@@ -75,10 +75,16 @@ else
   MIN_SRC_BOOKMARK=$SRC_BOOKMARK_BKG
 fi
 
+if [ "${SRC_BOOKMARK_OMNI}" \< "${SRC_BOOKMARK_BKG}" ]
+then
+  MAX_SRC_BOOKMARK=$SRC_BOOKMARK_BKG
+else
+  MAX_SRC_BOOKMARK=$SRC_BOOKMARK_OMNI
+fi
 
 _LOG "PROCESSING_TYPE=$PROCESSING_TYPE"
 _LOG "MIN_SRC_BOOKMARK=$MIN_SRC_BOOKMARK"
-
+_LOG "MAX_SRC_BOOKMARK=$MAX_SRC_BOOKMARK"
 
 LOG_FILE_NAME="hdp_hex_fact_populate_reporting_table_${SRC_BOOKMARK_OMNI}-${SRC_BOOKMARK_BKG}.log"
 _LOG "loading raw reporting requirements table ${REPORT_TABLE}_RAW"
@@ -109,67 +115,62 @@ then
   START_YEAR=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPROCESS_START_YEAR"`
   START_MONTH=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPROCESS_START_MONTH"`
 
-  END_YEAR=`date --date="${LAST_DT}" '+%Y'`
-  END_MONTH=`date --date="${LAST_DT}" '+%m'`
+  END_YEAR=`date --date="${MAX_SRC_BOOKMARK}" '+%Y'`
+  END_MONTH=`date --date="${MAX_SRC_BOOKMARK}" '+%m'`
 
-  _LOG "Starting Reprocessing for period: $START_YEAR-$START_MONTH to $END_YEAR-$END_MONTH (BOOKMARK=[$LAST_DT])"
+  _LOG "Starting Reprocessing for period: $START_YEAR-$START_MONTH to $END_YEAR-$END_MONTH"
 
   CURR_YEAR=$START_YEAR
   CURR_MONTH=$START_MONTH
   while [ "${CURR_YEAR}${CURR_MONTH}" \< "${END_YEAR}${END_MONTH}" -o "${CURR_YEAR}${CURR_MONTH}" = "${END_YEAR}${END_MONTH}" ]
   do
     LOG_FILE_NAME="hdp_hex_fact_drop_partition_${CURR_YEAR}-${CURR_MONTH}.log"
-    _LOG "Dropping partition [$CURR_YEAR-$CURR_MONTH] from target: $DB.$TABLE"
-    hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${DB}" -hiveconf hex.table="${TABLE}" -f $SCRIPT_PATH_TRANS/delete_ETL_HCOM_HEX_FACT_STAGE.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+    _LOG "Dropping partition [year_month='$CURR_YEAR-$CURR_MONTH', source='omniture'] from target: $STAGE_DB.$STAGE_TABLE"
+    hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "alter table ${STAGE_DB}.${STAGE_TABLE} drop if exists partition (year_month='${CURR_YEAR}-${CURR_MONTH}', source='omniture')" >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+      _END_PROCESS $RUN_ID $ERROR_CODE
+      _FREE_LOCK $HWW_LOCK_NAME
+      exit 1
+    fi
+    
+    _LOG "Dropping partition [year_month='$CURR_YEAR-$CURR_MONTH', source='booking'] from target: $STAGE_DB.$STAGE_TABLE"
+    hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "alter table ${STAGE_DB}.${STAGE_TABLE} drop if exists partition (year_month='${CURR_YEAR}-${CURR_MONTH}', source='booking')" >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+    ERROR_CODE=$?
+    if [[ $ERROR_CODE -ne 0 ]]; then
+      _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+      _END_PROCESS $RUN_ID $ERROR_CODE
+      _FREE_LOCK $HWW_LOCK_NAME
+      exit 1
     fi
 
     NEW_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%Y'`
     CURR_MONTH=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%m'`
     CURR_YEAR=$NEW_YEAR
   done
-
-  # reprocess data in monthly chunks upto and including the bookmark date, do not change bookmark in HEMS
-  CURR_YEAR=$START_YEAR
-  CURR_MONTH=$START_MONTH
-
-  while [ "${CURR_YEAR}${CURR_MONTH}" \< "${END_YEAR}${END_MONTH}" -o "${CURR_YEAR}${CURR_MONTH}" = "${END_YEAR}${END_MONTH}" ]
-  do
-    START_DT=`date --date="${CURR_YEAR}-${CURR_MONTH}-01" '+%Y-%m-%d'`
-    if [ "${CURR_YEAR}${CURR_MONTH}" \< "${END_YEAR}${END_MONTH}" ]
-    then
-      END_DT=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 +1 months -1 days" '+%Y-%m-%d'`
-    else
-      END_DT=`date --date="${LAST_DT}" '+%Y-%m-%d'`
-    fi
-    
-    MONTH=`date --date="${START_DT}" '+%Y-%m'`
-    LOG_FILE_NAME="hdp_hex_fact_reprocess_${START_DT}-${END_DT}.log"
-
-    _LOG "Reprocessing Booking Fact Staging data between [$START_DT to $END_DT] in target: $DB.$TABLE"
-
-    hive -hiveconf into.overwrite="overwrite" -hiveconf month="${MONTH}" -hiveconf start.date="${START_DT}" -hiveconf end.date="${END_DT}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${DB}" -hiveconf hex.table="${TABLE}" -f $SCRIPT_PATH/insert_ETL_HCOM_HEX_FACT_STAGE.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
-    ERROR_CODE=$?
-    if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
-      _END_PROCESS $RUN_ID $ERROR_CODE
-      _FREE_LOCK $HWW_LOCK_NAME
-      exit 1
-    fi
-
-    NEW_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 +1 months" '+%Y'`
-    CURR_MONTH=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 +1 months" '+%m'`
-    CURR_YEAR=$NEW_YEAR
-  done
+  
+  NEW_BOOKMARK=`date --date="${START_YEAR}-${START_MONTH}-01 00 -1 days" '+%Y-%m-%d'`
+  _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "SRC_BOOKMARK_OMNI" "$NEW_BOOKMARK"
+  if [[ $ERROR_CODE -ne 0 ]]; then
+    _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!"
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
+  _LOG "Updated Omniture source bookmark to to [$NEW_BOOKMARK]"
+  
+   _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "SRC_BOOKMARK_BKG" "$NEW_BOOKMARK"
+  if [[ $ERROR_CODE -ne 0 ]]; then
+    _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!"
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
+  _LOG "Updated Transactions source bookmark to to [$NEW_BOOKMARK]"
   
   _LOG "Done Reprocessing"
 
-  if [ -z "$LAST_DT" ]; then
-    _LOG "Updating BOOKMARK (since none existed) as $END_DT"
-    _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DT"
-  fi
   _LOG "Setting PROCESSING_TYPE to [D] for next run"
   _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "PROCESSING_TYPE" "D"
 else
@@ -261,7 +262,7 @@ else
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
-  _LOG "Updated Bookings source bookmark to to [$BKG_BOOKMARK_DATE]"
+  _LOG "Updated Transactions source bookmark to to [$BKG_BOOKMARK_DATE]"
 fi
 
 _END_PROCESS $RUN_ID $ERROR_CODE

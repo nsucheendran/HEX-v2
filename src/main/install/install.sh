@@ -371,7 +371,7 @@ if [ $? -ne 0 ]; then
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
   exit 1
 fi
-_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "PROCESSING_TYPE" "D"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "PROCESSING_TYPE" "R"
 if [ $? -ne 0 ]; then
    _LOG "Error writing process context. Installation FAILED."
    $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
