@@ -4,8 +4,6 @@ SET mapred.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 set mapred.compress.map.output=true;
 set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 
-set min_src_bookmark=${hiveconf:min_src_bookmark} -- R4 staging bookmark in yyyy/MM/dd format 
-
 use ${hiveconf:hex.db};
 
 insert overwrite table ${hiveconf:hex.db}.${hiveconf:hex.report.table}
@@ -32,7 +30,7 @@ select experiment_code,
             then FROM_UNIXTIME(UNIX_TIMESTAMP(last_updated_datetm, "MM/dd/yyyy HH:mm"), "yyyy-MM-dd HH:mm") 
             else null 
        end as last_updated_dt
-       from ${hiveconf:hex.db}.HEX_REPORTING_REQUIREMENTS_RAW
+       from ${hiveconf:lz.db}.HEX_REPORTING_REQUIREMENTS
        where experiment_name<>'EXPERIMNT_NAME'
              and experiment_code<>'' and experiment_name<>''
              and variant_name<>'' and version_number is not null and report_start_date<>'' and status<>'' and status<>'Deleted'
