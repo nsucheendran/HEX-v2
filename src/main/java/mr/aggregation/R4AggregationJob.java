@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import mr.dto.TextMultiple;
 
@@ -41,6 +42,10 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 public class R4AggregationJob extends Configured implements Tool {
+    private String jobName = "hdp_hww_hex_etl_fact_aggregation";
+    // hdfs://nameservice1/tmp/hdp_hww_hex_etl_fact_aggregation1386152554484/experiment_code=H848/variant_code=S598.6382/version_number=1/result-r-00099
+    private static Pattern partitionDirPattern = Pattern.compile("(.*)(hdp_hww_hex_etl_fact_aggregation)(\\/)(.*)(\\/)(^\\/)*");
+    // hdfs://nameservice1/tmp/hdp_hww_hex_etl_fact_aggregation/experiment_code=H848/variant_code=S598.%25/version_number=1/result-r-00000
     private final Map<String, String> joinKeys = new HashMap<String, String>() {
         {
             put("variant_code", "variant_code");
@@ -114,13 +119,16 @@ public class R4AggregationJob extends Configured implements Tool {
         }
     }
 
-    @Override
+
     public final int run(String[] arg0) throws Exception {
         String queueName = "edwdev";
         String dbName = "hwwdev";
         String tableName = "etl_hcom_hex_fact_staging_new";
         String jobName = "hdp_hww_hex_etl_fact_aggregation";
         String outputTableName = "hex_fact_adi";
+
+//        String outputPath = "/user/hive/warehouse/hwwdev.db/hex_fact_adi";
+//        String tmpOutputPath = "/tmp/";
         String reportFilePath = "/user/hive/warehouse/hwwdev.db/hex_reporting_requirements/000000_0";
         String reportTableName = "hex_reporting_requirements";
         String outputPath = "/tmp/" + jobName;
@@ -156,7 +164,7 @@ public class R4AggregationJob extends Configured implements Tool {
             RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
 
             while (files.hasNext()) {
-                FileInputFormat.addInputPath(job, files.next().getPath());
+                FileInputFormat.addInputPath(job,files.next().getPath());
             }
             fileSystem.close();
 
@@ -249,7 +257,7 @@ public class R4AggregationJob extends Configured implements Tool {
         } finally {
             cl.close();
         }
-
+        
         Path outPath = new Path(outputPath);
         FileSystem fileSystem = outPath.getFileSystem(job.getConfiguration());
         fileSystem.delete(outPath, true);
@@ -258,10 +266,10 @@ public class R4AggregationJob extends Configured implements Tool {
         FileOutputFormat.setOutputPath(job, outPath);
         FileOutputFormat.setCompressOutput(job, true);
         FileOutputFormat.setOutputCompressorClass(job, org.apache.hadoop.io.compress.SnappyCodec.class);
-
+        
         boolean success = job.waitForCompletion(true);
         System.out.println("output written to: " + outPath.toString());
-
+        
         cl = new HiveMetaStoreClient(new HiveConf());
         try {
             Table table = cl.getTable(dbName, outputTableName);
@@ -287,6 +295,7 @@ public class R4AggregationJob extends Configured implements Tool {
         return success ? 0 : -1;
     }
 
+
     private List<String> getValues(String partString) throws UnsupportedEncodingException {
         String[] pairs = partString.split("/");
         List<String> values = new ArrayList<String>(3);
@@ -300,7 +309,34 @@ public class R4AggregationJob extends Configured implements Tool {
 
     private Set<String> getPartitions(String tempLocation, String outputPath) {
         return new HashSet<String>() {
+            {
             
-        }
+            }
+        };
     }
+    /*
+     * Set<String> getPartitions(String tmpOutputPath, String tableOutputPath, Job job) throws IOException { String completeTmpOutPathBkup =
+     * tmpOutputPath + "_bkup"; Path tmpOutPath = new Path(tmpOutputPath); Path tmpBkupOutPath = new Path(completeTmpOutPathBkup);
+     * System.out.println("output written to: " + tmpOutPath.toString());
+     * 
+     * FileSystem outFileSystem = tmpOutPath.getFileSystem(job.getConfiguration()); outFileSystem.mkdirs(tmpBkupOutPath);
+     * RemoteIterator<LocatedFileStatus> files = outFileSystem.listFiles(tmpOutPath, true);
+     * 
+     * Set<String> partitionNames = Sets.newHashSet(); while (files.hasNext()) { LocatedFileStatus fs = files.next(); String path =
+     * fs.getPath().toString(); Matcher m = partitionDirPattern.matcher(path); boolean found = m.find(); if (found) { String partition =
+     * m.group(4); if (partitionNames.add(partition)) { System.out.println(">>>>partition>>>" + partition);
+     * 
+     * String tablePartitionPathStr = tableOutputPath + Path.SEPARATOR + partition; Path tablePartitionPath = new
+     * Path(tablePartitionPathStr); boolean tablePartitionExists = false; Path bkupPartionPath = new Path(completeTmpOutPathBkup +
+     * Path.SEPARATOR + partition); if (tablePartitionExists = outFileSystem.exists(tablePartitionPath)) {
+     * outFileSystem.rename(tablePartitionPath, bkupPartionPath); System.out.println(">>>>Rename " + tablePartitionPath + " to " +
+     * bkupPartionPath); }
+     * 
+     * String tmpOutputPathLoc = m.group(1) + m.group(2) + m.group(3); System.out.println(">>>>Rename " + tmpOutputPathLoc + " to " +
+     * tablePartitionPath); outFileSystem.rename(new Path(tmpOutputPathLoc + partition), tablePartitionPath); if (tablePartitionExists) {
+     * System.out.println(">>>>>Delete " + bkupPartionPath); outFileSystem.delete(bkupPartionPath, true); } } } else {
+     * System.out.println(">not matching>>>" + fs.getPath() + "<<<<" + found); } } outFileSystem.close(); return partitionNames;
+     * 
+     * }
+     */
 }
