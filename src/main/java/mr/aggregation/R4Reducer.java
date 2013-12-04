@@ -26,12 +26,11 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
 
     }
 
-    private String generateFileName(Text experimentCode, Text variantCode, Text versionNum) throws UnsupportedEncodingException {
-        String res = new StringBuilder().append(outputDir).append(Path.SEPARATOR).append("variant_code=")
-                .append(URLEncoder.encode(variantCode.toString(), "UTF-8")).append(Path.SEPARATOR).append("experiment_code=")
-                .append(URLEncoder.encode(experimentCode.toString(), "UTF-8")).append(Path.SEPARATOR).append("version_number=")
+    private String generateFileName(Text variantCode, Text experimentCode, Text versionNum) throws UnsupportedEncodingException {
+        String res = new StringBuilder().append(outputDir).append(Path.SEPARATOR).append("experiment_code=")
+                .append(URLEncoder.encode(experimentCode.toString(), "UTF-8")).append(Path.SEPARATOR).append("variant_code=")
+                .append(URLEncoder.encode(variantCode.toString(), "UTF-8")).append(Path.SEPARATOR).append("version_number=")
                 .append(URLEncoder.encode(versionNum.toString(), "UTF-8")).append(Path.SEPARATOR).append("/result").toString();
-        
         return res;
     }
 
