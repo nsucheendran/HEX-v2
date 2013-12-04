@@ -28,6 +28,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
@@ -137,8 +138,10 @@ public class R4AggregationJob extends Configured implements Tool {
         job.setMapOutputValueClass(TextMultiple.class);
         job.setNumReduceTasks(numReduceTasks);
 
+
         HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
         try {
+
             Table table = cl.getTable(dbName, tableName);
             // System.out.println("input format: " + table.getSd().getOutputFormat());
             // System.out.println("output format: " + table.getSd().getInputFormat());
@@ -244,6 +247,8 @@ public class R4AggregationJob extends Configured implements Tool {
         Path outPath = new Path(outputPath);
         FileSystem fileSystem = outPath.getFileSystem(job.getConfiguration());
         fileSystem.delete(outPath, true);
+        MultipleOutputs.setCountersEnabled(job, true);
+        MultipleOutputs.addNamedOutput(job, "outroot", SequenceFileOutputFormat.class, NullWritable.class, TextMultiple.class);
         FileOutputFormat.setOutputPath(job, outPath);
         FileOutputFormat.setCompressOutput(job, true);
         FileOutputFormat.setOutputCompressorClass(job, org.apache.hadoop.io.compress.SnappyCodec.class);

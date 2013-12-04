@@ -1,6 +1,8 @@
 package mr.aggregation;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,20 +17,22 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
 public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable, TextMultiple> {
-    private MultipleOutputs mos;
+    private MultipleOutputs<NullWritable, TextMultiple> mos;
     private String outputDir;
 
     public void setup(Context context) {
-        mos = new MultipleOutputs(context);
+        mos = new MultipleOutputs<NullWritable, TextMultiple>(context);
         outputDir = context.getConfiguration().get("mapred.output.dir");
+
     }
 
-    private String generateFileName(Text experimentCode, Text variantCode, Text versionNum) {
-        Path vcPath = new Path(outputDir, new Path("variant_code=" + variantCode));
-        Path ecPath = new Path(vcPath, new Path("experiment_code=" + experimentCode));
-        Path vnPath = new Path(ecPath, new Path("version_number=" + versionNum));
-        Path finalPath = new Path(vnPath, new Path("result"));
-        return finalPath.toString();
+    private String generateFileName(Text experimentCode, Text variantCode, Text versionNum) throws UnsupportedEncodingException {
+        String res = new StringBuilder().append(outputDir).append(Path.SEPARATOR).append("variant_code=")
+                .append(URLEncoder.encode(variantCode.toString(), "UTF-8")).append(Path.SEPARATOR).append("experiment_code=")
+                .append(URLEncoder.encode(experimentCode.toString(), "UTF-8")).append(Path.SEPARATOR).append("version_number=")
+                .append(URLEncoder.encode(versionNum.toString(), "UTF-8")).append(Path.SEPARATOR).append("/result").toString();
+        
+        return res;
     }
 
     @Override
@@ -83,8 +87,9 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
             netRoomNights += userAggTransData.getValue().getNetRoomNights();
             netGrossProfit += userAggTransData.getValue().getNetGrossProfit();
         }
-        System.out.println("key>>>>>" + key);
+        // System.out.println("key>>>>>" + key);
         mos.write(
+                "outroot",
                 NullWritable.get(),
                 new TextMultiple(key, Long.toString(numUniqueViewers), Long.toString(numUniquePurchasers), Long
                         .toString(numUniqueCancellers), Long.toString(numActivePurchasers), Long.toString(numNilNetOrdersPurchasers), Long
@@ -92,13 +97,7 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
                 /* omnitureGBV and omnitureRoomNights? */
                 Double.toString(netGrossProfit), Long.toString(numRepeatPurchasers)),
                 generateFileName(key.getTextElementAt(2), key.getTextElementAt(3), key.getTextElementAt(4)));
-        /*
-         * context.write( NullWritable.get(), new TextMultiple(key, Long.toString(numUniqueViewers), Long.toString(numUniquePurchasers),
-         * Long .toString(numUniqueCancellers), Long.toString(numActivePurchasers), Long.toString(numNilNetOrdersPurchasers),
-         * Long.toString(numCancellations), Long.toString(netOrders), Double.toString(netGBV), Long.toString(netRoomNights),
-         * 
-         * Double.toString(netGrossProfit), Long.toString(numRepeatPurchasers)));
-         */
+
     }
     
     public void cleanup(Context context) throws IOException, InterruptedException {
