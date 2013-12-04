@@ -1,5 +1,8 @@
 package mr.aggregation;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,6 +20,8 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.Partition;
+import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IOUtils;
@@ -43,7 +48,6 @@ public class R4AggregationJob extends Configured implements Tool {
             put("version_number", "version_number");
         }
     };
-
 
     private final Set<String> rhsKeys = new HashSet<String>() {
         {
@@ -116,9 +120,11 @@ public class R4AggregationJob extends Configured implements Tool {
         String dbName = "hwwdev";
         String tableName = "etl_hcom_hex_fact_staging_new";
         String jobName = "hdp_hww_hex_etl_fact_aggregation";
-        String outputPath = "/user/hive/warehouse/hwwdev.db/hex_fact_adi";
+        String outputTableName = "hex_fact_adi";
         String reportFilePath = "/user/hive/warehouse/hwwdev.db/hex_reporting_requirements/000000_0";
         String reportTableName = "hex_reporting_requirements";
+        String outputPath = "/tmp/" + jobName;
+
         int numReduceTasks = 100;
 
         JobConf conf = new JobConf(super.getConf());
@@ -138,7 +144,6 @@ public class R4AggregationJob extends Configured implements Tool {
         job.setMapOutputKeyClass(TextMultiple.class);
         job.setMapOutputValueClass(TextMultiple.class);
         job.setNumReduceTasks(numReduceTasks);
-
 
         HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
         try {
@@ -197,7 +202,7 @@ public class R4AggregationJob extends Configured implements Tool {
             int rk = 0;
             StringBuilder joinPosMap = new StringBuilder();
             for (String fieldName : joinKeys.keySet()) {
-                if(rk++>0)
+                if (rk++ > 0)
                     joinPosMap.append(",");
                 joinPosMap.append(lhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(fieldName).two);
             }
@@ -257,6 +262,45 @@ public class R4AggregationJob extends Configured implements Tool {
         boolean success = job.waitForCompletion(true);
         System.out.println("output written to: " + outPath.toString());
 
+        cl = new HiveMetaStoreClient(new HiveConf());
+        try {
+            Table table = cl.getTable(dbName, outputTableName);
+            Map<String, String> params = new HashMap<String, String>();
+            StorageDescriptor tableSd = table.getSd();
+            // List<FieldSchema> partitionKeys = table.getPartitionKeys();
+            String tableLocation = tableSd.getLocation();
+            Set<String> partStrings = getPartitions(null, outputPath);
+            for (String partString : partStrings) {
+                StorageDescriptor partSd = new StorageDescriptor(tableSd);
+                partSd.setLocation(tableLocation + Path.SEPARATOR + partString);
+                List<String> values = getValues(partString);
+                Partition part = new Partition(values, dbName, outputTableName, (int) (System.currentTimeMillis() & 0x00000000FFFFFFFFL),
+                        0, partSd,
+                        params);
+
+                cl.alter_partition(dbName, outputTableName, part);
+            }
+        } finally {
+            cl.close();
+        }
+
         return success ? 0 : -1;
+    }
+
+    private List<String> getValues(String partString) throws UnsupportedEncodingException {
+        String[] pairs = partString.split("/");
+        List<String> values = new ArrayList<String>(3);
+        for(String pair: pairs) {
+            String val = pair.split("=")[1];
+            val = URLDecoder.decode(val, "UTF-8");
+            values.add(val);
+        }
+        return values;
+    }
+
+    private Set<String> getPartitions(String tempLocation, String outputPath) {
+        return new HashSet<String>() {
+            
+        }
     }
 }
