@@ -43,8 +43,8 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                                  ) as purchase_data,
                             purchase_id
                        from etl.etl_hcom_hit_data 
-                      where ((local_date = '${hiveconf:start.date}' and local_hour >= '${hiveconf:start.hour}') or
-                             (local_date = '${hiveconf:end.date}' and local_hour <= '${hiveconf:end.hour}') or
+                      where ((local_date = '${hiveconf:start.date}' and local_hour >= ${hiveconf:start.hour}) or
+                             (local_date = '${hiveconf:end.date}' and local_hour <= ${hiveconf:end.hour}) or
                              (local_date > '${hiveconf:start.date}' and local_date < '${hiveconf:end.date}')
                             ) 
                         and c44 is not null and c44<>''
@@ -53,3 +53,4 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                         and is_excluded_hit = false
                         and purchase_id is not null and purchase_id<>''
                    group by purchase_id) temp;
+
