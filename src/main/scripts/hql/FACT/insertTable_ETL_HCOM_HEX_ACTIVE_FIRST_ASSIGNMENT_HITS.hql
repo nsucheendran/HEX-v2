@@ -17,18 +17,18 @@ set mapred.job.reduce.total.mem.bytes=99000000;
 use ${hiveconf:hex.db};
 
 -- populate 1st assignment hits for the active reporting requirements in the reporting range
-insert overwrite table ${hiveconf:hex.db}.${hiveconf:hex.table} partition(year_month)
-select /*+ MAPJOIN(rep) */ cid,
+insert overwrite table ${hiveconf:hex.db}.${hiveconf:hex.table}
+select /*+ MAPJOIN(rep) */ guid,
+       cid,
        rep.variant_code,
        experiment_code,
        version_number,
-       guid,
        report_start_date,
        report_end_date,
        last_updated_dt, 
        trans_date,
-       gmt,
        local_date,
+       gmt,
        new_visitor_ind,
        page_assigned_entry_page_name, 
        site_sectn_name,
@@ -50,8 +50,7 @@ select /*+ MAPJOIN(rep) */ cid,
        all_mktg_seo_30_day,
        all_mktg_seo_30_day_direct,
        entry_page_name,
-       supplier_property_id,
-       substr(local_date, 1, 7) as year_month
+       supplier_property_id
 from (
            select guid,
                   cid,

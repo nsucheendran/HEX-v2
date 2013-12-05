@@ -84,15 +84,18 @@ public class R4AggregationJob extends Configured implements Tool {
             add("number_of_adults");
             add("number_of_children");
             add("children_in_search");
+            add("operating_system_id");
+            add("all_mktg_seo_30_day");
+            add("all_mktg_seo_30_day_direct");
             add("operating_system");
             add("all_mktg_seo");
             add("all_mktg_seo_direct");
             add("entry_page_name");
+            add("supplier_property_id");
             add("experiment_name");
             add("variant_name");
             add("status");
             add("experiment_test_id");
-            add("supplier_property_id");
 
             add("variant_code");
             add("experiment_code");
@@ -131,7 +134,7 @@ public class R4AggregationJob extends Configured implements Tool {
 //        String tmpOutputPath = "/tmp/";
         String reportFilePath = "/user/hive/warehouse/hwwdev.db/hex_reporting_requirements/000000_0";
         String reportTableName = "hex_reporting_requirements";
-        String outputPath = "/tmp/" + jobName;
+        String outputPath = "/tmp/hdp_hww_hex_etl_fact_aggregation/hex_fact_adi";
 
         int numReduceTasks = 100;
 
@@ -262,7 +265,7 @@ public class R4AggregationJob extends Configured implements Tool {
         FileSystem fileSystem = outPath.getFileSystem(job.getConfiguration());
         fileSystem.delete(outPath, true);
         MultipleOutputs.setCountersEnabled(job, true);
-        MultipleOutputs.addNamedOutput(job, "outroot", SequenceFileOutputFormat.class, NullWritable.class, TextMultiple.class);
+        MultipleOutputs.addNamedOutput(job, "outroot", SequenceFileOutputFormat.class, BytesWritable.class, Text.class);
         FileOutputFormat.setOutputPath(job, outPath);
         FileOutputFormat.setCompressOutput(job, true);
         FileOutputFormat.setOutputCompressorClass(job, org.apache.hadoop.io.compress.SnappyCodec.class);
@@ -278,15 +281,17 @@ public class R4AggregationJob extends Configured implements Tool {
             // List<FieldSchema> partitionKeys = table.getPartitionKeys();
             String tableLocation = tableSd.getLocation();
             Set<String> partStrings = getPartitions(null, outputPath);
+
             for (String partString : partStrings) {
                 StorageDescriptor partSd = new StorageDescriptor(tableSd);
                 partSd.setLocation(tableLocation + Path.SEPARATOR + partString);
                 List<String> values = getValues(partString);
+                // cl.dropPartition(dbName, outputTableName, values);
                 Partition part = new Partition(values, dbName, outputTableName, (int) (System.currentTimeMillis() & 0x00000000FFFFFFFFL),
                         0, partSd,
                         params);
 
-                cl.alter_partition(dbName, outputTableName, part);
+                cl.add_partition(part);
             }
         } finally {
             cl.close();
@@ -310,7 +315,10 @@ public class R4AggregationJob extends Configured implements Tool {
     private Set<String> getPartitions(String tempLocation, String outputPath) {
         return new HashSet<String>() {
             {
-            
+                add("experiment_code=H848/variant_code=S598.6381/version_number=1");
+                add("experiment_code=H848/variant_code=S598.6382/version_number=1");
+                add("experiment_code=H848/variant_code=S598.%25/version_number=1");
+
             }
         };
     }

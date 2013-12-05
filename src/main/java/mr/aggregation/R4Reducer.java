@@ -4,19 +4,23 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import mr.dto.TextMultiple;
 import mr.dto.UserTransactionData;
 import mr.dto.UserTransactionsAggregatedData;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
 public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable, TextMultiple> {
+    private static BytesWritable bw = new BytesWritable(new byte[0], 0);
     private MultipleOutputs<NullWritable, TextMultiple> mos;
     private String outputDir;
 
@@ -87,14 +91,21 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
             netGrossProfit += userAggTransData.getValue().getNetGrossProfit();
         }
         // System.out.println("key>>>>>" + key);
+        Set<Integer> excludes = new HashSet<Integer>() {
+            {
+                add(2);
+                add(3);
+                add(4);
+            }
+        };
         mos.write(
                 "outroot",
-                NullWritable.get(),
-                new TextMultiple(key, Long.toString(numUniqueViewers), Long.toString(numUniquePurchasers), Long
+                bw,
+                new TextMultiple(key, excludes, Long.toString(numUniqueViewers), Long.toString(numUniquePurchasers), Long
                         .toString(numUniqueCancellers), Long.toString(numActivePurchasers), Long.toString(numNilNetOrdersPurchasers), Long
-                        .toString(numCancellations), Long.toString(netOrders), Double.toString(netGBV), Long.toString(netRoomNights),
-                /* omnitureGBV and omnitureRoomNights? */
-                Double.toString(netGrossProfit), Long.toString(numRepeatPurchasers)),
+                        .toString(numCancellations), Long.toString(netOrders), Double.toString(netGBV), Long.toString(netRoomNights), "0",
+                        "0",/* omnitureGBV and omnitureRoomNights? */
+                        Double.toString(netGrossProfit), Long.toString(numRepeatPurchasers)),
                 generateFileName(key.getTextElementAt(2), key.getTextElementAt(3), key.getTextElementAt(4)));
 
     }

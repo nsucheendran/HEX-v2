@@ -4,11 +4,12 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Set;
 
+import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparable;
 
-public class TextMultiple implements WritableComparable<TextMultiple> {
+public class TextMultiple extends Text {
 
     private Text[] texts;
 
@@ -48,6 +49,19 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
         }
     }
 
+    public TextMultiple(TextMultiple other, Set<Integer> excludes, String... texts) {
+        this.texts = new Text[texts.length + other.texts.length - excludes.size()];
+        int j;
+        for (j = 0; j < texts.length; j++) {
+            this.texts[j] = new Text(texts[j]);
+        }
+        int it = 0;
+        for (int i = 0; i < other.texts.length; i++) {
+            if (!excludes.contains(i))
+                this.texts[j + it++] = other.texts[i];
+        }
+    }
+
     public TextMultiple(String[] texts, int[] pos) {
         this.texts = new Text[pos.length];
         for (int i = 0; i < pos.length; i++) {
@@ -83,8 +97,10 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
         }
     }
 
+
     @Override
-    public int compareTo(TextMultiple tm) {
+    public int compareTo(BinaryComparable obj) {
+        TextMultiple tm = (TextMultiple) obj;
         for ( int i = 0; i < texts.length && i < tm.texts.length; i++ ) {
             int cmp = texts[i].compareTo( tm.texts[i] );
             if ( cmp != 0 ) {

@@ -284,6 +284,8 @@ fi
 
 # 
 sudo -E -u $PLAT_USER hdfs dfs -rm -f /etl/common/ETLDATA/meta-inf/V_ETLDM_HCOM_BKG_ORDER_XREF_HEX.mf
+sudo -E -u $ETL_USER hdfs dfs -rm -r -f /data/common/ETLDATA/ETLDM_HCOM_BKG_ORDER_XREF_HEX
+sudo -E -u $ETL_USER hive -e "use ETLDATA; drop table if exists ETLDM_HCOM_BKG_ORDER_XREF_HEX;"
 
 _LOG "Process $TRANS_PROCESS_NAME configured successfully"
 

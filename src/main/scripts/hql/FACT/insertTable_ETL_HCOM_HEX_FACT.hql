@@ -35,11 +35,11 @@ insert overwrite table hwwdev.ETL_HCOM_HEX_FACT partition(variant_code, experime
     platform_type, days_until_stay, 
     length_of_stay, number_of_rooms, 
     number_of_adults, number_of_children, 
-    children_in_search, operating_system, 
-    all_mktg_seo, all_mktg_seo_direct, 
-    entry_page_name, experiment_name, 
+    children_in_search, operating_system_id, 
+    all_mktg_seo_30_day, all_mktg_seo_30_day_direct, 
+    entry_page_name,
+    supplier_property_id, experiment_name, 
     variant_name, status, experiment_test_id,
-    supplier_property_id,
     variant_code, experiment_code, version_number
     from 
     (
@@ -64,7 +64,7 @@ insert overwrite table hwwdev.ETL_HCOM_HEX_FACT partition(variant_code, experime
         guid, cid, local_date, variant_code, experiment_code, version_number,
         new_visitor_ind, page_assigned_entry_page_name, site_sectn_name, user_cntext_name, browser_height, browser_width, brwsr_id, mobile_ind, 
         destination_id, property_destination_id, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, 
-        children_in_search, operating_system, all_mktg_seo, all_mktg_seo_direct, entry_page_name, experiment_name, variant_name, status, experiment_test_id,
+        children_in_search, operating_system_id, all_mktg_seo_30_day, all_mktg_seo_30_day_direct, entry_page_name, experiment_name, variant_name, status, experiment_test_id,
         supplier_property_id
         from 
         (
@@ -81,7 +81,7 @@ insert overwrite table hwwdev.ETL_HCOM_HEX_FACT partition(variant_code, experime
             guid, cid, itin_number, local_date, rep.variant_code, rep.experiment_code, rep.version_number,
             new_visitor_ind, page_assigned_entry_page_name, site_sectn_name, user_cntext_name, browser_height, browser_width, brwsr_id, mobile_ind, 
             destination_id, property_destination_id, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, 
-            children_in_search, operating_system, all_mktg_seo, all_mktg_seo_direct, entry_page_name, rep.experiment_name, rep.variant_name, rep.status, rep.experiment_test_id,
+            children_in_search, operating_system_id, all_mktg_seo_30_day, all_mktg_seo_30_day_direct, entry_page_name, rep.experiment_name, rep.variant_name, rep.status, rep.experiment_test_id,
             supplier_property_id
             from 
             hwwdev.etl_hcom_hex_fact_staging agg 
@@ -91,17 +91,17 @@ insert overwrite table hwwdev.ETL_HCOM_HEX_FACT partition(variant_code, experime
             group by itin_number, guid, cid, local_date, rep.variant_code, rep.experiment_code, rep.version_number,
             new_visitor_ind, page_assigned_entry_page_name, site_sectn_name, user_cntext_name, browser_height, browser_width, brwsr_id, mobile_ind, 
             destination_id, property_destination_id, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, 
-            children_in_search, operating_system, all_mktg_seo, all_mktg_seo_direct, entry_page_name, rep.experiment_name, rep.variant_name, rep.status, rep.experiment_test_id,
+            children_in_search, operating_system_id, all_mktg_seo_30_day, all_mktg_seo_30_day_direct, entry_page_name, rep.experiment_name, rep.variant_name, rep.status, rep.experiment_test_id,
             supplier_property_id
         ) agg_by_itin_num
         group by guid, cid, local_date, variant_code, experiment_code, version_number,
         new_visitor_ind, page_assigned_entry_page_name, site_sectn_name, user_cntext_name, browser_height, browser_width, brwsr_id, mobile_ind, 
         destination_id, property_destination_id, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, 
-        children_in_search, operating_system, all_mktg_seo, all_mktg_seo_direct, entry_page_name, experiment_name, variant_name, status, experiment_test_id,
+        children_in_search, operating_system_id, all_mktg_seo_30_day, all_mktg_seo_30_day_direct, entry_page_name, experiment_name, variant_name, status, experiment_test_id,
         supplier_property_id
     ) agg_by_guid
     group by cid, local_date, variant_code, experiment_code, version_number,
     new_visitor_ind, page_assigned_entry_page_name, site_sectn_name, user_cntext_name, browser_height, browser_width, brwsr_id, mobile_ind, 
     destination_id, property_destination_id, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, 
-    children_in_search, operating_system, all_mktg_seo, all_mktg_seo_direct, entry_page_name, experiment_name, variant_name, status, experiment_test_id,
+    children_in_search, operating_system_id, all_mktg_seo_30_day, all_mktg_seo_30_day_direct, entry_page_name, experiment_name, variant_name, status, experiment_test_id,
     supplier_property_id;

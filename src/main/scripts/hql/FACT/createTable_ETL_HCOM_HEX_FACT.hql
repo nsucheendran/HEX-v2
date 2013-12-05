@@ -1,6 +1,8 @@
 use hwwdev;
 
-create table hwwdev.ETL_HCOM_HEX_FACT(
+drop table if exists hwwdev.hex_fact_adi;
+
+create table hwwdev.dm_hcom_hex_fact(
 num_unique_viewers bigint,
 num_unique_purchasers bigint,
 num_unique_cancellers bigint,
@@ -27,24 +29,25 @@ mobile_ind string,
 destination_id int, 
 property_destination_id int, 
 platform_type string, 
-days_until_stay int, 
-length_of_stay int, 
-number_of_rooms int, 
-number_of_adults int, 
-number_of_children int, 
+days_until_stay int,
+length_of_stay int,
+number_of_rooms int,
+number_of_adults int,
+number_of_children int,
 children_in_search int,
-operating_system string,
-all_mktg_seo string,
-all_mktg_seo_direct string,
+operating_system_id smallint,
+all_mktg_seo_30_day string,
+all_mktg_seo_30_day_direct string,
 entry_page_name string,
+supplier_property_id int,
 experiment_name string,
 variant_name string,
 status string,
-experiment_test_id string,
-supplier_property_id int
+experiment_test_id string
 ) partitioned by (
 variant_code string,
 experiment_code string,
 version_number smallint
 ) 
-stored as sequencefile;
+stored as sequencefile
+location "/tmp/hdp_hww_hex_etl_fact_aggregation/dm_hcom_hex_fact";
