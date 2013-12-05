@@ -50,4 +50,4 @@ experiment_code string,
 version_number smallint
 ) 
 stored as sequencefile
-location "/tmp/hdp_hww_hex_etl_fact_aggregation/dm_hcom_hex_fact";
+location "/user/hive/warehouse/hwwdev.db/etl_hcom_hex_fact";

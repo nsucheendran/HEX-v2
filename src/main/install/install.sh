@@ -361,7 +361,7 @@ else
   _LOG "Process $FACT_PROCESS_NAME already exists"
 fi
 
-_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SRC_BOOKMARK_OMNI" "2012-11-01"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SRC_BOOKMARK_OMNI" "2012-11-01 00"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"

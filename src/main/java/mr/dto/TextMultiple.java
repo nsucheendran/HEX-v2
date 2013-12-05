@@ -6,10 +6,10 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Set;
 
-import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparable;
 
-public class TextMultiple extends Text {
+public class TextMultiple implements WritableComparable<TextMultiple> {
 
     private Text[] texts;
 
@@ -99,8 +99,7 @@ public class TextMultiple extends Text {
 
 
     @Override
-    public int compareTo(BinaryComparable obj) {
-        TextMultiple tm = (TextMultiple) obj;
+    public int compareTo(TextMultiple tm) {
         for ( int i = 0; i < texts.length && i < tm.texts.length; i++ ) {
             int cmp = texts[i].compareTo( tm.texts[i] );
             if ( cmp != 0 ) {
@@ -136,7 +135,7 @@ public class TextMultiple extends Text {
             Text text = texts[i];
             strBuff.append( text );
             if ( i != texts.length - 1 ) {
-                strBuff.append( "\t" );
+                strBuff.append((char) 1);
             }
         }
         return strBuff.toString();

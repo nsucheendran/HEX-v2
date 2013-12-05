@@ -57,16 +57,20 @@ REPORT_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPORT_TABLE"`
 REPORT_FILE=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPORT_FILE"`
 STAGE_DB=`_READ_PROCESS_CONTEXT $PROCESS_ID "STAGE_DB"`
 JOB_QUEUE=`_READ_PROCESS_CONTEXT $PROCESS_ID "JOB_QUEUE"`
-SRC_BOOKMARK_OMNI=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_OMNI"`
+SRC_BOOKMARK_OMNI_FULL=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_OMNI"`
 SRC_BOOKMARK_BKG=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_BKG"`
 PROCESSING_TYPE=`_READ_PROCESS_CONTEXT $PROCESS_ID "PROCESSING_TYPE"`
 
 FAH_PROCESS_ID=`_READ_PROCESS_CONTEXT $PROCESS_ID "FAH_PROCESS_ID"`
-FAH_BOOKMARK_DATE=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK"`
-FAH_BOOKMARK_DATE=`date --date="$FAH_BOOKMARK_DATE" '+%Y-%m-%d'`
+FAH_BOOKMARK_DATE_FULL=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK"`
+
+FAH_BOOKMARK_DATE=`date --date="$FAH_BOOKMARK_DATE_FULL" '+%Y-%m-%d'`
 
 BKG_PROCESS_ID=`_READ_PROCESS_CONTEXT $PROCESS_ID "BKG_PROCESS_ID"`
 BKG_BOOKMARK_DATE=`_READ_PROCESS_CONTEXT $BKG_PROCESS_ID "BOOKMARK"`
+
+SRC_BOOKMARK_OMNI=`date --date="${SRC_BOOKMARK_OMNI_FULL}" '+%Y-%m-%d'`
+SRC_BOOKMARK_OMNI_HOUR=`date --date="${SRC_BOOKMARK_OMNI_FULL}" '+%h'`
 
 if [ "${SRC_BOOKMARK_OMNI}" \< "${SRC_BOOKMARK_BKG}" ]
 then
@@ -175,7 +179,7 @@ then
   _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "PROCESSING_TYPE" "D"
 else
   # daily incremental load
-  _LOG "Incremental Booking Fact Staging data load (SRC_BOOKMARK_OMNI=[$SRC_BOOKMARK_OMNI], SRC_BOOKMARK_BKG=[$SRC_BOOKMARK_BKG], MIN_SRC_BOOKMARK=[$MIN_SRC_BOOKMARK])"
+  _LOG "Incremental Booking Fact Staging data load (SRC_BOOKMARK_OMNI=[$SRC_BOOKMARK_OMNI], SRC_BOOKMARK_OMNI_HR=[$SRC_BOOKMARK_OMNI_HOUR], SRC_BOOKMARK_BKG=[$SRC_BOOKMARK_BKG], MIN_SRC_BOOKMARK=[$MIN_SRC_BOOKMARK])"
   
   LOG_FILE_NAME="hdp_hex_fact_stage_active_hits_${SRC_BOOKMARK_OMNI}-${SRC_BOOKMARK_BKG}.log"
   #MONTH=`date --date="${START_DT}" '+%Y-%m'`
@@ -209,7 +213,7 @@ else
   _LOG "Done loading first assignment hits for active reporting requirements into $ACTIVE_FAH_TABLE"
 
   _LOG "loading incremental first_assignment_hits into $STAGE_TABLE ..."
-  hive -hiveconf src_bookmark_omni="${SRC_BOOKMARK_OMNI}" -hiveconf hex.active.hits.table="${ACTIVE_FAH_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT_STAGE_OMNITURE.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  hive -hiveconf src_bookmark_omni="${SRC_BOOKMARK_OMNI}" -hiveconf src_bookmark_omni_hr="${SRC_BOOKMARK_OMNI_HOUR}" -hiveconf hex.active.hits.table="${ACTIVE_FAH_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT_STAGE_OMNITURE.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
@@ -235,7 +239,7 @@ else
   MAX_TRANS_YM=`date --date="${MAX_TRANS_DATE}" '+%Y-%m'`
   
   _LOG "loading incremental booking data into $STAGE_TABLE ..."
-  hive -hiveconf max_trans_record_date_yr_month="${MAX_TRANS_DATE}" -hiveconf max_booking_record_date="${MAX_BKG_DATE}" -hiveconf max_omniture_record_date="${MAX_OMNI_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf min_src_bookmark="${MIN_SRC_BOOKMARK}" -hiveconf src_bookmark_bkg="${SRC_BOOKMARK_BKG}" -hiveconf src_bookmark_omni="${SRC_BOOKMARK_OMNI}" -hiveconf hex.active.hits.table="${ACTIVE_FAH_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT_STAGE_BOOKING.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  hive -hiveconf max_trans_record_date_yr_month="${MAX_TRANS_DATE}" -hiveconf max_booking_record_date="${MAX_BKG_DATE}" -hiveconf max_omniture_record_date="${MAX_OMNI_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf min_src_bookmark="${MIN_SRC_BOOKMARK}" -hiveconf src_bookmark_bkg="${SRC_BOOKMARK_BKG}" -hiveconf src_bookmark_omni_hr="${SRC_BOOKMARK_OMNI_HOUR}" -hiveconf src_bookmark_omni="${SRC_BOOKMARK_OMNI}" -hiveconf hex.active.hits.table="${ACTIVE_FAH_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT_STAGE_BOOKING.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
@@ -246,7 +250,7 @@ else
   _LOG "Done loading incremental booking data into $STAGE_TABLE"
   
 
-  _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "SRC_BOOKMARK_OMNI" "$FAH_BOOKMARK_DATE"
+  _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "SRC_BOOKMARK_OMNI" "$FAH_BOOKMARK_DATE_FULL"
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!"
     _END_PROCESS $RUN_ID $ERROR_CODE

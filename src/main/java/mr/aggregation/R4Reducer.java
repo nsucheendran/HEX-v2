@@ -101,11 +101,11 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
         mos.write(
                 "outroot",
                 bw,
-                new TextMultiple(key, excludes, Long.toString(numUniqueViewers), Long.toString(numUniquePurchasers), Long
+                new Text(new TextMultiple(key, excludes, Long.toString(numUniqueViewers), Long.toString(numUniquePurchasers), Long
                         .toString(numUniqueCancellers), Long.toString(numActivePurchasers), Long.toString(numNilNetOrdersPurchasers), Long
                         .toString(numCancellations), Long.toString(netOrders), Double.toString(netGBV), Long.toString(netRoomNights), "0",
                         "0",/* omnitureGBV and omnitureRoomNights? */
-                        Double.toString(netGrossProfit), Long.toString(numRepeatPurchasers)),
+                        Double.toString(netGrossProfit), Long.toString(numRepeatPurchasers)).toString()),
                 generateFileName(key.getTextElementAt(2), key.getTextElementAt(3), key.getTextElementAt(4)));
 
     }
