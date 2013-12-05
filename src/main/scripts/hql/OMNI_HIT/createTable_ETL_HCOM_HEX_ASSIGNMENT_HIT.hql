@@ -7,6 +7,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.fah.table} (
   cid int, 
   experiment_variant_code string,
   local_date string, 
+  local_hour smallint,
   gmt int, 
   gmt_timestamp string, 
   hit_data_id bigint, 

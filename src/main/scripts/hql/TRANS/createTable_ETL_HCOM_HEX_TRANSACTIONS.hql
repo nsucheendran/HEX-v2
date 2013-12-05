@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS ${hiveconf:hex.trans.table};
 CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.trans.table} (
   guid string,
   local_date string,
+  local_hour smallint,
   gmt bigint,
   gmt_datetm string,
   itin_number string, 

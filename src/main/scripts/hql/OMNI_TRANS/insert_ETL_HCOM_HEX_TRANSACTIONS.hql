@@ -17,6 +17,7 @@ use ${hiveconf:hex.fah.db};
 insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(year_month, source)
            select purchase_data[4] as guid, 
                   purchase_data[5] as local_date, 
+                  purchase_data[6] as local_hour, 
                   purchase_data[0] as gmt, 
                   purchase_data[1] as gmt_datetm, 
                   purchase_id as itin_number, 
@@ -34,7 +35,8 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                                                             cast(GBV_USD_OMNITURE as string), 
                                                             cast(Room_Nights as string), 
                                                             c44, 
-                                                            local_date
+                                                            local_date,
+                                                            cast(local_hour as string)
                                                            ),
                                                   gmt_timestamp, 
                                                   hit_data_id
@@ -53,4 +55,3 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                         and is_excluded_hit = false
                         and purchase_id is not null and purchase_id<>''
                    group by purchase_id) temp;
-

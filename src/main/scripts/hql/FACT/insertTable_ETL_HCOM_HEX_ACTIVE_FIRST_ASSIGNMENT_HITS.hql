@@ -13,7 +13,6 @@ set mapred.job.queue.name=${hiveconf:job.queue};
 set hive.auto.convert.join=true;
 set mapred.job.reduce.total.mem.bytes=99000000;
 
-
 use ${hiveconf:hex.db};
 
 -- populate 1st assignment hits for the active reporting requirements in the reporting range
@@ -28,6 +27,7 @@ select /*+ MAPJOIN(rep) */ guid,
        last_updated_dt, 
        trans_date,
        local_date,
+       local_hour,
        gmt,
        new_visitor_ind,
        page_assigned_entry_page_name, 
@@ -55,6 +55,7 @@ from (
            select guid,
                   cid,
                   local_date,
+                  local_hour,
                   gmt,
                   experiment_variant_code,
                   new_visitor_ind,

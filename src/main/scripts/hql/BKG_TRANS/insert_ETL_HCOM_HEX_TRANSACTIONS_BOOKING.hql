@@ -17,6 +17,7 @@ use ${hiveconf:hex.fah.db};
 insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(year_month, source)
            select val[2] as guid, 
                   local_date, 
+                  cast('00' as smallint) as local_hour,
                   val[1] as gmt, 
                   val[0] as gmt_datetm, 
                   itin_number, 
@@ -47,4 +48,3 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(ye
                         and year_month = '${hiveconf:month}'
                         and guid is not null and guid<>''
                    group by itin_number, cancel_count, trans_date) temp;
-

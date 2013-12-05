@@ -13,6 +13,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.table} (
   last_updated_dt string, 
   trans_date string,
   local_date string,
+  local_hour smallint,
   gmt int,
   new_visitor_ind smallint, 
   page_assigned_entry_page_name string, 

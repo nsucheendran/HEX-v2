@@ -21,6 +21,7 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
                  all_hits.cid,
                  all_hits.test_variant_code as experiment_variant_code,
                  all_hits.min_hit_data[0] as local_date,
+                 all_hits.min_hit_data[26] as local_hour,
                  all_hits.min_hit_data[1] as gmt,
                  all_hits.min_hit_data[2] as gmt_timestamp,
                  all_hits.min_hit_data[3] as hit_data_id,
@@ -73,7 +74,8 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
                                                                case when (c120 = '' or c120 is null) then 'Unknown' else upper(c120) end,
                                                                case when (c210 = '' or c210 is null) then 'Unknown' else upper(c210) end,
                                                                case when (c104 = '' or c104 is null) then 'Unknown' else c104 end,
-                                                               case when (supplier_property_id = '' or supplier_property_id is null) then '-9998' else cast(coalesce(cast(supplier_property_id as int), -9999) as string) end
+                                                               case when (supplier_property_id = '' or supplier_property_id is null) then '-9998' else cast(coalesce(cast(supplier_property_id as int), -9999) as string) end,
+                                                               cast(local_hour as string)
                                                               ), 
                                                      gmt,
                                                      visit_page_number

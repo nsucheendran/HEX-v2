@@ -98,6 +98,7 @@ insert into table ${hiveconf:hex.db}.${hiveconf:hex.table} partition(year_month,
                               from (          select guid,
                                                      purchase_flag,
                                                      local_date as trans_date,
+                                                     local_hour as trans_hour,
                                                      gmt,
                                                      bkg_gbv,
                                                      bkg_room_nights,
@@ -136,6 +137,7 @@ insert into table ${hiveconf:hex.db}.${hiveconf:hex.table} partition(year_month,
                                                              or 
                                                              (    trans.source='omniture' 
                                                                      and trans.trans_date>'${hiveconf:src_bookmark_omni}'
+                                                                     and trans.trans_hour>${hiveconf:src_bookmark_omni_hr}
                                                              )
                                                          )
                                                       )
