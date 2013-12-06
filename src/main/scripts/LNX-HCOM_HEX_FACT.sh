@@ -48,7 +48,6 @@ else
   RUN_ID=$(_RUN_PROCESS $PROCESS_ID "$PROCESS_NAME")
   _LOG "PROCESS_ID=[$PROCESS_ID]"
   _LOG "RUN_ID=[$RUN_ID]"
-  _LOG_PROCESS_DETAIL $RUN_ID "Started" "$ERROR_CODE"
 fi
 
 STAGE_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "FACT_STAGE_TABLE"`
@@ -104,6 +103,13 @@ _LOG "PROCESSING_TYPE=$PROCESSING_TYPE"
 _LOG "MIN_SRC_BOOKMARK=$MIN_SRC_BOOKMARK"
 _LOG "MAX_SRC_BOOKMARK=$MAX_SRC_BOOKMARK"
 
+
+_LOG_PROCESS_DETAIL $RUN_ID "BEFORE_SRC_BOOKMARK_OMNI" "$SRC_BOOKMARK_OMNI_FULL"
+_LOG_PROCESS_DETAIL $RUN_ID "BEFORE_SRC_BOOKMARK_BKG" "$SRC_BOOKMARK_BKG"
+_LOG_PROCESS_DETAIL $RUN_ID "PROCESSING_TYPE" "$PROCESSING_TYPE"
+_LOG_PROCESS_DETAIL $RUN_ID "FAH_BOOKMARK_DATE" "$FAH_BOOKMARK_DATE_FULL"
+_LOG_PROCESS_DETAIL $RUN_ID "BKG_BOOKMARK_DATE" "$BKG_BOOKMARK_DATE"
+
 LOG_FILE_NAME="hdp_hex_fact_populate_reporting_table_${SRC_BOOKMARK_OMNI}-${SRC_BOOKMARK_BKG}.log"
 _LOG "loading raw reporting requirements table LZ.${REPORT_TABLE}"
 hive -hiveconf hex.report.file="${REPORT_FILE}" -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf lz.db="LZ" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_REP/createTable_HEX_REPORTING_REQUIREMENTS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
@@ -111,6 +117,7 @@ ERROR_CODE=$?
 if [[ $ERROR_CODE -ne 0 ]]; then
   _LOG "HEX_FACT_STAGE: Reporting table load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
   _END_PROCESS $RUN_ID $ERROR_CODE
+  _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
   _FREE_LOCK $HWW_LOCK_NAME
   exit 1
 fi
@@ -122,6 +129,7 @@ ERROR_CODE=$?
 if [[ $ERROR_CODE -ne 0 ]]; then
   _LOG "HEX_FACT_STAGE: Reporting table load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
   _END_PROCESS $RUN_ID $ERROR_CODE
+  _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
   _FREE_LOCK $HWW_LOCK_NAME
   exit 1
 fi
@@ -149,6 +157,7 @@ then
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
       _END_PROCESS $RUN_ID $ERROR_CODE
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
       _FREE_LOCK $HWW_LOCK_NAME
       exit 1
     fi
@@ -159,6 +168,7 @@ then
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
       _END_PROCESS $RUN_ID $ERROR_CODE
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
       _FREE_LOCK $HWW_LOCK_NAME
       exit 1
     fi
@@ -173,6 +183,7 @@ then
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!"
     _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
@@ -182,6 +193,7 @@ then
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!"
     _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
@@ -189,6 +201,9 @@ then
   
   _LOG "Done Reprocessing"
 
+  _LOG_PROCESS_DETAIL $RUN_ID "AFTER_SRC_BOOKMARK_OMNI" "$NEW_BOOKMARK"
+  _LOG_PROCESS_DETAIL $RUN_ID "AFTER_SRC_BOOKMARK_BKG" "$NEW_BOOKMARK"
+  
   _LOG "Setting PROCESSING_TYPE to [D] for next run"
   _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "PROCESSING_TYPE" "D"
 else
@@ -220,6 +235,7 @@ else
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
     _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
@@ -232,6 +248,7 @@ else
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
     _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
@@ -268,6 +285,7 @@ else
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
     _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
@@ -278,6 +296,7 @@ else
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!"
     _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
@@ -287,12 +306,17 @@ else
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!"
     _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
+  _LOG_PROCESS_DETAIL $RUN_ID "AFTER_SRC_BOOKMARK_OMNI" "$FAH_BOOKMARK_DATE_FULL"
+  _LOG_PROCESS_DETAIL $RUN_ID "AFTER_SRC_BOOKMARK_BKG" "$BKG_BOOKMARK_DATE"
+  
   _LOG "Updated Transactions source bookmark to to [$BKG_BOOKMARK_DATE]"
 fi
 
+_LOG_PROCESS_DETAIL $RUN_ID "STATUS" "SUCCESS"
 _END_PROCESS $RUN_ID $ERROR_CODE
 _FREE_LOCK $HWW_LOCK_NAME
 
