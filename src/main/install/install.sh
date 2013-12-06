@@ -39,6 +39,8 @@ ACTIVE_FAH_TABLE='ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HIT'
 FACT_STAGE_TABLE='ETL_HCOM_HEX_FACT_STAGING'
 REPORT_TABLE='ETL_HEX_REPORTING_REQUIREMENTS'
 REPORT_FILE='/autofs/edwfileserver/sherlock_in/HEX/HEX_REPORTING_INPUT.csv'
+EMAIL_TO='agurumurthy@expedia.com'
+EMAIL_CC='achadha@expedia.com,nsood@expedia.com'
 
 HEX_DB='DM'
 
@@ -184,7 +186,18 @@ if [ -z "$FAH_PROCESS_ID" ]; then
 else
   _LOG "Process $FAH_PROCESS_NAME already exists"
 fi
-
+_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "EMAIL_TO" "$EMAIL_TO"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "EMAIL_CC" "$EMAIL_CC"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+  exit 1
+fi
 _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK" "`date -d " -2 days" "+%Y-%m-%d 00"`"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
@@ -257,6 +270,18 @@ else
   _LOG "Process $TRANS_PROCESS_NAME already exists"
 fi
 
+_WRITE_PROCESS_CONTEXT $TRANS_PROCESS_ID "EMAIL_TO" "$EMAIL_TO"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$TRANS_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $TRANS_PROCESS_ID "EMAIL_CC" "$EMAIL_CC"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$TRANS_PROCESS_NAME"
+  exit 1
+fi
 _WRITE_PROCESS_CONTEXT $TRANS_PROCESS_ID "BOOKMARK" "`date -d " -2 days" "+%Y-%m-%d"`"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
@@ -361,6 +386,18 @@ else
   _LOG "Process $FACT_PROCESS_NAME already exists"
 fi
 
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "EMAIL_TO" "$EMAIL_TO"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "EMAIL_CC" "$EMAIL_CC"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SRC_BOOKMARK_OMNI" "2012-11-01 00"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
@@ -396,7 +433,7 @@ _LOG "Process $FACT_PROCESS_NAME configured successfully"
 
 
 ############################
-# jar deployment
+# script/jar deployment
 ############################
 
 

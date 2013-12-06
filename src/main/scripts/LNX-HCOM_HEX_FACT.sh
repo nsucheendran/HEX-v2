@@ -64,6 +64,15 @@ PROCESSING_TYPE=`_READ_PROCESS_CONTEXT $PROCESS_ID "PROCESSING_TYPE"`
 FAH_PROCESS_ID=`_READ_PROCESS_CONTEXT $PROCESS_ID "FAH_PROCESS_ID"`
 FAH_BOOKMARK_DATE_FULL=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK"`
 
+EMAIL_TO=`_READ_PROCESS_CONTEXT $PROCESS_ID "EMAIL_TO"`
+EMAIL_CC=`_READ_PROCESS_CONTEXT $PROCESS_ID "EMAIL_CC"`
+
+EMAIL_RECIPIENTS=$EMAIL_TO
+if [ $EMAIL_CC ]
+then
+  EMAIL_RECIPIENTS="-c $EMAIL_CC $EMAIL_RECIPIENTS"
+fi
+
 FAH_BOOKMARK_DATE=`date --date="$FAH_BOOKMARK_DATE_FULL" '+%Y-%m-%d'`
 
 BKG_PROCESS_ID=`_READ_PROCESS_CONTEXT $PROCESS_ID "BKG_PROCESS_ID"`
@@ -71,6 +80,11 @@ BKG_BOOKMARK_DATE=`_READ_PROCESS_CONTEXT $BKG_PROCESS_ID "BOOKMARK"`
 
 SRC_BOOKMARK_OMNI=`date --date="${SRC_BOOKMARK_OMNI_FULL}" '+%Y-%m-%d'`
 SRC_BOOKMARK_OMNI_HOUR=`date --date="${SRC_BOOKMARK_OMNI_FULL}" '+%h'`
+
+if [ "$FAH_BOOKMARK_DATE_FULL" == "$SRC_BOOKMARK_OMNI_FULL" ] && [ "$BKG_BOOKMARK_DATE" == "$SRC_BOOKMARK_OMNI" ]
+then
+  echo -e "Omniture and Booking bookmarks not updated since last run.\nWill regenerate currently active reporting requirements even though source data as not changed.\n -- $0" | mailx -s "[HEXv2] WARN: no incremental data in source" $EMAIL_RECIPIENTS
+fi
 
 if [ "${SRC_BOOKMARK_OMNI}" \< "${SRC_BOOKMARK_BKG}" ]
 then
@@ -188,21 +202,20 @@ else
   MIN_REPORT_DATE_YM=`date --date="${MIN_REPORT_DATE}" '+%Y-%m'`
   
   
-  MAX_REPORT_TRANS_DATE=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select max(trans_date) from ${STAGE_DB}.${REPORT_TABLE};"`
-  if [ "${FAH_BOOKMARK_DATE}" \< "${MAX_REPORT_TRANS_DATE}" ]
+  MAX_REPORT_HIT_DATE=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select max(report_end_date) from ${STAGE_DB}.${REPORT_TABLE};"`
+  if [ "${FAH_BOOKMARK_DATE}" \< "${MAX_REPORT_HIT_DATE}" ]
   then 
-    MAX_OMNI_TRANS_DATE=${FAH_BOOKMARK_DATE}
+    MAX_OMNI_HIT_DATE=${FAH_BOOKMARK_DATE}
   else
-    MAX_OMNI_TRANS_DATE=${MAX_REPORT_TRANS_DATE}
+    MAX_OMNI_HIT_DATE=${MAX_REPORT_HIT_DATE}
   fi
-  MAX_OMNI_TRANS_DATE_YM=`date --date="$MAX_OMNI_TRANS_DATE" '+%Y-%m'`
+  MAX_OMNI_HIT_DATE_YM=`date --date="$MAX_OMNI_HIT_DATE" '+%Y-%m'`
   
   
-  
-  _LOG "MIN_REPORT_DATE=$MIN_REPORT_DATE, MIN_REPORT_DATE_YM=$MIN_REPORT_DATE_YM, MAX_OMNI_TRANS_DATE=$MAX_OMNI_TRANS_DATE, MAX_OMNI_TRANS_DATE_YM=$MAX_OMNI_TRANS_DATE_YM"
+  _LOG "MIN_REPORT_DATE=$MIN_REPORT_DATE, MIN_REPORT_DATE_YM=$MIN_REPORT_DATE_YM, MAX_OMNI_HIT_DATE=$MAX_OMNI_HIT_DATE, MAX_OMNI_HIT_DATE_YM=$MAX_OMNI_HIT_DATE_YM"
   
   _LOG "loading first assignment hits for active reporting requirements into $ACTIVE_FAH_TABLE ..."
-  hive -hiveconf max_omniture_record_yr_month="${MAX_OMNI_TRANS_DATE_YM}" -hiveconf max_omniture_record_date="${MAX_OMNI_TRANS_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf hex.rep.table="${REPORT_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${ACTIVE_FAH_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HITS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  hive -hiveconf max_omniture_record_yr_month="${MAX_OMNI_HIT_DATE_YM}" -hiveconf max_omniture_record_date="${MAX_OMNI_HIT_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf hex.rep.table="${REPORT_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${ACTIVE_FAH_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HITS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
@@ -212,6 +225,7 @@ else
   fi
   _LOG "Done loading first assignment hits for active reporting requirements into $ACTIVE_FAH_TABLE"
 
+  
   _LOG "loading incremental first_assignment_hits into $STAGE_TABLE ..."
   hive -hiveconf src_bookmark_omni="${SRC_BOOKMARK_OMNI}" -hiveconf src_bookmark_omni_hr="${SRC_BOOKMARK_OMNI_HOUR}" -hiveconf hex.active.hits.table="${ACTIVE_FAH_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT_STAGE_OMNITURE.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   ERROR_CODE=$?
@@ -223,6 +237,16 @@ else
   fi
   _LOG "Done loading incremental first_assignment_hits into $STAGE_TABLE"
 
+  MAX_REPORT_TRANS_DATE=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select max(trans_date) from ${STAGE_DB}.${REPORT_TABLE};"`
+  if [ "${FAH_BOOKMARK_DATE}" \< "${MAX_REPORT_TRANS_DATE}" ]
+  then 
+    MAX_OMNI_TRANS_DATE=${FAH_BOOKMARK_DATE}
+  else
+    MAX_OMNI_TRANS_DATE=${MAX_REPORT_TRANS_DATE}
+  fi
+  MAX_OMNI_TRANS_DATE_YM=`date --date="$MAX_OMNI_TRANS_DATE" '+%Y-%m'`
+  
+  
   if [ "${BKG_BOOKMARK_DATE}" \< "${MAX_REPORT_TRANS_DATE}" ]
   then 
     MAX_BKG_DATE=${BKG_BOOKMARK_DATE}
