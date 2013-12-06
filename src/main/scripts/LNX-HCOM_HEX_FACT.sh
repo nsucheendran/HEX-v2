@@ -91,7 +91,7 @@ _LOG "MIN_SRC_BOOKMARK=$MIN_SRC_BOOKMARK"
 _LOG "MAX_SRC_BOOKMARK=$MAX_SRC_BOOKMARK"
 
 LOG_FILE_NAME="hdp_hex_fact_populate_reporting_table_${SRC_BOOKMARK_OMNI}-${SRC_BOOKMARK_BKG}.log"
-_LOG "loading raw reporting requirements table ${REPORT_TABLE}_RAW"
+_LOG "loading raw reporting requirements table LZ.${REPORT_TABLE}"
 hive -hiveconf hex.report.file="${REPORT_FILE}" -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf lz.db="LZ" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_REP/createTable_HEX_REPORTING_REQUIREMENTS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
 ERROR_CODE=$?
 if [[ $ERROR_CODE -ne 0 ]]; then
@@ -100,9 +100,9 @@ if [[ $ERROR_CODE -ne 0 ]]; then
   _FREE_LOCK $HWW_LOCK_NAME
   exit 1
 fi
-_LOG "Done loading raw reporting requirements table ${REPORT_TABLE}_RAW"
+_LOG "Done loading raw reporting requirements table LZ.${REPORT_TABLE}"
 
-_LOG "loading reporting requirements table $REPORT_TABLE"
+_LOG "loading reporting requirements table $STAGE_DB.$REPORT_TABLE"
 hive -hiveconf min_src_bookmark="${MIN_SRC_BOOKMARK}" -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf lz.db="LZ" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_REP/insert_HEX_REPORTING_REQUIREMENTS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
 ERROR_CODE=$?
 if [[ $ERROR_CODE -ne 0 ]]; then
@@ -111,7 +111,7 @@ if [[ $ERROR_CODE -ne 0 ]]; then
   _FREE_LOCK $HWW_LOCK_NAME
   exit 1
 fi
-_LOG "Done loading reporting requirements table $REPORT_TABLE"
+_LOG "Done loading reporting requirements table $STAGE_DB.$REPORT_TABLE"
 
 
 if [ $PROCESSING_TYPE = "R" ];
@@ -188,21 +188,21 @@ else
   MIN_REPORT_DATE_YM=`date --date="${MIN_REPORT_DATE}" '+%Y-%m'`
   
   
-  MAX_REPORT_DATE=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select max(report_end_date) from ${STAGE_DB}.${REPORT_TABLE};"`
-  if [ "${FAH_BOOKMARK_DATE}" \< "${MAX_REPORT_DATE}" ]
+  MAX_REPORT_TRANS_DATE=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select max(trans_date) from ${STAGE_DB}.${REPORT_TABLE};"`
+  if [ "${FAH_BOOKMARK_DATE}" \< "${MAX_REPORT_TRANS_DATE}" ]
   then 
-    MAX_OMNI_DATE=${FAH_BOOKMARK_DATE}
+    MAX_OMNI_TRANS_DATE=${FAH_BOOKMARK_DATE}
   else
-    MAX_OMNI_DATE=${MAX_REPORT_DATE}
+    MAX_OMNI_TRANS_DATE=${MAX_REPORT_TRANS_DATE}
   fi
-  MAX_OMNI_DATE_YM=`date --date="$MAX_OMNI_DATE" '+%Y-%m'`
+  MAX_OMNI_TRANS_DATE_YM=`date --date="$MAX_OMNI_TRANS_DATE" '+%Y-%m'`
   
   
   
-  _LOG "MIN_REPORT_DATE=$MIN_REPORT_DATE, MIN_REPORT_DATE_YM=$MIN_REPORT_DATE_YM, MAX_OMNI_DATE=$MAX_OMNI_DATE, MAX_OMNI_DATE_YM=$MAX_OMNI_DATE_YM"
+  _LOG "MIN_REPORT_DATE=$MIN_REPORT_DATE, MIN_REPORT_DATE_YM=$MIN_REPORT_DATE_YM, MAX_OMNI_TRANS_DATE=$MAX_OMNI_TRANS_DATE, MAX_OMNI_TRANS_DATE_YM=$MAX_OMNI_TRANS_DATE_YM"
   
   _LOG "loading first assignment hits for active reporting requirements into $ACTIVE_FAH_TABLE ..."
-  hive -hiveconf max_omniture_record_yr_month="${MAX_OMNI_DATE_YM}" -hiveconf max_omniture_record_date="${MAX_OMNI_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf hex.rep.table="${REPORT_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${ACTIVE_FAH_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HITS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  hive -hiveconf max_omniture_record_yr_month="${MAX_OMNI_TRANS_DATE_YM}" -hiveconf max_omniture_record_date="${MAX_OMNI_TRANS_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf hex.rep.table="${REPORT_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${ACTIVE_FAH_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HITS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
@@ -223,23 +223,23 @@ else
   fi
   _LOG "Done loading incremental first_assignment_hits into $STAGE_TABLE"
 
-  if [ "${BKG_BOOKMARK_DATE}" \< "${MAX_REPORT_DATE}" ]
+  if [ "${BKG_BOOKMARK_DATE}" \< "${MAX_REPORT_TRANS_DATE}" ]
   then 
     MAX_BKG_DATE=${BKG_BOOKMARK_DATE}
   else
-    MAX_BKG_DATE=${MAX_REPORT_DATE}
+    MAX_BKG_DATE=${MAX_REPORT_TRANS_DATE}
   fi
   
-  if [ "${MAX_BKG_DATE}" \< "${MAX_OMNI_DATE}" ]
+  if [ "${MAX_BKG_DATE}" \< "${MAX_OMNI_TRANS_DATE}" ]
   then
-    MAX_TRANS_DATE=${MAX_OMNI_DATE}
+    MAX_TRANS_DATE=${MAX_OMNI_TRANS_DATE}
   else
     MAX_TRANS_DATE=${MAX_BKG_DATE}
   fi
   MAX_TRANS_YM=`date --date="${MAX_TRANS_DATE}" '+%Y-%m'`
   
   _LOG "loading incremental booking data into $STAGE_TABLE ..."
-  hive -hiveconf max_trans_record_date_yr_month="${MAX_TRANS_DATE}" -hiveconf max_booking_record_date="${MAX_BKG_DATE}" -hiveconf max_omniture_record_date="${MAX_OMNI_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf min_src_bookmark="${MIN_SRC_BOOKMARK}" -hiveconf src_bookmark_bkg="${SRC_BOOKMARK_BKG}" -hiveconf src_bookmark_omni_hr="${SRC_BOOKMARK_OMNI_HOUR}" -hiveconf src_bookmark_omni="${SRC_BOOKMARK_OMNI}" -hiveconf hex.active.hits.table="${ACTIVE_FAH_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT_STAGE_BOOKING.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  hive -hiveconf max_trans_record_date_yr_month="${MAX_TRANS_DATE}" -hiveconf max_booking_record_date="${MAX_BKG_DATE}" -hiveconf max_omniture_record_date="${MAX_OMNI_TRANS_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf min_src_bookmark="${MIN_SRC_BOOKMARK}" -hiveconf src_bookmark_bkg="${SRC_BOOKMARK_BKG}" -hiveconf src_bookmark_omni_hr="${SRC_BOOKMARK_OMNI_HOUR}" -hiveconf src_bookmark_omni="${SRC_BOOKMARK_OMNI}" -hiveconf hex.active.hits.table="${ACTIVE_FAH_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT_STAGE_BOOKING.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
