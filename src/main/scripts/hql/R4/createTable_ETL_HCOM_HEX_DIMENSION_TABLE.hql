@@ -5,12 +5,12 @@ DROP TABLE IF EXISTS ${hiveconf:hex.dim.table};
 -- TODO change the storage format based on the DB2 requirements
 create table ${hiveconf:hex.dim.table} (
 local_date string,
-new_visitor_ind smallint, 
+new_visitor_ind string, 
 page_assigned_entry_page_name string,
 site_sectn_name string, 
 user_cntext_name string, 
-browser_height smallint, 
-browser_width smallint, 
+browser_height string, 
+browser_width string, 
 mobile_ind string, 
 platform_type string, 
 days_until_stay int, 

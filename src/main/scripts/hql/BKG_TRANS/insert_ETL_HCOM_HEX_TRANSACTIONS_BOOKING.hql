@@ -17,7 +17,7 @@ use ${hiveconf:hex.fah.db};
 insert ${hiveconf:into.overwrite} table ${hiveconf:hex.trans.table} PARTITION(year_month, source)
            select val[2] as guid, 
                   local_date, 
-                  cast('00' as smallint) as local_hour,
+                  cast('23' as smallint) as local_hour,
                   val[1] as gmt, 
                   val[0] as gmt_datetm, 
                   itin_number, 

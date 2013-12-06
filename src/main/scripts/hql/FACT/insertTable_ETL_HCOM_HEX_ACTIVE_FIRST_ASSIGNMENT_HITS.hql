@@ -24,7 +24,8 @@ select /*+ MAPJOIN(rep) */ guid,
        version_number,
        report_start_date,
        report_end_date,
-       last_updated_dt, 
+       last_updated_dt,
+       insert_dt, 
        trans_date,
        local_date,
        local_hour,
@@ -58,12 +59,24 @@ from (
                   local_hour,
                   gmt,
                   experiment_variant_code,
-                  new_visitor_ind,
+                  case when new_visitor_ind = 1 then 'new'
+                       when new_visitor_ind = 0 then 'return'
+                       else 'Not Applicable'
+                  end as new_visitor_ind,
                   page_assigned_entry_page_name, 
                   site_sectn_name,
                   user_cntext_name,
-                  browser_height,
-                  browser_width,
+                  Case When browser_height > 0 And browser_height < 500 Then '< 500'
+                       When browser_height >= 500 And browser_height < 600 Then '>=500'
+                       When browser_height >= 600 And browser_height < 700 Then '>=600'
+                       When browser_height >= 700 Then '>=700'
+                       Else 'Not Applicable'
+                  End as browser_height,
+                  Case When browser_width > 0 And browser_width < 900 Then '< 900'
+                       When browser_width >= 900 And browser_width < 1200 Then '>=900'
+                       When browser_width >= 1200 Then '>=1200'
+                       Else 'Not Applicable'
+                  End as browser_width,
                   brwsr_id, 
                   mobile_ind,
                   destination_id,
@@ -94,6 +107,7 @@ from (
                   report_start_date,
                   report_end_date,
                   last_updated_dt,
+                  insert_dt,
                   trans_date
            from ${hiveconf:hex.db}.${hiveconf:hex.rep.table}
       ) rep

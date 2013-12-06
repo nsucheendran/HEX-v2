@@ -108,9 +108,9 @@ from
       (select cid, local_date, new_visitor_ind, page_assigned_entry_page_name, site_sectn_name, user_cntext_name, browser_height, browser_width, brwsr_id, mobile_ind,  
       property_destination_id, randomize(property_destination_id, ${hiveconf:hex.dim.pd.seed}, ${hiveconf:hex.dim.pd.separator}, true, ${hiveconf:hex.dim.pd.randomize.array})[0] 
       as property_destination_id_random, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, children_in_search,
-      operating_system,all_mktg_seo,randomize(all_mktg_seo, ${hiveconf:hex.dim.mktg.seed}, ${hiveconf:hex.dim.mktg.separator}, true, 
-      ${hiveconf:hex.dim.mktg.randomize.array})[0] as all_mktg_seo_random,all_mktg_seo_direct, 
-      randomize(all_mktg_seo_direct, ${hiveconf:hex.dim.mktg.direct.seed}, ${hiveconf:hex.dim.mktg.direct.separator}, true, ${hiveconf:hex.dim.mktg.direct.randomize.array})[0] 
+      operating_system_id,all_mktg_seo_30_day,randomize(all_mktg_seo_30_day, ${hiveconf:hex.dim.mktg.seed}, ${hiveconf:hex.dim.mktg.separator}, true, 
+      ${hiveconf:hex.dim.mktg.randomize.array})[0] as all_mktg_seo_random,all_mktg_seo_30_day_direct, 
+      randomize(all_mktg_seo_30_day_direct, ${hiveconf:hex.dim.mktg.direct.seed}, ${hiveconf:hex.dim.mktg.direct.separator}, true, ${hiveconf:hex.dim.mktg.direct.randomize.array})[0] 
       as all_mktg_seo_direct_random,entry_page_name,supplier_property_id,
       randomize(supplier_property_id, ${hiveconf:hex.dim.sp.seed}, ${hiveconf:hex.dim.sp.separator}, true, ${hiveconf:hex.dim.sp.randomize.array})[0] as supplier_property_id_random,
       rep.variant_code,rep.experiment_code,rep.version_number,num_unique_viewers,num_unique_purchasers,num_unique_cancellers,num_active_purchasers,num_nil_net_order_purchasers,
@@ -118,8 +118,8 @@ from
       report_start_date,report_end_date,status,trans_date, test_manager,product_manager,pod,experiment_test_id from 
       (
            select cid, local_date, new_visitor_ind, page_assigned_entry_page_name, site_sectn_name, user_cntext_name, browser_height, browser_width, brwsr_id, mobile_ind,  
-           property_destination_id, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, children_in_search,operating_system,
-           all_mktg_seo,all_mktg_seo_direct,entry_page_name,supplier_property_id,variant_code,experiment_code,version_number,
+           property_destination_id, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, children_in_search,operating_system_id,
+           all_mktg_seo_30_day,all_mktg_seo_30_day_direct,entry_page_name,supplier_property_id,variant_code,experiment_code,version_number,
            num_unique_viewers,num_unique_purchasers,num_unique_cancellers,num_active_purchasers,num_nil_net_order_purchasers,total_cancellations,net_orders,net_bkg_gbv,net_bkg_room_nights,
            net_omniture_gbv,net_omniture_room_nights,net_gross_profit,num_repeat_purchasers
            from ${hiveconf:hex.fact.table}) metrics 
@@ -191,7 +191,7 @@ from
        (
             select OPERATING_SYSTEMS_ID, OPERATING_SYSTEMS from hwwdev.lz_hcom_dc_operating_systems
        ) os 
-       on (active_metrics.operating_system=os.OPERATING_SYSTEMS_ID)
+       on (active_metrics.operating_system_id=os.OPERATING_SYSTEMS_ID)
       left outer join 
       (
             select brwsr_id, brwsr_name, brwsr_typ_name from dm.brwsr_dim

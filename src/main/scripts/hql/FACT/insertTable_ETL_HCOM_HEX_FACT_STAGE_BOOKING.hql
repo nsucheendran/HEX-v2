@@ -121,13 +121,13 @@ insert into table ${hiveconf:hex.db}.${hiveconf:hex.table} partition(year_month,
                                     where (    trans.trans_date<=hits_by_report.trans_date
                                                and hits_by_report.gmt<=trans.gmt
                                                and (    
-                                                      (    hits_by_report.last_updated_dt>'${hiveconf:min_src_bookmark}'
+                                                      (    hits_by_report.rep_insert_dt>'${hiveconf:min_src_bookmark}'
                                                             and trans.trans_date>=hits_by_report.report_start_date
                                                       )
                                                       or 
                                                       (    
-                                                         (   hits_by_report.last_updated_dt is null
-                                                             or hits_by_report.last_updated_dt<='${hiveconf:min_src_bookmark}'
+                                                         (   hits_by_report.rep_insert_dt is null
+                                                             or hits_by_report.rep_insert_dt<='${hiveconf:min_src_bookmark}'
                                                          ) 
                                                          and 
                                                          (    

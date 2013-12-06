@@ -29,7 +29,11 @@ select experiment_code,
        case when last_updated_datetm<>'' and last_updated_datetm is not null 
             then FROM_UNIXTIME(UNIX_TIMESTAMP(last_updated_datetm, "MM/dd/yyyy HH:mm"), "yyyy-MM-dd HH:mm") 
             else null 
-       end as last_updated_dt
+       end as last_updated_dt,
+       case when insert_datetm<>'' and insert_datetm is not null 
+            then FROM_UNIXTIME(UNIX_TIMESTAMP(insert_datetm, "MM/dd/yyyy HH:mm"), "yyyy-MM-dd HH:mm") 
+            else null 
+       end as insert_dt
        from ${hiveconf:lz.db}.HEX_REPORTING_REQUIREMENTS
        where experiment_name<>'EXPERIMNT_NAME'
              and experiment_code<>'' and experiment_name<>''
@@ -37,12 +41,23 @@ select experiment_code,
              and ((case when last_updated_datetm<>'' and last_updated_datetm is not null 
                         then FROM_UNIXTIME(UNIX_TIMESTAMP(last_updated_datetm, "MM/dd/yyyy HH:mm"), "yyyy-MM-dd HH:mm") 
                         else null 
-                   end) >='${hiveconf:min_src_bookmark}' 
+                   end) >='${hiveconf:min_src_bookmark}'
+             or ((case when insert_datetm<>'' and insert_datetm is not null  
+                       then FROM_UNIXTIME(UNIX_TIMESTAMP(insert_datetm, "MM/dd/yyyy HH:mm"), "yyyy-MM-dd HH:mm") 
+                        else null   
+                  end) >='${hiveconf:min_src_bookmark}'       
+                ) 
              or (FROM_UNIXTIME(UNIX_TIMESTAMP(report_start_date, "MM/dd/yyyy"), "yyyy-MM-dd")<='${hiveconf:min_src_bookmark}'
-                  and (case when report_end_date<>'' and report_end_date is not null 
+                  and (
+                       (case when report_end_date<>'' and report_end_date is not null 
                             then FROM_UNIXTIME(UNIX_TIMESTAMP(report_end_date, "MM/dd/yyyy"), "yyyy-MM-dd") 
                             else '9999-99-99' 
                        end>='${hiveconf:min_src_bookmark}')
+                       or 
+                       (case when trans_date<>'' and trans_date is not null 
+                       then FROM_UNIXTIME(UNIX_TIMESTAMP(trans_date, "MM/dd/yyyy"), "yyyy-MM-dd")
+                       else null
+                       end) >='${hiveconf:min_src_bookmark}'
+                      )
                 )
              );
-             

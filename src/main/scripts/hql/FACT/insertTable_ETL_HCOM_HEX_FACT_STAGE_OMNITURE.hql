@@ -57,12 +57,12 @@ select guid,
        'omniture' as source 
 from ${hiveconf:hex.db}.${hiveconf:hex.active.hits.table} 
 where (    
-           last_updated_dt>'${hiveconf:src_bookmark_omni}'
+           insert_dt>'${hiveconf:src_bookmark_omni}'
       )
       or 
       (    
-           (   last_updated_dt is null
-               or last_updated_dt<='${hiveconf:src_bookmark_omni}'
+           (   insert_dt is null
+               or insert_dt<='${hiveconf:src_bookmark_omni}'
            ) 
            and 
            (    

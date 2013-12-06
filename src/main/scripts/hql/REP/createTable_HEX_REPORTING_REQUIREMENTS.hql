@@ -18,7 +18,8 @@ test_manager string,
 product_manager string, 
 pod string,
 experiment_test_id string,
-last_updated_datetm string)
+last_updated_datetm string,
+insert_datetm string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ',';
 
 -- this csv contains all variant_codes in exploded form
@@ -41,5 +42,6 @@ test_manager string,
 product_manager string, 
 pod string,
 experiment_test_id string,
-last_updated_dt string)
+last_updated_dt string,
+insert_dt string)
 stored as sequencefile;
