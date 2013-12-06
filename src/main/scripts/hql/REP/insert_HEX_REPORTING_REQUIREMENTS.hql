@@ -42,10 +42,7 @@ select experiment_code,
                   and (case when report_end_date<>'' and report_end_date is not null 
                             then FROM_UNIXTIME(UNIX_TIMESTAMP(report_end_date, "MM/dd/yyyy"), "yyyy-MM-dd") 
                             else '9999-99-99' 
-                       end>='${hiveconf:min_src_bookmark}' 
-                       or 
-                       report_end_date is null 
-                       or 
-                       report_end_date='')
+                       end>='${hiveconf:min_src_bookmark}')
                 )
              );
+             
