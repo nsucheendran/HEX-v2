@@ -2,7 +2,7 @@ use hwwdev;
 
 drop table if exists hwwdev.hex_fact_adi;
 
-create table hwwdev.dm_hcom_hex_fact(
+create table hwwdev.etl_hcom_hex_fact(
 num_unique_viewers bigint,
 num_unique_purchasers bigint,
 num_unique_cancellers bigint,

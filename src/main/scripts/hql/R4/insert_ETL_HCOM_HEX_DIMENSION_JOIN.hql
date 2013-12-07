@@ -3,11 +3,8 @@ set hive.exec.dynamic.partition.mode=nonstrict;
 set hive.exec.dynamic.partition=true;
 set hive.exec.max.dynamic.partitions=2000;
 set hive.exec.max.dynamic.partitions.pernode=1024;
-set mapred.job.queue.name=${hiveconf:job.queue};
-set hive.exec.compress.output=true;
+set mapred.job.queue.name=edwdev;
 set mapred.max.split.size=256000000;
-set mapred.output.compression.type=BLOCK;
-set mapred.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 set mapred.compress.map.output=true;
 set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 use hwwdev;
@@ -19,12 +16,12 @@ set mapred.job.reduce.total.mem.bytes=99061748;
 insert overwrite table ${hiveconf:hex.dim.table}
 select 
 local_date,
-new_visitor_ind, 
+new_visitor_ind,
 page_assigned_entry_page_name, 
 site_sectn_name, 
 user_cntext_name, 
-browser_height, 
-browser_width, 
+browser_height,
+browser_width,
 mobile_ind, 
 platform_type, 
 days_until_stay, 
@@ -105,7 +102,25 @@ sum(net_omniture_room_nights),
 sum(net_gross_profit),
 sum(num_repeat_purchasers)
 from                                                  
-      (select cid, local_date, new_visitor_ind, page_assigned_entry_page_name, site_sectn_name, user_cntext_name, browser_height, browser_width, brwsr_id, mobile_ind,  
+      (select cid, local_date, 
+      case when new_visitor_ind = 1 then 'new'
+          when new_visitor_ind = 0 then 'return'
+          else 'Not Applicable'
+      end as new_visitor_ind,
+      page_assigned_entry_page_name, 
+      site_sectn_name, 
+      user_cntext_name, 
+      Case When browser_height > 0 And browser_height < 500 Then '< 500'
+            When browser_height >= 500 And browser_height < 600 Then '>=500'
+            When browser_height >= 600 And browser_height < 700 Then '>=600'
+            When browser_height >= 700 Then '>=700'
+            Else 'Not Applicable'
+      End as browser_height,
+      Case When browser_width > 0 And browser_width < 900 Then '< 900'
+            When browser_width >= 900 And browser_width < 1200 Then '>=900'
+            When browser_width >= 1200 Then '>=1200'
+            Else 'Not Applicable'
+      End as browser_width, brwsr_id, mobile_ind,  
       property_destination_id, randomize(property_destination_id, ${hiveconf:hex.dim.pd.seed}, ${hiveconf:hex.dim.pd.separator}, true, ${hiveconf:hex.dim.pd.randomize.array})[0] 
       as property_destination_id_random, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, children_in_search,
       operating_system_id,all_mktg_seo_30_day,randomize(all_mktg_seo_30_day, ${hiveconf:hex.dim.mktg.seed}, ${hiveconf:hex.dim.mktg.separator}, true, 
