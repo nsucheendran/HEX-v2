@@ -38,8 +38,8 @@ TRANS_TABLE='ETL_HCOM_HEX_TRANSACTIONS'
 ACTIVE_FAH_TABLE='ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HIT'
 FACT_STAGE_TABLE='ETL_HCOM_HEX_FACT_STAGING'
 REPORT_TABLE='ETL_HEX_REPORTING_REQUIREMENTS'
-REPORT_FILE='/autofs/edwfileserver/sherlock_in/HEX/HEX_REPORTING_INPUT.csv'
-EMAIL_TO='agurumurthy@expedia.com'
+REPORT_FILE='/autofs/edwfileserver/sherlock_in/HEX/HEXV2UAT/HEX_REPORTING_INPUT.csv'
+EMAIL_TO='agurumurthi@expedia.com,nsucheendran@expedia.com'
 EMAIL_CC='achadha@expedia.com,nsood@expedia.com'
 
 HEX_DB='DM'
@@ -398,13 +398,13 @@ if [ $? -ne 0 ]; then
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
   exit 1
 fi
-_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SRC_BOOKMARK_OMNI" "2012-11-01 00"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SRC_BOOKMARK_OMNI" "2012-10-31 00"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
   exit 1
 fi
-_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SRC_BOOKMARK_BKG" "2012-11-01"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SRC_BOOKMARK_BKG" "2012-10-31"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"

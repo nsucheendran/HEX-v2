@@ -52,7 +52,7 @@ else
   RUN_ID=$(_RUN_PROCESS $PROCESS_ID "$PROCESS_NAME")
   _LOG "PROCESS_ID=[$PROCESS_ID]"
   _LOG "RUN_ID=[$RUN_ID]"
-  _LOG_PROCESS_DETAIL $RUN_ID "Started" "$ERROR_CODE"
+  _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "STARTED"
 fi
 
 FAH_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "FAH_TABLE"`
@@ -72,7 +72,10 @@ then
 fi
 
 _LOG "PROCESSING_TYPE=$PROCESSING_TYPE"
-_LOG "LAST_DT=$LAST_DT"
+_LOG "BOOKMARK=$LAST_DT"
+
+_LOG_PROCESS_DETAIL $RUN_ID "BEFORE_BOOKMARK" "$LAST_DT"
+_LOG_PROCESS_DETAIL $RUN_ID "PROCESSING_TYPE" "$PROCESSING_TYPE"
 
 if [ $PROCESSING_TYPE = "R" ];
 then
@@ -167,6 +170,7 @@ then
       if [[ $ERROR_CODE -ne 0 ]]; then
         _LOG "OMNI_TRANS: Omniture Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
         _END_PROCESS $RUN_ID $ERROR_CODE
+        _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
         _FREE_LOCK $HWW_FAH_LOCK_NAME
         exit 1
       fi
@@ -178,6 +182,7 @@ then
       if [[ $ERROR_CODE -ne 0 ]]; then
         _LOG "OMNI_HIT: First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
         _END_PROCESS $RUN_ID $ERROR_CODE
+        _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
         _FREE_LOCK $HWW_FAH_LOCK_NAME
         exit 1
       fi
@@ -193,6 +198,7 @@ then
     _LOG "Updating BOOKMARK (since none existed) as $END_DATE $END_HOUR"
     `_WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DATE $END_HOUR"`
   fi
+  _LOG_PROCESS_DETAIL $RUN_ID "AFTER_BOOKMARK" "$END_DATE $END_HOUR"
   _LOG "Setting PROCESSING_TYPE to [D] for next run"
   `_WRITE_PROCESS_CONTEXT "$PROCESS_ID" "PROCESSING_TYPE" "D"`
   
@@ -218,6 +224,7 @@ else
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE] while trying to derive delta range"
     _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
     _FREE_LOCK $HWW_FAH_LOCK_NAME
     exit 1
   fi
@@ -236,6 +243,7 @@ else
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "Omniture Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
       _END_PROCESS $RUN_ID $ERROR_CODE
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
       _FREE_LOCK $HWW_FAH_LOCK_NAME
       exit 1
     fi
@@ -246,6 +254,7 @@ else
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
       _END_PROCESS $RUN_ID $ERROR_CODE
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
       _FREE_LOCK $HWW_FAH_LOCK_NAME
       exit 1
     fi
@@ -255,16 +264,20 @@ else
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!"
       _END_PROCESS $RUN_ID $ERROR_CODE
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
       _FREE_LOCK $HWW_FAH_LOCK_NAME
       exit 1
     fi
+    _LOG_PROCESS_DETAIL $RUN_ID "AFTER_BOOKMARK" "$END_DATE $END_HOUR"
     _LOG "Updated Bookmark to [$END_DATE $END_HOUR]"
   else
+    _LOG_PROCESS_DETAIL $RUN_ID "AFTER_BOOKMARK" "$LAST_DT"
     echo -e "Contiguous delta not found from BOOKMARK=[$LAST_DT]. Nothing to do.\n -- $0" | mailx -s "[HEXv2] WARN: no incremental data in source" $EMAIL_RECIPIENTS
     _LOG "Contiguous delta not found from BOOKMARK=[$LAST_DT]. Nothing to do."
   fi
 fi
 
+_LOG_PROCESS_DETAIL $RUN_ID "STATUS" "SUCCESS"
 _END_PROCESS $RUN_ID $ERROR_CODE
 _FREE_LOCK $HWW_FAH_LOCK_NAME
 
