@@ -272,7 +272,7 @@ else
     _LOG "Updated Bookmark to [$END_DATE $END_HOUR]"
   else
     _LOG_PROCESS_DETAIL $RUN_ID "AFTER_BOOKMARK" "$LAST_DT"
-    echo -e "Contiguous delta not found from BOOKMARK=[$LAST_DT]. Nothing to do.\n -- $0" | mailx -s "[HEXv2] WARN: no incremental data in source" $EMAIL_RECIPIENTS
+    echo -e "====================================================================================================================================================================\nContiguous delta not found from BOOKMARK=[$LAST_DT] in source.\nCheck source data availability & list files (Refer to documentation : https://confluence/pages/viewpage.action?pageId=420855780)\n\nScript name: $0\n====================================================================================================================================================================\n" | mailx -s "HWW HEX Alert (ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS) : No incremental data in source to process (Last Bookmark Date - ${LAST_DT})" $EMAIL_RECIPIENTS
     _LOG "Contiguous delta not found from BOOKMARK=[$LAST_DT]. Nothing to do."
   fi
 fi

@@ -83,7 +83,7 @@ SRC_BOOKMARK_OMNI_HOUR=`date --date="${SRC_BOOKMARK_OMNI_FULL}" '+%H'`
 
 if [ "$FAH_BOOKMARK_DATE_FULL" == "$SRC_BOOKMARK_OMNI_FULL" ] && [ "$BKG_BOOKMARK_DATE" == "$SRC_BOOKMARK_OMNI" ]
 then
-  echo -e "Omniture and Booking bookmarks not updated since last run.\nWill regenerate currently active reporting requirements even though source data as not changed.\n -- $0" | mailx -s "[HEXv2] WARN: no incremental data in source" $EMAIL_RECIPIENTS
+  echo -e "====================================================================================================================================================================\nHEX Foundation data for Omniture & Booking not updated from BOOKMARKs=[$FAH_BOOKMARK_DATE_FULL, $BKG_BOOKMARK_DATE].\n\nProcessing will continue & generate data for any new experiments in input file.\n\nScript Name : $0\n====================================================================================================================================================================\n" | mailx -s "HWW HEX Warning (ETL_HCOM_HEX_FACT): No incremental data in source to process (BOOKMARK Dates -[$FAH_BOOKMARK_DATE_FULL, $BKG_BOOKMARK_DATE])" $EMAIL_RECIPIENTS
 fi
 
 if [ "${SRC_BOOKMARK_OMNI}" \< "${SRC_BOOKMARK_BKG}" ]
