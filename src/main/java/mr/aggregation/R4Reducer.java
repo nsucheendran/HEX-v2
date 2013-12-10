@@ -27,7 +27,6 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
     public void setup(Context context) {
         mos = new MultipleOutputs<NullWritable, TextMultiple>(context);
         outputDir = context.getConfiguration().get("mapred.output.dir");
-
     }
 
     private String generateFileName(Text variantCode, Text experimentCode, Text versionNum) throws UnsupportedEncodingException {
@@ -47,8 +46,10 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
         long numNilNetOrdersPurchasers = 0;
         long numCancellations = 0;
         long netOrders = 0;
-        double netGBV = 0;
-        long netRoomNights = 0;
+        double netBkgGBV = 0;
+        long netBkgRoomNights = 0;
+        double netOmnitureGBV = 0;
+        long netOmnitureRoomNights = 0;
         double netGrossProfit = 0;
         long numUniqueViewers = 0;
         long numRepeatPurchasers = 0;
@@ -84,10 +85,12 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
             if (userAggTransData.getValue().isPurchaser() && userAggTransData.getValue().getNetTransactions() == 0) {
                 numNilNetOrdersPurchasers++;
             }
-            numCancellations += userAggTransData.getValue().isNumCancellations();
-            netOrders += userAggTransData.getValue().getNetOrders();
-            netGBV += userAggTransData.getValue().getNetGBV();
-            netRoomNights += userAggTransData.getValue().getNetRoomNights();
+            numCancellations += userAggTransData.getValue().getNumCancellations();
+            netOrders += userAggTransData.getValue().getNetTransactions();
+            netBkgGBV += userAggTransData.getValue().getTotalBkgGbv();
+            netBkgRoomNights += userAggTransData.getValue().getTotalBkgRoomNights();
+            netOmnitureGBV += userAggTransData.getValue().getTotalOmnitureGbv();
+            netOmnitureRoomNights += userAggTransData.getValue().getTotalOmnitureRoomNights();
             netGrossProfit += userAggTransData.getValue().getNetGrossProfit();
         }
         // System.out.println("key>>>>>" + key);
@@ -103,8 +106,8 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
                 bw,
                 new Text(new TextMultiple(key, excludes, Long.toString(numUniqueViewers), Long.toString(numUniquePurchasers), Long
                         .toString(numUniqueCancellers), Long.toString(numActivePurchasers), Long.toString(numNilNetOrdersPurchasers), Long
-                        .toString(numCancellations), Long.toString(netOrders), Double.toString(netGBV), Long.toString(netRoomNights), "0",
-                        "0",/* omnitureGBV and omnitureRoomNights? */
+                        .toString(numCancellations), Long.toString(netOrders), Double.toString(netBkgGBV), Long.toString(netBkgRoomNights), 
+                        Double.toString(netOmnitureGBV), Long.toString(netOmnitureRoomNights),
                         Double.toString(netGrossProfit), Long.toString(numRepeatPurchasers)).toString()),
                 generateFileName(key.getTextElementAt(2), key.getTextElementAt(3), key.getTextElementAt(4)));
 

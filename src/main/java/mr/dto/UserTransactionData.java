@@ -6,9 +6,10 @@ public class UserTransactionData {
 	private int numTrans;
 	private double bkgGbv;
     private int bkgRoomNights;
+    private double omnitureGbv;
+    private int omnitureRoomNights;
 	private double grossProfit; 
 	private String itinNumber;
-	private boolean isCancelled;
 
     /*
      * guid => 0 itin_number => 1 trans_date => 2 num_transactions => 3 bkg_gbv => 4 bkg_room_nights => 5 omniture_gbv => 6
@@ -38,6 +39,16 @@ public class UserTransactionData {
 		} else {
 			bkgRoomNights = Integer.parseInt(val);
 		}
+        if ((val = mapperOutput.getTextElementAt(6).toString()).equals(HIVE_NULL_VALUE)) {
+            omnitureGbv = 0;
+        } else {
+            omnitureGbv = Double.parseDouble(val);
+        }
+        if ((val = mapperOutput.getTextElementAt(7).toString()).equals(HIVE_NULL_VALUE)) {
+            omnitureRoomNights = 0;
+        } else {
+            omnitureRoomNights = Integer.parseInt(val);
+        }
         if ((val = mapperOutput.getTextElementAt(8).toString()).equals(HIVE_NULL_VALUE)) {
 			grossProfit = 0;
 		} else {
@@ -69,7 +80,23 @@ public class UserTransactionData {
 	public void setBkgRoomNights(int bkgRoomNights) {
 		this.bkgRoomNights = bkgRoomNights;
 	}
-	public double getGrossProfit() {
+    public double getOmnitureGbv() {
+        return omnitureGbv;
+    }
+
+    public void setOmnitureGbv(double omnitureGbv) {
+        this.omnitureGbv = omnitureGbv;
+    }
+
+    public int getOmnitureRoomNights() {
+        return omnitureRoomNights;
+    }
+
+    public void setOmnitureRoomNights(int omnitureRoomNights) {
+        this.omnitureRoomNights = omnitureRoomNights;
+    }
+
+    public double getGrossProfit() {
 		return grossProfit;
 	}
 	public void setGrossProfit(double grossProfit) {
@@ -80,11 +107,5 @@ public class UserTransactionData {
 	}
 	public void setItinNumber(String itin_number) {
 		this.itinNumber = itin_number;
-	}
-	public boolean isCancelled() {
-		return isCancelled;
-	}
-	public void setCancelled(boolean isCancelled) {
-		this.isCancelled = isCancelled;
 	}
 }
