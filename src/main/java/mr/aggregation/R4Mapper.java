@@ -18,7 +18,9 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
     private int[] lhsValPositions;
     private int[] rhsKeyPositions;
     // private int[] rhsValPositions;
-    private Map<Integer, Integer> join = new HashMap<Integer, Integer>();
+    private Map<Integer, Integer> eqJoin = new HashMap<Integer, Integer>();
+    private Map<Integer, Integer> lteJoin = new HashMap<Integer, Integer>();
+    private Map<Integer, Integer> gteJoin = new HashMap<Integer, Integer>();
     private String[][] rtable;
 
     public R4Mapper() {
@@ -33,10 +35,20 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
         rhsKeyPositions = getPositions(context, "rhsKeys");
         // rhsValPositions = getPositions(context, "rhsVals");
 
-        String[] joins = context.getConfiguration().get("join").split(",");
-        for (String j : joins) {
+        String[] eqJoins = context.getConfiguration().get("eqjoin").split(",");
+        for (String j : eqJoins) {
             String[] vals = j.split("=");
-            join.put(Integer.parseInt(vals[0]), Integer.parseInt(vals[1]));
+            eqJoin.put(Integer.parseInt(vals[0]), Integer.parseInt(vals[1]));
+        }
+        String[] lteJoins = context.getConfiguration().get("ltejoin").split(",");
+        for (String j : lteJoins) {
+            String[] vals = j.split("=");
+            lteJoin.put(Integer.parseInt(vals[0]), Integer.parseInt(vals[1]));
+        }
+        String[] gteJoins = context.getConfiguration().get("gtejoin").split(",");
+        for (String j : gteJoins) {
+            String[] vals = j.split("=");
+            gteJoin.put(Integer.parseInt(vals[0]), Integer.parseInt(vals[1]));
         }
         
         String[] lines = context.getConfiguration().get("data").split("\n");
@@ -63,17 +75,44 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
 
         for (String[] rrow : rtable) {
             boolean res = true;
-            for (int lpos : join.keySet()) {
-                int rpos = join.get(lpos);
+            for (int lpos : eqJoin.keySet()) {
+                int rpos = eqJoin.get(lpos);
                 res = res && lrow[lpos].equals(rrow[rpos]);
                 if (!res)
                     break;
+            }
+            if (res) {
+                for (int lpos : lteJoin.keySet()) {
+                    int rpos = lteJoin.get(lpos);
+                    res = res && (coalesce(lrow[lpos], "0").compareTo(rrow[rpos]) <= 0);
+                    if (!res)
+                        break;
+                }
+            }
+            if (res) {
+                for (int lpos : gteJoin.keySet()) {
+                    int rpos = gteJoin.get(lpos);
+                    res = res && (coalesce(lrow[lpos], "9").compareTo(rrow[rpos]) >= 0);
+                    if (!res)
+                        break;
+                }
             }
             if (res) {
                 return stripe(rrow, rhsKeyPositions);
             }
         }
         return null;
+    }
+
+    private String coalesce(String... strings) {
+        String curr = null;
+        for(String s: strings) {
+            if (s != null && !"\\N".equalsIgnoreCase(s)) {
+                curr = s;
+                break;
+            }
+        }
+        return curr;
     }
 
     private String[] stripe(String[] rrow, int[] pos) {
