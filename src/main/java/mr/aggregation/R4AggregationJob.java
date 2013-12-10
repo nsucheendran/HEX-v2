@@ -50,11 +50,26 @@ public class R4AggregationJob extends Configured implements Tool {
     // hdfs://nameservice1/tmp/hdp_hww_hex_etl_fact_aggregation1386152554484/experiment_code=H848/variant_code=S598.6382/version_number=1/result-r-00099
     private static Pattern partitionDirPattern = Pattern.compile("(.*)(hdp_hww_hex_etl_fact_aggregation)(\\/)(.*)(\\/)(^\\/)*");
     // hdfs://nameservice1/tmp/hdp_hww_hex_etl_fact_aggregation/experiment_code=H848/variant_code=S598.%25/version_number=1/result-r-00000
-    private final Map<String, String> joinKeys = new HashMap<String, String>() {
+    private final Map<String, String> equiJoinKeys = new HashMap<String, String>() {
         {
+            // lhs keys => rhs keys
             put("variant_code", "variant_code");
             put("experiment_code", "experiment_code");
             put("version_number", "version_number");
+        }
+    };
+    
+    private final Map<String, String> lteJoinKeys = new HashMap<String, String>() {
+        {
+            put("local_date", "report_end_date");
+            put("trans_date", "trans_date");
+        }
+    };
+
+    private final Map<String, String> gteJoinKeys = new HashMap<String, String>() {
+        {
+            put("local_date", "report_start_date");
+            put("trans_date", "report_start_date");
         }
     };
 
@@ -183,7 +198,9 @@ public class R4AggregationJob extends Configured implements Tool {
             StringBuilder keySb = new StringBuilder();
             StringBuilder valSb = new StringBuilder();
 
-            Map<String, Integer> lhsPosMap = new HashMap<String, Integer>();
+            Map<String, Integer> equiLhsPosMap = new HashMap<String, Integer>();
+            Map<String, Integer> lteLhsPosMap = new HashMap<String, Integer>();
+            Map<String, Integer> gteLhsPosMap = new HashMap<String, Integer>();
             for (FieldSchema field : fields) {
                 if (groupKeys.contains(field.getName())) {
                     if (kj++ > 0)
@@ -196,9 +213,16 @@ public class R4AggregationJob extends Configured implements Tool {
                     valSb.append(i);
                     System.out.println(field.getName() + " => val[" + (vj - 1) + "]");
                 }
-                if (joinKeys.containsKey(field.getName())) {
-                    lhsPosMap.put(field.getName(), i);
+                if (equiJoinKeys.containsKey(field.getName())) {
+                    equiLhsPosMap.put(field.getName(), i);
                 }
+                if (lteJoinKeys.containsKey(field.getName())) {
+                    lteLhsPosMap.put(field.getName(), i);
+                }
+                if (gteJoinKeys.containsKey(field.getName())) {
+                    gteLhsPosMap.put(field.getName(), i);
+                }
+
                 i++;
             }
 
@@ -208,18 +232,36 @@ public class R4AggregationJob extends Configured implements Tool {
             int tableSize = 0;
             Map<String, IntPair> rhsPosMap = new HashMap<String, IntPair>();
             for (FieldSchema field : rhsfields) {
-                if (joinKeys.values().contains(field.getName()) || rhsKeys.contains(field.getName())) {
+                if (equiJoinKeys.values().contains(field.getName()) || lteJoinKeys.values().contains(field.getName())
+                        || gteJoinKeys.values().contains(field.getName()) || rhsKeys.contains(field.getName())) {
                     rhsPosMap.put(field.getName(), new IntPair(i, tableSize++));
                 }
                 ++i;
             }
 
             int rk = 0;
-            StringBuilder joinPosMap = new StringBuilder();
-            for (String fieldName : joinKeys.keySet()) {
+            StringBuilder equiJoinPosMap = new StringBuilder();
+            for (String fieldName : equiJoinKeys.keySet()) {
                 if (rk++ > 0)
-                    joinPosMap.append(",");
-                joinPosMap.append(lhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(fieldName).two);
+                    equiJoinPosMap.append(",");
+                String rField = equiJoinKeys.get(fieldName);
+                equiJoinPosMap.append(equiLhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).two);
+            }
+            rk = 0;
+            StringBuilder lteJoinPosMap = new StringBuilder();
+            for (String fieldName : lteJoinKeys.keySet()) {
+                if (rk++ > 0)
+                    lteJoinPosMap.append(",");
+                String rField = lteJoinKeys.get(fieldName);
+                lteJoinPosMap.append(lteLhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).two);
+            }
+            rk = 0;
+            StringBuilder gteJoinPosMap = new StringBuilder();
+            for (String fieldName : gteJoinKeys.keySet()) {
+                if (rk++ > 0)
+                    gteJoinPosMap.append(",");
+                String rField = gteJoinKeys.get(fieldName);
+                gteJoinPosMap.append(gteLhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).two);
             }
             rk = 0;
             for (String fieldName : rhsKeys) {
@@ -234,8 +276,14 @@ public class R4AggregationJob extends Configured implements Tool {
             job.getConfiguration().set("rhsKeys", rhsKeySb.toString());
             job.getConfiguration().set("rhsVals", "");
 
-            job.getConfiguration().set("join", joinPosMap.toString());
-            System.out.println("join: " + joinPosMap);
+            job.getConfiguration().set("eqjoin", equiJoinPosMap.toString());
+            System.out.println("eqjoin: " + equiJoinPosMap);
+
+            job.getConfiguration().set("ltejoin", lteJoinPosMap.toString());
+            System.out.println("ltejoin: " + lteJoinPosMap);
+
+            job.getConfiguration().set("gtejoin", gteJoinPosMap.toString());
+            System.out.println("gtejoin: " + gteJoinPosMap);
 
             SequenceFile.Reader repReader = new SequenceFile.Reader(conf, SequenceFile.Reader.file(new Path(reportFilePath)));
             BytesWritable key = (BytesWritable) ReflectionUtils.newInstance(repReader.getKeyClass(), conf);
