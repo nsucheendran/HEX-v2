@@ -186,7 +186,7 @@ public class R4AggregationJob extends Configured implements Tool {
             RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
 
             while (files.hasNext()) {
-                FileInputFormat.addInputPath(job,files.next().getPath());
+                FileInputFormat.addInputPath(job, files.next().getPath());
             }
             fileSystem.close();
 
@@ -312,7 +312,7 @@ public class R4AggregationJob extends Configured implements Tool {
         } finally {
             cl.close();
         }
-        
+
         Path outPath = new Path(outputPath);
         FileSystem fileSystem = outPath.getFileSystem(job.getConfiguration());
         fileSystem.delete(outPath, true);
@@ -339,11 +339,12 @@ public class R4AggregationJob extends Configured implements Tool {
                 partSd.setLocation(tableLocation + Path.SEPARATOR + partString);
                 List<String> values = getValues(partString);
                 // cl.dropPartition(dbName, outputTableName, values);
-                Partition part = new Partition(values, dbName, outputTableName, (int) (System.currentTimeMillis() & 0x00000000FFFFFFFFL),
-                        0, partSd,
-                        params);
+                if (!values.isEmpty()) {
+                    Partition part = new Partition(values, dbName, outputTableName,
+                            (int) (System.currentTimeMillis() & 0x00000000FFFFFFFFL), 0, partSd, params);
 
-                cl.add_partition(part);
+                    cl.add_partition(part);
+                }
             }
         } finally {
             cl.close();
@@ -356,10 +357,12 @@ public class R4AggregationJob extends Configured implements Tool {
     private List<String> getValues(String partString) throws UnsupportedEncodingException {
         String[] pairs = partString.split("/");
         List<String> values = new ArrayList<String>(3);
-        for(String pair: pairs) {
-            String val = pair.split("=")[1];
-            val = URLDecoder.decode(val, "UTF-8");
-            values.add(val);
+        if (partString.contains("=")) {
+            for (String pair : pairs) {
+                String val = pair.split("=")[1];
+                val = URLDecoder.decode(val, "UTF-8");
+                values.add(val);
+            }
         }
         return values;
     }
@@ -415,6 +418,8 @@ public class R4AggregationJob extends Configured implements Tool {
                     Path bkupPartionMinusChildPath = new Path(bkupTmpOutput + Path.SEPARATOR + partitionMinusChildStr);
                     // System.out.println(">>>>>>bkupPartionMinusChildPath>>>>>>>>>>" + bkupPartionMinusChildPath + "<<<<<<<<<<<<<<");
                     boolean tablePartitionExists = false;
+                    // default true, as if table partition doesn't exist, we don't need any bkup
+                    boolean partitionBkupSuccessful = true;
                     // take existing data bkup, if exists
                     if (tablePartitionExists = outFileSystem.exists(tablePartitionPath)) {
                         if (!outFileSystem.exists(bkupPartionPath)) {
@@ -422,8 +427,9 @@ public class R4AggregationJob extends Configured implements Tool {
                         } else {
                             outFileSystem.delete(bkupPartionPath, true);
                         }
-                        outFileSystem.rename(tablePartitionPath, bkupPartionMinusChildPath);
-                        outFileSystem.delete(tablePartitionPath, true);
+                        if (partitionBkupSuccessful = outFileSystem.rename(tablePartitionPath, bkupPartionMinusChildPath)) {
+                            outFileSystem.delete(tablePartitionPath, true);
+                        }
                         // System.out.println(">>>>table to bkup-> Rename " + tablePartitionPath + " to " + bkupPartionMinusChildPath);
                     } else {
                         outFileSystem.mkdirs(tablePartitionMinusChildPath);
