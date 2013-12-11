@@ -118,8 +118,9 @@ public class UserTransactionsAggregatedData {
     }
 
     public void setMinTransDate(String transDate) {
-      if (this.minTransDate == null || transDate.compareTo(minTransDate) < 0)
+      if (this.minTransDate == null || transDate.compareTo(minTransDate) < 0) {
         this.minTransDate = transDate;
+      }
     }
   }
 }

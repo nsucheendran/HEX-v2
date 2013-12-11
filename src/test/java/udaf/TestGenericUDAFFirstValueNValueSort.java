@@ -5,14 +5,14 @@ import org.junit.Test;
 
 public class TestGenericUDAFFirstValueNValueSort {
 
-    @Test
-    public void testGetEvaluatorTypeInfoArray() throws SemanticException {
+  @Test
+  public void testGetEvaluatorTypeInfoArray() throws SemanticException {
 
-    }
+  }
 
-    @Test
-    public void testCreateEvaluator() {
-        
-    }
+  @Test
+  public void testCreateEvaluator() {
+
+  }
 
 }

@@ -44,13 +44,14 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.thrift.TException;
 
 import com.google.common.collect.Sets;
 
 /*
  * MapReduce job that emulates the hive job at
  * <link>github.com/ExpediaEDW/edw-HEXHadoopETL/src/main/scripts/hql/FACT/insertTable_ETL_HCOM_HEX_FACT.hql</link>
- * 
+ * (and runs faster trading MR steps for reducer memory)
  * 
  * @author nsood
  * @author achadha
@@ -157,9 +158,7 @@ public final class R4AggregationJob extends Configured implements Tool {
     }
   };
 
-  private R4AggregationJob() {
-  }
-
+  
   public static void main(final String[] args) throws Exception {
     Configuration conf = new Configuration();
     int res = ToolRunner.run(conf, new R4AggregationJob(), args);
@@ -167,8 +166,8 @@ public final class R4AggregationJob extends Configured implements Tool {
   }
 
   private static class IntPair {
-    final int one;
-    final int two;
+    private final int one;
+    private final int two;
 
     IntPair(final int one, final int two) {
       this.one = one;
@@ -183,8 +182,6 @@ public final class R4AggregationJob extends Configured implements Tool {
     String tableName = "etl_hcom_hex_fact_staging_new";
     String outputTableName = "hex_fact_adi";
 
-    // String tableOutputPath = "/user/hive/warehouse/hwwdev.db/hex_fact_adi";
-    // String tmpOutputPath = "/tmp/";
     String reportFilePath = "/user/hive/warehouse/hwwdev.db/hex_reporting_requirements/000000_0";
     String reportTableName = "hex_reporting_requirements";
     String tmpOutputPath = "/tmp/" + jobName;
@@ -194,27 +191,66 @@ public final class R4AggregationJob extends Configured implements Tool {
     JobConf conf = new JobConf(super.getConf());
 
     conf.setQueueName(queueName);
-    // conf.setOutputFormat(HiveSequenceFileOutputFormat.class);
-    Job job = new Job(conf, jobName);
-    job.setJarByClass(R4AggregationJob.class);
 
-    job.setMapperClass(R4Mapper.class);
-    job.setReducerClass(R4Reducer.class);
+    Job job = initJob(numReduceTasks, conf);
 
-    job.setInputFormatClass(SequenceFileInputFormat.class);
-    job.setOutputFormatClass(NullOutputFormat.class);
-    job.setOutputKeyClass(NullWritable.class);
-    job.setOutputValueClass(TextMultiple.class);
-    job.setMapOutputKeyClass(TextMultiple.class);
-    job.setMapOutputValueClass(TextMultiple.class);
-    job.setNumReduceTasks(numReduceTasks);
+    configureJob(dbName, tableName, reportFilePath, reportTableName, job);
 
+    Path outPath = new Path(tmpOutputPath);
+    FileSystem fileSystem = outPath.getFileSystem(job.getConfiguration());
+    fileSystem.delete(outPath, true);
+    MultipleOutputs.setCountersEnabled(job, true);
+    MultipleOutputs.addNamedOutput(job, "outroot", SequenceFileOutputFormat.class, BytesWritable.class, Text.class);
+    FileOutputFormat.setOutputPath(job, outPath);
+    FileOutputFormat.setCompressOutput(job, true);
+    FileOutputFormat.setOutputCompressorClass(job, org.apache.hadoop.io.compress.SnappyCodec.class);
+
+    boolean success = job.waitForCompletion(true);
+    System.out.println("output written to: " + outPath.toString());
+
+    Set<String> newPartitionsAdded = Sets.newHashSet();
+    HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
+    String tableLocation = null;
+    try {
+      Table table = cl.getTable(dbName, outputTableName);
+      Map<String, String> params = new HashMap<String, String>();
+      StorageDescriptor tableSd = table.getSd();
+      tableLocation = tableSd.getLocation();
+      Set<String> partStrings = getPartitions(tmpOutputPath, tableLocation, job);
+
+      for (String partString : partStrings) {
+        StorageDescriptor partSd = new StorageDescriptor(tableSd);
+        partSd.setLocation(tableLocation + Path.SEPARATOR + partString);
+        List<String> values = getValues(partString);
+
+        if (!values.isEmpty()) {
+          Partition part = new Partition(values, dbName, outputTableName, (int) (System.currentTimeMillis() & 0x00000000FFFFFFFFL), 0,
+              partSd, params);
+          try {
+            cl.dropPartition(dbName, outputTableName, values, false);
+          } catch (NoSuchObjectException ex) {
+            System.out.println("New Partition:" + partString);
+            newPartitionsAdded.add(partString);
+          }
+          cl.add_partition(part);
+        }
+      }
+    } catch (Exception ex) {
+      restoreDataFromBkup(tmpOutputPath + "bkup", tableLocation, job, newPartitionsAdded);
+      throw new UnableToMoveDataException(ex);
+    } finally {
+      cl.close();
+    }
+    return success ? 0 : -1;
+
+  }
+
+  private void configureJob(String dbName, String tableName, String reportFilePath, String reportTableName, Job job) throws TException,
+      IOException {
     HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
     try {
 
       Table table = cl.getTable(dbName, tableName);
-      // System.out.println("input format: " + table.getSd().getOutputFormat());
-      // System.out.println("output format: " + table.getSd().getInputFormat());
       Path tblPath = new Path(table.getSd().getLocation());
       FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
       RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
@@ -228,7 +264,7 @@ public final class R4AggregationJob extends Configured implements Tool {
       int i = 0;
       int kj = 0;
       int vj = 0;
-      // Map<String, Integer> fieldMap = new LinkedHashMap<String, Integer>(fields.size());
+      
       StringBuilder keySb = new StringBuilder();
       StringBuilder valSb = new StringBuilder();
 
@@ -275,34 +311,11 @@ public final class R4AggregationJob extends Configured implements Tool {
         ++i;
       }
 
+      StringBuilder equiJoinPosMap = configString(equiLhsPosMap, rhsPosMap, equiJoinKeys);
+      StringBuilder lteJoinPosMap = configString(lteLhsPosMap, rhsPosMap, lteJoinKeys);
+      StringBuilder gteJoinPosMap = configString(gteLhsPosMap, rhsPosMap, gteJoinKeys);
+      
       int rk = 0;
-      StringBuilder equiJoinPosMap = new StringBuilder();
-      for (String fieldName : equiJoinKeys.keySet()) {
-        if (rk++ > 0) {
-          equiJoinPosMap.append(",");
-        }
-        String rField = equiJoinKeys.get(fieldName);
-        equiJoinPosMap.append(equiLhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).two);
-      }
-      rk = 0;
-      StringBuilder lteJoinPosMap = new StringBuilder();
-      for (String fieldName : lteJoinKeys.keySet()) {
-        if (rk++ > 0) {
-          lteJoinPosMap.append(",");
-        }
-        String rField = lteJoinKeys.get(fieldName);
-        lteJoinPosMap.append(lteLhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).two);
-      }
-      rk = 0;
-      StringBuilder gteJoinPosMap = new StringBuilder();
-      for (String fieldName : gteJoinKeys.keySet()) {
-        if (rk++ > 0) {
-          gteJoinPosMap.append(",");
-        }
-        String rField = gteJoinKeys.get(fieldName);
-        gteJoinPosMap.append(gteLhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).two);
-      }
-      rk = 0;
       for (String fieldName : rhsKeys) {
         if (rk++ > 0) {
           rhsKeySb.append(",");
@@ -325,10 +338,10 @@ public final class R4AggregationJob extends Configured implements Tool {
       job.getConfiguration().set("gtejoin", gteJoinPosMap.toString());
       System.out.println("gtejoin: " + gteJoinPosMap);
 
-      SequenceFile.Reader repReader = new SequenceFile.Reader(conf, SequenceFile.Reader.file(new Path(reportFilePath)));
-      BytesWritable key = (BytesWritable) ReflectionUtils.newInstance(repReader.getKeyClass(), conf);
+      SequenceFile.Reader repReader = new SequenceFile.Reader(job.getConfiguration(), SequenceFile.Reader.file(new Path(reportFilePath)));
+      BytesWritable key = (BytesWritable) ReflectionUtils.newInstance(repReader.getKeyClass(), job.getConfiguration());
 
-      Text value = (Text) ReflectionUtils.newInstance(repReader.getValueClass(), conf);
+      Text value = (Text) ReflectionUtils.newInstance(repReader.getValueClass(), job.getConfiguration());
       StringBuilder data = new StringBuilder();
 
       while (repReader.next(key, value)) {
@@ -353,54 +366,36 @@ public final class R4AggregationJob extends Configured implements Tool {
     } finally {
       cl.close();
     }
+  }
 
-    Path outPath = new Path(tmpOutputPath);
-    FileSystem fileSystem = outPath.getFileSystem(job.getConfiguration());
-    fileSystem.delete(outPath, true);
-    MultipleOutputs.setCountersEnabled(job, true);
-    MultipleOutputs.addNamedOutput(job, "outroot", SequenceFileOutputFormat.class, BytesWritable.class, Text.class);
-    FileOutputFormat.setOutputPath(job, outPath);
-    FileOutputFormat.setCompressOutput(job, true);
-    FileOutputFormat.setOutputCompressorClass(job, org.apache.hadoop.io.compress.SnappyCodec.class);
-
-    boolean success = job.waitForCompletion(true);
-    System.out.println("output written to: " + outPath.toString());
-
-    Set<String> newPartitionsAdded = Sets.newHashSet();
-    cl = new HiveMetaStoreClient(new HiveConf());
-    String tableLocation = null;
-    try {
-      Table table = cl.getTable(dbName, outputTableName);
-      Map<String, String> params = new HashMap<String, String>();
-      StorageDescriptor tableSd = table.getSd();
-      tableLocation = tableSd.getLocation();
-      Set<String> partStrings = getPartitions(tmpOutputPath, tableLocation, job);
-
-      for (String partString : partStrings) {
-        StorageDescriptor partSd = new StorageDescriptor(tableSd);
-        partSd.setLocation(tableLocation + Path.SEPARATOR + partString);
-        List<String> values = getValues(partString);
-
-        if (!values.isEmpty()) {
-          Partition part = new Partition(values, dbName, outputTableName, (int) (System.currentTimeMillis() & 0x00000000FFFFFFFFL), 0,
-              partSd, params);
-          try {
-            cl.dropPartition(dbName, outputTableName, values, false);
-          } catch (NoSuchObjectException ex) {
-            System.out.println("New Partition:" + partString);
-            newPartitionsAdded.add(partString);
-          }
-          cl.add_partition(part);
-        }
+  private StringBuilder configString(Map<String, Integer> equiLhsPosMap, Map<String, IntPair> rhsPosMap, Map<String, String> joinKeys) {
+    int rk = 0;
+    StringBuilder equiJoinPosMap = new StringBuilder();
+    for (String fieldName : joinKeys.keySet()) {
+      if (rk++ > 0) {
+        equiJoinPosMap.append(",");
       }
-    } catch (Exception ex) {
-      restoreDataFromBkup(tmpOutputPath + "bkup", tableLocation, job, newPartitionsAdded);
-      throw new UnableToMoveDataException(ex);
-    } finally {
-      cl.close();
+      String rField = joinKeys.get(fieldName);
+      equiJoinPosMap.append(equiLhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).two);
     }
-    return success ? 0 : -1;
+    return equiJoinPosMap;
+  }
 
+  private Job initJob(int numReduceTasks, JobConf conf) throws IOException {
+    Job job = new Job(conf, jobName);
+    job.setJarByClass(R4AggregationJob.class);
+
+    job.setMapperClass(R4Mapper.class);
+    job.setReducerClass(R4Reducer.class);
+
+    job.setInputFormatClass(SequenceFileInputFormat.class);
+    job.setOutputFormatClass(NullOutputFormat.class);
+    job.setOutputKeyClass(NullWritable.class);
+    job.setOutputValueClass(TextMultiple.class);
+    job.setMapOutputKeyClass(TextMultiple.class);
+    job.setMapOutputValueClass(TextMultiple.class);
+    job.setNumReduceTasks(numReduceTasks);
+    return job;
   }
 
   private List<String> getValues(final String partString) throws UnsupportedEncodingException {
@@ -455,13 +450,12 @@ public final class R4AggregationJob extends Configured implements Tool {
               // "<<<<<<<<<<<<<<");
               Path bkupPartionPath = new Path(bkupTmpOutput + Path.SEPARATOR + partition);
               Path bkupPartionMinusChildPath = new Path(bkupTmpOutput + Path.SEPARATOR + partitionMinusChildStr);
-              // System.out.println(">>>>>>bkupPartionMinusChildPath>>>>>>>>>>" + bkupPartionMinusChildPath +
-              // "<<<<<<<<<<<<<<");
-              boolean tablePartitionExists = false;
+
+              boolean tablePartitionExists = outFileSystem.exists(tablePartitionPath);
               // default true, as if table partition doesn't exist, we don't need any bkup
               success = true;
               // take existing data bkup, if exists
-              if (tablePartitionExists = outFileSystem.exists(tablePartitionPath)) {
+              if (tablePartitionExists) {
                 if (!outFileSystem.exists(bkupPartionMinusChildPath)) {
                   success = outFileSystem.mkdirs(bkupPartionMinusChildPath);
                   if (!success) {
@@ -565,7 +559,6 @@ public final class R4AggregationJob extends Configured implements Tool {
           outFileSystem.close();
         }
       } catch (IOException e) {
-        // TODO Auto-generated catch block
         throw new UnableToMoveDataException("Unable to close filesystem obj while restoring data from bkup. ", e);
       }
     }

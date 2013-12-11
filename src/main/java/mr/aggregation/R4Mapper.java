@@ -1,6 +1,7 @@
 package mr.aggregation;
 
 import static mr.Constants.TAB_SEP_PATTERN;
+import static mr.utils.Utils.coalesce;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -106,16 +107,6 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
     return null;
   }
 
-  private String coalesce(String... strings) {
-    String curr = null;
-    for (String s : strings) {
-      if (s != null && !"\\N".equalsIgnoreCase(s)) {
-        curr = s;
-        break;
-      }
-    }
-    return curr;
-  }
 
   private String[] stripe(String[] rrow, int[] pos) {
     String[] row = new String[pos.length];

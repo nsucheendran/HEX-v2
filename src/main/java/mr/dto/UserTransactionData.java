@@ -1,6 +1,6 @@
 package mr.dto;
 
-import static mr.Constants.HIVE_NULL_VALUE;
+import static mr.utils.Utils.coalesce;
 
 public class UserTransactionData {
   private String transDate;
@@ -17,44 +17,14 @@ public class UserTransactionData {
    * omniture_room_nights => 7 gross_profit => 8
    */
   public UserTransactionData(TextMultiple mapperOutput) {
-    if ((itinNumber = mapperOutput.getTextElementAt(1).toString()).equals(HIVE_NULL_VALUE)) {
-      itinNumber = "";
-    }
-
-    if ((transDate = mapperOutput.getTextElementAt(2).toString()).equals(HIVE_NULL_VALUE)) {
-      transDate = "";
-    }
-    String val = null;
-    if ((val = mapperOutput.getTextElementAt(3).toString()).equals(HIVE_NULL_VALUE)) {
-      numTrans = 0;
-    } else {
-      numTrans = Integer.parseInt(val);
-    }
-    if ((val = mapperOutput.getTextElementAt(4).toString()).equals(HIVE_NULL_VALUE)) {
-      bkgGbv = 0;
-    } else {
-      bkgGbv = Double.parseDouble(val);
-    }
-    if ((val = mapperOutput.getTextElementAt(5).toString()).equals(HIVE_NULL_VALUE)) {
-      bkgRoomNights = 0;
-    } else {
-      bkgRoomNights = Integer.parseInt(val);
-    }
-    if ((val = mapperOutput.getTextElementAt(6).toString()).equals(HIVE_NULL_VALUE)) {
-      omnitureGbv = 0;
-    } else {
-      omnitureGbv = Double.parseDouble(val);
-    }
-    if ((val = mapperOutput.getTextElementAt(7).toString()).equals(HIVE_NULL_VALUE)) {
-      omnitureRoomNights = 0;
-    } else {
-      omnitureRoomNights = Integer.parseInt(val);
-    }
-    if ((val = mapperOutput.getTextElementAt(8).toString()).equals(HIVE_NULL_VALUE)) {
-      grossProfit = 0;
-    } else {
-      grossProfit = Double.parseDouble(val);
-    }
+    itinNumber = coalesce(mapperOutput.getTextElementAt(1).toString(), "");
+    transDate = coalesce(mapperOutput.getTextElementAt(2).toString(), "");
+    numTrans = Integer.parseInt(coalesce(mapperOutput.getTextElementAt(3).toString(), "0"));
+    bkgGbv = Integer.parseInt(coalesce(mapperOutput.getTextElementAt(4).toString(), "0"));
+    bkgRoomNights = Integer.parseInt(coalesce(mapperOutput.getTextElementAt(5).toString(), "0"));
+    omnitureGbv = Integer.parseInt(coalesce(mapperOutput.getTextElementAt(6).toString(), "0"));
+    omnitureRoomNights = Integer.parseInt(coalesce(mapperOutput.getTextElementAt(7).toString(), "0"));
+    grossProfit = Double.parseDouble(coalesce(mapperOutput.getTextElementAt(8).toString(), "0"));
   }
 
   public String getTransDate() {

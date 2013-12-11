@@ -36,7 +36,7 @@ import com.google.common.collect.Lists;
  * 
  */
 public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver {
-  //private static final Log LOG = LogFactory.getLog(GenericUDAFFirstValueNValueSort.class.getName());
+  // private static final Log LOG = LogFactory.getLog(GenericUDAFFirstValueNValueSort.class.getName());
 
   @Override
   public GenericUDAFEvaluator getEvaluator(TypeInfo[] parameters) throws SemanticException {
@@ -148,16 +148,14 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
         for (int num = 0; num < sortKeysOI.length; num++) {
           keyNames.add("k" + num);
         }
-        ObjectInspector mapOI = ObjectInspectorFactory.getStandardMapObjectInspector(writableValueOI,
-            ObjectInspectorFactory.getStandardStructObjectInspector(keyNames, Lists.newArrayList(stdSortKeysOI)));
-        return ObjectInspectorUtils.getWritableObjectInspector(mapOI);
+        return ObjectInspectorUtils.getWritableObjectInspector(ObjectInspectorFactory.getStandardMapObjectInspector(writableValueOI,
+            ObjectInspectorFactory.getStandardStructObjectInspector(keyNames, Lists.newArrayList(stdSortKeysOI))));
       } else if (m == Mode.PARTIAL2) {
         return ObjectInspectorUtils.getWritableObjectInspector(mapOI);
       } else if (m == Mode.FINAL) {
         // In final mode, the aggregated top column value for the group
         // is returned
-        ObjectInspector writableValueOI = ObjectInspectorUtils.getWritableObjectInspector(mapOI.getMapKeyObjectInspector());
-        return writableValueOI;
+        return ObjectInspectorUtils.getWritableObjectInspector(mapOI.getMapKeyObjectInspector());
       }
       return writableValueOI;
     }
