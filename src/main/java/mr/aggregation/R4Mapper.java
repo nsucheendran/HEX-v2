@@ -19,13 +19,23 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
   private int[] lhsValPositions;
   private int[] rhsKeyPositions;
   // private int[] rhsValPositions;
-  private Map<Integer, Integer> eqJoin = new HashMap<Integer, Integer>();
-  private Map<Integer, Integer> lteJoin = new HashMap<Integer, Integer>();
-  private Map<Integer, Integer> gteJoin = new HashMap<Integer, Integer>();
+  private final Map<Integer, Integer> eqJoin = new HashMap<Integer, Integer>();
+  private final Map<Integer, Integer> lteJoin = new HashMap<Integer, Integer>();
+  private final Map<Integer, Integer> gteJoin = new HashMap<Integer, Integer>();
   private String[][] rtable;
 
   public R4Mapper() {
     super();
+  }
+
+  private final void parsePosMap(Map<Integer, Integer> output, String conf) {
+    if (!"".equals(conf)) {
+      String[] joins = conf.split(",");
+      for (String j : joins) {
+        String[] vals = j.split("=");
+        output.put(Integer.parseInt(vals[0]), Integer.parseInt(vals[1]));
+      }
+    }
   }
 
   @Override
@@ -34,23 +44,10 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
     lhsValPositions = getPositions(context, "lhsVals");
 
     rhsKeyPositions = getPositions(context, "rhsKeys");
-    // rhsValPositions = getPositions(context, "rhsVals");
 
-    String[] eqJoins = context.getConfiguration().get("eqjoin").split(",");
-    for (String j : eqJoins) {
-      String[] vals = j.split("=");
-      eqJoin.put(Integer.parseInt(vals[0]), Integer.parseInt(vals[1]));
-    }
-    String[] lteJoins = context.getConfiguration().get("ltejoin").split(",");
-    for (String j : lteJoins) {
-      String[] vals = j.split("=");
-      lteJoin.put(Integer.parseInt(vals[0]), Integer.parseInt(vals[1]));
-    }
-    String[] gteJoins = context.getConfiguration().get("gtejoin").split(",");
-    for (String j : gteJoins) {
-      String[] vals = j.split("=");
-      gteJoin.put(Integer.parseInt(vals[0]), Integer.parseInt(vals[1]));
-    }
+    parsePosMap(eqJoin, context.getConfiguration().get("eqjoin"));
+    parsePosMap(lteJoin, context.getConfiguration().get("ltejoin"));
+    parsePosMap(gteJoin, context.getConfiguration().get("gtejoin"));
 
     String[] lines = context.getConfiguration().get("data").split("\n");
     rtable = new String[lines.length][];
@@ -77,7 +74,7 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
       boolean res = true;
       for (int lpos : eqJoin.keySet()) {
         int rpos = eqJoin.get(lpos);
-        res = res && lrow[lpos].equals(rrow[rpos]);
+        res = lrow[lpos].equals(rrow[rpos]);
         if (!res) {
           break;
         }
@@ -85,7 +82,7 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
       if (res) {
         for (int lpos : lteJoin.keySet()) {
           int rpos = lteJoin.get(lpos);
-          res = res && (coalesce(lrow[lpos], "0").compareTo(rrow[rpos]) <= 0);
+          res = coalesce(lrow[lpos], "0").compareTo(rrow[rpos]) <= 0;
           if (!res) {
             break;
           }
@@ -94,7 +91,7 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
       if (res) {
         for (int lpos : gteJoin.keySet()) {
           int rpos = gteJoin.get(lpos);
-          res = res && (coalesce(lrow[lpos], "9").compareTo(rrow[rpos]) >= 0);
+          res = coalesce(lrow[lpos], "9").compareTo(rrow[rpos]) >= 0;
           if (!res) {
             break;
           }
@@ -107,7 +104,6 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
     return null;
   }
 
-
   private String[] stripe(String[] rrow, int[] pos) {
     String[] row = new String[pos.length];
     int i = 0;
@@ -118,7 +114,7 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
   }
 
   @Override
-  public void map(BytesWritable key, Text value, Context context) throws IOException, InterruptedException {
+  public void map(BytesWritable ignored, Text value, Context context) throws IOException, InterruptedException {
     String[] columns = TAB_SEP_PATTERN.split(value.toString());
     String[] rkeys = filter(columns);
     if (rkeys != null) {

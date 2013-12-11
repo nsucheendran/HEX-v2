@@ -5,14 +5,13 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import mr.dto.TextMultiple;
+import mr.JobConfigurator;
 import mr.exceptions.UnableToMoveDataException;
 
 import org.apache.hadoop.conf.Configuration;
@@ -30,26 +29,21 @@ import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IOUtils;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.thrift.TException;
 
 import com.google.common.collect.Sets;
 
 /*
- * MapReduce job that emulates the hive job at
+ * MapReduce job that emulates the hiveql at
  * <link>github.com/ExpediaEDW/edw-HEXHadoopETL/src/main/scripts/hql/FACT/insertTable_ETL_HCOM_HEX_FACT.hql</link>
  * (and runs faster trading MR steps for reducer memory)
  * 
@@ -57,122 +51,15 @@ import com.google.common.collect.Sets;
  * @author achadha
  */
 public final class R4AggregationJob extends Configured implements Tool {
-  private static String jobName = "hdp_hww_hex_etl_fact_aggregation";
+  private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
   private static final String logsDirName = "_logs";
-  private static Pattern partitionDirPattern = Pattern.compile("(.*)(" + jobName + ")(\\/)(.*)(\\/)(^\\/)*");
-  private static Pattern partitionBkupDirPattern = Pattern.compile("(.*)(" + jobName + "bkup)(\\/)(.*)(\\/)(^\\/)*");
-  private final Map<String, String> equiJoinKeys = new HashMap<String, String>() {
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
+  private static final Pattern partitionDirPattern = Pattern.compile("(.*)(" + jobName + ")(\\/)(.*)(\\/)(^\\/)*");
+  private static final Pattern partitionBkupDirPattern = Pattern.compile("(.*)(" + jobName + "bkup)(\\/)(.*)(\\/)(^\\/)*");
 
-    {
-      // lhs keys => rhs keys
-      put("variant_code", "variant_code");
-      put("experiment_code", "experiment_code");
-      put("version_number", "version_number");
-    }
-  };
-
-  private final Map<String, String> lteJoinKeys = new HashMap<String, String>() {
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
-
-    {
-      put("local_date", "report_end_date");
-      put("trans_date", "trans_date");
-    }
-  };
-
-  private final Map<String, String> gteJoinKeys = new HashMap<String, String>() {
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
-
-    {
-      put("local_date", "report_start_date");
-      put("trans_date", "report_start_date");
-    }
-  };
-
-  private final Set<String> rhsKeys = new HashSet<String>() {
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
-
-    {
-      add("experiment_name");
-      add("variant_name");
-      add("status");
-      add("experiment_test_id");
-    }
-  };
-
-  private final Set<String> groupKeys = new HashSet<String>() {
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
-
-    {
-      add("cid");
-      add("local_date");
-      add("new_visitor_ind");
-      add("page_assigned_entry_page_name");
-      add("site_sectn_name");
-      add("user_cntext_name");
-      add("browser_height");
-      add("browser_width");
-      add("brwsr_id");
-      add("mobile_ind");
-      add("destination_id");
-      add("property_destination_id");
-      add("platform_type");
-      add("days_until_stay");
-      add("length_of_stay");
-      add("number_of_rooms");
-      add("number_of_adults");
-      add("number_of_children");
-      add("children_in_search");
-      add("operating_system_id");
-      add("all_mktg_seo_30_day");
-      add("all_mktg_seo_30_day_direct");
-      add("operating_system");
-      add("all_mktg_seo");
-      add("all_mktg_seo_direct");
-      add("entry_page_name");
-      add("supplier_property_id");
-      add("experiment_name");
-      add("variant_name");
-      add("status");
-      add("experiment_test_id");
-
-      add("variant_code");
-      add("experiment_code");
-      add("version_number");
-    }
-  };
-
-  
   public static void main(final String[] args) throws Exception {
     Configuration conf = new Configuration();
     int res = ToolRunner.run(conf, new R4AggregationJob(), args);
     System.exit(res);
-  }
-
-  private static class IntPair {
-    private final int one;
-    private final int two;
-
-    IntPair(final int one, final int two) {
-      this.one = one;
-      this.two = two;
-    }
   }
 
   @Override
@@ -188,28 +75,54 @@ public final class R4AggregationJob extends Configured implements Tool {
 
     int numReduceTasks = 100;
 
-    JobConf conf = new JobConf(super.getConf());
+    JobConfigurator configurator = new JobConfigurator();
+    Job job = configurator.initJob(super.getConf(), jobName, queueName);
 
-    conf.setQueueName(queueName);
+    List<String> lhsfields, rhsfields;
+    HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
+    try {
 
-    Job job = initJob(numReduceTasks, conf);
+      Table table = cl.getTable(dbName, tableName);
+      Path tblPath = new Path(table.getSd().getLocation());
+      FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
+      RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
 
-    configureJob(dbName, tableName, reportFilePath, reportTableName, job);
+      while (files.hasNext()) {
+        FileInputFormat.addInputPath(job, files.next().getPath());
+      }
+      fileSystem.close();
 
-    Path outPath = new Path(tmpOutputPath);
-    FileSystem fileSystem = outPath.getFileSystem(job.getConfiguration());
-    fileSystem.delete(outPath, true);
+      List<FieldSchema> fieldschemas = cl.getFields(dbName, tableName);
+      lhsfields = new ArrayList<String>(fieldschemas.size());
+      for (FieldSchema field : fieldschemas) {
+        lhsfields.add(field.getName());
+      }
+      List<FieldSchema> rhsfieldschemas = cl.getFields(dbName, reportTableName);
+      rhsfields = new ArrayList<String>(rhsfieldschemas.size());
+      for (FieldSchema field : rhsfieldschemas) {
+        rhsfields.add(field.getName());
+      }
+    } finally {
+      cl.close();
+    }
+    configurator.lhsFields(lhsfields).rhsFields(rhsfields).numReduceTasks(numReduceTasks);
+    configurator.configureJob(job);
+    job.getConfiguration().set("data", getDataAsString(reportFilePath, configurator, job));
+
+    Path tempPath = new Path(tmpOutputPath);
+    FileSystem fileSystem = tempPath.getFileSystem(job.getConfiguration());
+    fileSystem.delete(tempPath, true);
     MultipleOutputs.setCountersEnabled(job, true);
     MultipleOutputs.addNamedOutput(job, "outroot", SequenceFileOutputFormat.class, BytesWritable.class, Text.class);
-    FileOutputFormat.setOutputPath(job, outPath);
+    FileOutputFormat.setOutputPath(job, tempPath);
     FileOutputFormat.setCompressOutput(job, true);
     FileOutputFormat.setOutputCompressorClass(job, org.apache.hadoop.io.compress.SnappyCodec.class);
 
     boolean success = job.waitForCompletion(true);
-    System.out.println("output written to: " + outPath.toString());
+    System.out.println("output written to: " + tempPath.toString());
 
     Set<String> newPartitionsAdded = Sets.newHashSet();
-    HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
+    cl = new HiveMetaStoreClient(new HiveConf());
     String tableLocation = null;
     try {
       Table table = cl.getTable(dbName, outputTableName);
@@ -245,157 +158,23 @@ public final class R4AggregationJob extends Configured implements Tool {
 
   }
 
-  private void configureJob(String dbName, String tableName, String reportFilePath, String reportTableName, Job job) throws TException,
-      IOException {
-    HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
+  private String getDataAsString(String reportFilePath, JobConfigurator configurator, Job job) throws IOException {
+    StringBuilder data = new StringBuilder();
+    SequenceFile.Reader repReader = new SequenceFile.Reader(job.getConfiguration(), SequenceFile.Reader.file(new Path(reportFilePath)));
+
     try {
-
-      Table table = cl.getTable(dbName, tableName);
-      Path tblPath = new Path(table.getSd().getLocation());
-      FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
-      RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
-
-      while (files.hasNext()) {
-        FileInputFormat.addInputPath(job, files.next().getPath());
-      }
-      fileSystem.close();
-
-      List<FieldSchema> fields = cl.getFields(dbName, tableName);
-      int i = 0;
-      int kj = 0;
-      int vj = 0;
-      
-      StringBuilder keySb = new StringBuilder();
-      StringBuilder valSb = new StringBuilder();
-
-      Map<String, Integer> equiLhsPosMap = new HashMap<String, Integer>();
-      Map<String, Integer> lteLhsPosMap = new HashMap<String, Integer>();
-      Map<String, Integer> gteLhsPosMap = new HashMap<String, Integer>();
-      for (FieldSchema field : fields) {
-        if (groupKeys.contains(field.getName())) {
-          if (kj++ > 0) {
-            keySb.append(",");
-          }
-          keySb.append(i);
-          System.out.println(field.getName() + " => key[" + (kj - 1) + "]");
-        } else {
-          if (vj++ > 0) {
-            valSb.append(",");
-          }
-          valSb.append(i);
-          System.out.println(field.getName() + " => val[" + (vj - 1) + "]");
-        }
-        if (equiJoinKeys.containsKey(field.getName())) {
-          equiLhsPosMap.put(field.getName(), i);
-        }
-        if (lteJoinKeys.containsKey(field.getName())) {
-          lteLhsPosMap.put(field.getName(), i);
-        }
-        if (gteJoinKeys.containsKey(field.getName())) {
-          gteLhsPosMap.put(field.getName(), i);
-        }
-
-        i++;
-      }
-
-      List<FieldSchema> rhsfields = cl.getFields(dbName, reportTableName);
-      StringBuilder rhsKeySb = new StringBuilder();
-      i = 0;
-      int tableSize = 0;
-      Map<String, IntPair> rhsPosMap = new HashMap<String, IntPair>();
-      for (FieldSchema field : rhsfields) {
-        if (equiJoinKeys.values().contains(field.getName()) || lteJoinKeys.values().contains(field.getName())
-            || gteJoinKeys.values().contains(field.getName()) || rhsKeys.contains(field.getName())) {
-          rhsPosMap.put(field.getName(), new IntPair(i, tableSize++));
-        }
-        ++i;
-      }
-
-      StringBuilder equiJoinPosMap = configString(equiLhsPosMap, rhsPosMap, equiJoinKeys);
-      StringBuilder lteJoinPosMap = configString(lteLhsPosMap, rhsPosMap, lteJoinKeys);
-      StringBuilder gteJoinPosMap = configString(gteLhsPosMap, rhsPosMap, gteJoinKeys);
-      
-      int rk = 0;
-      for (String fieldName : rhsKeys) {
-        if (rk++ > 0) {
-          rhsKeySb.append(",");
-        }
-        rhsKeySb.append(rhsPosMap.get(fieldName).two);
-      }
-
-      job.getConfiguration().set("lhsKeys", keySb.toString());
-      job.getConfiguration().set("lhsVals", valSb.toString());
-
-      job.getConfiguration().set("rhsKeys", rhsKeySb.toString());
-      job.getConfiguration().set("rhsVals", "");
-
-      job.getConfiguration().set("eqjoin", equiJoinPosMap.toString());
-      System.out.println("eqjoin: " + equiJoinPosMap);
-
-      job.getConfiguration().set("ltejoin", lteJoinPosMap.toString());
-      System.out.println("ltejoin: " + lteJoinPosMap);
-
-      job.getConfiguration().set("gtejoin", gteJoinPosMap.toString());
-      System.out.println("gtejoin: " + gteJoinPosMap);
-
-      SequenceFile.Reader repReader = new SequenceFile.Reader(job.getConfiguration(), SequenceFile.Reader.file(new Path(reportFilePath)));
-      BytesWritable key = (BytesWritable) ReflectionUtils.newInstance(repReader.getKeyClass(), job.getConfiguration());
+      BytesWritable ignored = (BytesWritable) ReflectionUtils.newInstance(repReader.getKeyClass(), job.getConfiguration());
 
       Text value = (Text) ReflectionUtils.newInstance(repReader.getValueClass(), job.getConfiguration());
-      StringBuilder data = new StringBuilder();
 
-      while (repReader.next(key, value)) {
-        String[] values = new String(value.getBytes()).split(new String(new char[] { 1 }));
-        String[] vals = new String[tableSize];
-        for (IntPair p : rhsPosMap.values()) {
-          vals[p.two] = values[p.one];
-        }
-        int x = 0;
-        for (String val : vals) {
-          if (x++ > 0) {
-            data.append("\t");
-          }
-          data.append(val);
-        }
+      while (repReader.next(ignored, value)) {
+        configurator.stripe(new String(value.getBytes()), data);
         data.append("\n");
       }
-
-      IOUtils.closeStream(repReader);
-      job.getConfiguration().set("data", data.toString());
-
     } finally {
-      cl.close();
+      IOUtils.closeStream(repReader);
     }
-  }
-
-  private StringBuilder configString(Map<String, Integer> equiLhsPosMap, Map<String, IntPair> rhsPosMap, Map<String, String> joinKeys) {
-    int rk = 0;
-    StringBuilder equiJoinPosMap = new StringBuilder();
-    for (String fieldName : joinKeys.keySet()) {
-      if (rk++ > 0) {
-        equiJoinPosMap.append(",");
-      }
-      String rField = joinKeys.get(fieldName);
-      equiJoinPosMap.append(equiLhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).two);
-    }
-    return equiJoinPosMap;
-  }
-
-  private Job initJob(int numReduceTasks, JobConf conf) throws IOException {
-    Job job = new Job(conf, jobName);
-    job.setJarByClass(R4AggregationJob.class);
-
-    job.setMapperClass(R4Mapper.class);
-    job.setReducerClass(R4Reducer.class);
-
-    job.setInputFormatClass(SequenceFileInputFormat.class);
-    job.setOutputFormatClass(NullOutputFormat.class);
-    job.setOutputKeyClass(NullWritable.class);
-    job.setOutputValueClass(TextMultiple.class);
-    job.setMapOutputKeyClass(TextMultiple.class);
-    job.setMapOutputValueClass(TextMultiple.class);
-    job.setNumReduceTasks(numReduceTasks);
-    return job;
+    return data.toString();
   }
 
   private List<String> getValues(final String partString) throws UnsupportedEncodingException {

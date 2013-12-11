@@ -24,9 +24,9 @@
                         Location where generated html will be created. -->
                     <outputDirectory>${project.build.directory}/findbugs</outputDirectory>
 
-                    <xmlOutput>true</xmlOutput>
-                    <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
-                    <xmlOutputDirectory>target/findbugs</xmlOutputDirectory>
+                    <htmlOutput>true</htmlOutput>
+                    <findbugsHtmlWithMessages>true</findbugsHtmlWithMessages>
+                    <htmlOutputDirectory>target/findbugs</htmlOutputDirectory>
                     <failOnError>false</failOnError>
                 </configuration>
             </plugin>
@@ -130,6 +130,13 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-test</artifactId>
             <version>2.0.0-mr1-cdh4.2.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.mrunit</groupId>
+            <artifactId>mrunit</artifactId>
+            <version>1.0.0</version>
+            <classifier>hadoop2</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
