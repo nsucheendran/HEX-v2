@@ -80,7 +80,7 @@ public class UserTransactionsAggregatedData {
     }
     if (newTransData.getNumTrans() < 0) {
       isCanceller = true;
-      numCancellations += newTransData.getNumTrans();
+      numCancellations += (0 - newTransData.getNumTrans());
     }
     netGrossProfit += newTransData.getGrossProfit();
   }

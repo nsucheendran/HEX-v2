@@ -66,6 +66,7 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
       if (userAggTransData == null) {
         userAggTransData = new UserTransactionsAggregatedData();
         numUniqueViewers++;
+        perUserTransactionData.put(guid, userAggTransData);
       }
       boolean isAlreadyAPurchaser = userAggTransData.isPurchaser();
       boolean isAlreadyACanceller = userAggTransData.isCanceller();
