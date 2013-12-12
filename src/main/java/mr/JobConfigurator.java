@@ -289,12 +289,13 @@ public final class JobConfigurator {
     private StringBuilder configString(Map<String, Integer> equiLhsPosMap, Map<String, String> joinKeys) {
         int rk = 0;
         StringBuilder equiJoinPosMap = new StringBuilder();
-        for (String fieldName : joinKeys.keySet()) {
+        for (Map.Entry<String, String> entry : joinKeys.entrySet()) {
+            String fieldName = entry.getKey();
             if (equiLhsPosMap.containsKey(fieldName)) {
                 if (rk++ > 0) {
                     equiJoinPosMap.append(",");
                 }
-                String rField = joinKeys.get(fieldName);
+                String rField = entry.getValue();
                 equiJoinPosMap.append(equiLhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).two);
             }
         }

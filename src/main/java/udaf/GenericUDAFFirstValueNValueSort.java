@@ -77,7 +77,7 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
             init();
         }
 
-        void init() {
+        private final void init() {
             sortKeys = null;
             value = null;
         }
@@ -193,8 +193,7 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
 
         @Override
         public Object terminatePartial(AggregationBuffer agg) throws HiveException {
-            Object map = ((MinOrderedSet) agg).getMinRecordAsMap();
-            return map;
+            return ((MinOrderedSet) agg).getMinRecordAsMap();
         }
 
         @Override

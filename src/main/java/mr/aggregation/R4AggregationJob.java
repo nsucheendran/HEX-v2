@@ -23,6 +23,7 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
@@ -39,6 +40,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.thrift.TException;
 
 import com.google.common.collect.Sets;
 
@@ -63,7 +65,7 @@ public final class R4AggregationJob extends Configured implements Tool {
     }
 
     @Override
-    public int run(final String[] arg0) throws Exception {
+    public int run(final String[] arg0) throws IOException, TException, InterruptedException, ClassNotFoundException {
         String queueName = "edwdev";
         String dbName = "hwwdev";
         String tableName = "etl_hcom_hex_fact_staging_new";
@@ -168,7 +170,7 @@ public final class R4AggregationJob extends Configured implements Tool {
             Text value = (Text) ReflectionUtils.newInstance(repReader.getValueClass(), job.getConfiguration());
 
             while (repReader.next(ignored, value)) {
-                configurator.stripe(new String(value.getBytes()), data);
+                configurator.stripe(new String(value.getBytes(), "utf-8"), data);
                 data.append("\n");
             }
         } finally {
@@ -238,8 +240,7 @@ public final class R4AggregationJob extends Configured implements Tool {
                                 if (!outFileSystem.exists(bkupPartionMinusChildPath)) {
                                     success = outFileSystem.mkdirs(bkupPartionMinusChildPath);
                                     if (!success) {
-                                        throw new UnableToMoveDataException("Unable to make backup directory: " 
-                                                + bkupPartionMinusChildPath);
+                                        throw new UnableToMoveDataException("Unable to make backup directory: " + bkupPartionMinusChildPath);
                                     }
                                 }
                                 success = outFileSystem.rename(tablePartitionPath, bkupPartionMinusChildPath);
