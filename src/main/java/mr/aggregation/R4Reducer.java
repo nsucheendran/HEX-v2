@@ -42,7 +42,7 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
   @Override
   public final void reduce(final TextMultiple key, final Iterable<TextMultiple> values, final Context context) throws IOException,
       InterruptedException {
-    Map<Text, UserTransactionsAggregatedData> perUserTransactionData = new HashMap<Text, UserTransactionsAggregatedData>();
+    Map<String, UserTransactionsAggregatedData> perUserTransactionData = new HashMap<String, UserTransactionsAggregatedData>();
     long numUniquePurchasers = 0;
     long numUniqueCancellers = 0;
     long numActivePurchasers = 0;
@@ -63,11 +63,11 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
     for (TextMultiple value : values) {
       Text guid = value.getTextElementAt(0);
       UserTransactionData newTransData = new UserTransactionData(value);
-      UserTransactionsAggregatedData userAggTransData = perUserTransactionData.get(guid);
+      UserTransactionsAggregatedData userAggTransData = perUserTransactionData.get(guid.toString());
       if (userAggTransData == null) {
         userAggTransData = new UserTransactionsAggregatedData();
         numUniqueViewers++;
-        perUserTransactionData.put(guid, userAggTransData);
+        perUserTransactionData.put(guid.toString(), userAggTransData);
       }
       boolean isAlreadyAPurchaser = userAggTransData.isPurchaser();
       boolean isAlreadyACanceller = userAggTransData.isCanceller();
@@ -79,7 +79,7 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
         numUniqueCancellers++;
       }
     }
-    for (Map.Entry<Text, UserTransactionsAggregatedData> userAggTransData : perUserTransactionData.entrySet()) {
+    for (Map.Entry<String, UserTransactionsAggregatedData> userAggTransData : perUserTransactionData.entrySet()) {
       if (userAggTransData.getValue().isRepeatPurchaser()) {
         numRepeatPurchasers++;
       }
