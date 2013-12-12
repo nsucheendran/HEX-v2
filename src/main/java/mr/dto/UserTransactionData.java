@@ -31,63 +31,31 @@ public class UserTransactionData {
     return transDate;
   }
 
-  public void setTransDate(String transDate) {
-    this.transDate = transDate;
-  }
-
   public int getNumTrans() {
     return numTrans;
-  }
-
-  public void setNumTrans(int numTrans) {
-    this.numTrans = numTrans;
   }
 
   public double getBkgGbv() {
     return bkgGbv;
   }
 
-  public void setBkgGbv(double bkgGbv) {
-    this.bkgGbv = bkgGbv;
-  }
-
   public int getBkgRoomNights() {
     return bkgRoomNights;
-  }
-
-  public void setBkgRoomNights(int bkgRoomNights) {
-    this.bkgRoomNights = bkgRoomNights;
   }
 
   public double getOmnitureGbv() {
     return omnitureGbv;
   }
 
-  public void setOmnitureGbv(double omnitureGbv) {
-    this.omnitureGbv = omnitureGbv;
-  }
-
   public int getOmnitureRoomNights() {
     return omnitureRoomNights;
-  }
-
-  public void setOmnitureRoomNights(int omnitureRoomNights) {
-    this.omnitureRoomNights = omnitureRoomNights;
   }
 
   public double getGrossProfit() {
     return grossProfit;
   }
 
-  public void setGrossProfit(double grossProfit) {
-    this.grossProfit = grossProfit;
-  }
-
   public String getItinNumber() {
     return itinNumber;
-  }
-
-  public void setItinNumber(String itinNumber) {
-    this.itinNumber = itinNumber;
   }
 }

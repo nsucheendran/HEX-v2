@@ -24,6 +24,7 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
   private MultipleOutputs<NullWritable, TextMultiple> mos;
   private String outputDir;
 
+  @Override
   public final void setup(final Context context) {
     mos = new MultipleOutputs<NullWritable, TextMultiple>(context);
     outputDir = context.getConfiguration().get("mapred.output.dir");
@@ -121,6 +122,7 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
 
   }
 
+  @Override
   public final void cleanup(final Context context) throws IOException, InterruptedException {
     mos.close();
   }
