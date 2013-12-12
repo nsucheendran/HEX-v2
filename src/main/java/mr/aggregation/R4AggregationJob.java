@@ -23,7 +23,6 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
@@ -40,6 +39,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
 import com.google.common.collect.Sets;
@@ -53,6 +53,7 @@ import com.google.common.collect.Sets;
  * @author achadha
  */
 public final class R4AggregationJob extends Configured implements Tool {
+    private static final Logger log = Logger.getLogger(R4AggregationJob.class);
     private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
     private static final String logsDirName = "_logs";
     private static final Pattern partitionDirPattern = Pattern.compile("(.*)(" + jobName + ")(\\/)(.*)(\\/)(^\\/)*");
@@ -121,7 +122,7 @@ public final class R4AggregationJob extends Configured implements Tool {
         FileOutputFormat.setOutputCompressorClass(job, org.apache.hadoop.io.compress.SnappyCodec.class);
 
         boolean success = job.waitForCompletion(true);
-        System.out.println("output written to: " + tempPath.toString());
+        log.info("output written to: " + tempPath.toString());
 
         Set<String> newPartitionsAdded = Sets.newHashSet();
         cl = new HiveMetaStoreClient(new HiveConf());
@@ -144,7 +145,7 @@ public final class R4AggregationJob extends Configured implements Tool {
                     try {
                         cl.dropPartition(dbName, outputTableName, values, false);
                     } catch (NoSuchObjectException ex) {
-                        System.out.println("New Partition:" + partString);
+                        log.debug("New Partition:" + partString);
                         newPartitionsAdded.add(partString);
                     }
                     cl.add_partition(part);
@@ -240,7 +241,8 @@ public final class R4AggregationJob extends Configured implements Tool {
                                 if (!outFileSystem.exists(bkupPartionMinusChildPath)) {
                                     success = outFileSystem.mkdirs(bkupPartionMinusChildPath);
                                     if (!success) {
-                                        throw new UnableToMoveDataException("Unable to make backup directory: " + bkupPartionMinusChildPath);
+                                        throw new UnableToMoveDataException("Unable to create backup directory: "
+                                                + bkupPartionMinusChildPath);
                                     }
                                 }
                                 success = outFileSystem.rename(tablePartitionPath, bkupPartionMinusChildPath);
@@ -271,7 +273,7 @@ public final class R4AggregationJob extends Configured implements Tool {
                             }
                         }
                     } else {
-                        System.out.println(">not matching>>>" + fs.getPath() + "<<<<" + found);
+                        log.debug(">not matching>>>" + fs.getPath() + "<<<<" + found);
                     }
                 }
             }
@@ -325,7 +327,7 @@ public final class R4AggregationJob extends Configured implements Tool {
                         outFileSystem.delete(bkupPartionPath, true);
                     }
                 } else {
-                    System.out.println(">not matching>>>" + fs.getPath() + "<<<<" + found);
+                    log.debug(">not matching>>>" + fs.getPath() + "<<<<" + found);
                 }
             }
             // delete all new partitions
