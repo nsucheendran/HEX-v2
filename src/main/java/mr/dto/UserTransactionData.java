@@ -20,9 +20,9 @@ public class UserTransactionData {
     itinNumber = coalesce(mapperOutput.getTextElementAt(1).toString(), "");
     transDate = coalesce(mapperOutput.getTextElementAt(2).toString(), "");
     numTrans = Integer.parseInt(coalesce(mapperOutput.getTextElementAt(3).toString(), "0"));
-    bkgGbv = Integer.parseInt(coalesce(mapperOutput.getTextElementAt(4).toString(), "0"));
+    bkgGbv = Double.parseDouble(coalesce(mapperOutput.getTextElementAt(4).toString(), "0"));
     bkgRoomNights = Integer.parseInt(coalesce(mapperOutput.getTextElementAt(5).toString(), "0"));
-    omnitureGbv = Integer.parseInt(coalesce(mapperOutput.getTextElementAt(6).toString(), "0"));
+    omnitureGbv = Double.parseDouble(coalesce(mapperOutput.getTextElementAt(6).toString(), "0"));
     omnitureRoomNights = Integer.parseInt(coalesce(mapperOutput.getTextElementAt(7).toString(), "0"));
     grossProfit = Double.parseDouble(coalesce(mapperOutput.getTextElementAt(8).toString(), "0"));
   }
