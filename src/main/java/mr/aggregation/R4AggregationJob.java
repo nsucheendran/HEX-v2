@@ -51,295 +51,297 @@ import com.google.common.collect.Sets;
  * @author achadha
  */
 public final class R4AggregationJob extends Configured implements Tool {
-  private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
-  private static final String logsDirName = "_logs";
-  private static final Pattern partitionDirPattern = Pattern.compile("(.*)(" + jobName + ")(\\/)(.*)(\\/)(^\\/)*");
-  private static final Pattern partitionBkupDirPattern = Pattern.compile("(.*)(" + jobName + "bkup)(\\/)(.*)(\\/)(^\\/)*");
+    private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
+    private static final String logsDirName = "_logs";
+    private static final Pattern partitionDirPattern = Pattern.compile("(.*)(" + jobName + ")(\\/)(.*)(\\/)(^\\/)*");
+    private static final Pattern partitionBkupDirPattern = Pattern.compile("(.*)(" + jobName + "bkup)(\\/)(.*)(\\/)(^\\/)*");
 
-  public static void main(final String[] args) throws Exception {
-    Configuration conf = new Configuration();
-    int res = ToolRunner.run(conf, new R4AggregationJob(), args);
-    System.exit(res);
-  }
-
-  @Override
-  public int run(final String[] arg0) throws Exception {
-    String queueName = "edwdev";
-    String dbName = "hwwdev";
-    String tableName = "etl_hcom_hex_fact_staging_new";
-    String outputTableName = "hex_fact_adi";
-
-    String reportFilePath = "/user/hive/warehouse/hwwdev.db/hex_reporting_requirements/000000_0";
-    String reportTableName = "hex_reporting_requirements";
-    String tmpOutputPath = "/tmp/" + jobName;
-
-    int numReduceTasks = 100;
-
-    JobConfigurator configurator = new JobConfigurator();
-    Job job = configurator.initJob(super.getConf(), jobName, queueName);
-
-    List<String> lhsfields, rhsfields;
-    HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
-    try {
-
-      Table table = cl.getTable(dbName, tableName);
-      Path tblPath = new Path(table.getSd().getLocation());
-      FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
-      RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
-
-      while (files.hasNext()) {
-        FileInputFormat.addInputPath(job, files.next().getPath());
-      }
-      fileSystem.close();
-
-      List<FieldSchema> fieldschemas = cl.getFields(dbName, tableName);
-      lhsfields = new ArrayList<String>(fieldschemas.size());
-      for (FieldSchema field : fieldschemas) {
-        lhsfields.add(field.getName());
-      }
-      List<FieldSchema> rhsfieldschemas = cl.getFields(dbName, reportTableName);
-      rhsfields = new ArrayList<String>(rhsfieldschemas.size());
-      for (FieldSchema field : rhsfieldschemas) {
-        rhsfields.add(field.getName());
-      }
-    } finally {
-      cl.close();
+    public static void main(final String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        int res = ToolRunner.run(conf, new R4AggregationJob(), args);
+        System.exit(res);
     }
-    configurator.lhsFields(lhsfields).rhsFields(rhsfields).numReduceTasks(numReduceTasks);
-    configurator.configureJob(job);
-    job.getConfiguration().set("data", getDataAsString(reportFilePath, configurator, job));
 
-    Path tempPath = new Path(tmpOutputPath);
-    FileSystem fileSystem = tempPath.getFileSystem(job.getConfiguration());
-    fileSystem.delete(tempPath, true);
-    MultipleOutputs.setCountersEnabled(job, true);
-    MultipleOutputs.addNamedOutput(job, "outroot", SequenceFileOutputFormat.class, BytesWritable.class, Text.class);
-    FileOutputFormat.setOutputPath(job, tempPath);
-    FileOutputFormat.setCompressOutput(job, true);
-    FileOutputFormat.setOutputCompressorClass(job, org.apache.hadoop.io.compress.SnappyCodec.class);
+    @Override
+    public int run(final String[] arg0) throws Exception {
+        String queueName = "edwdev";
+        String dbName = "hwwdev";
+        String tableName = "etl_hcom_hex_fact_staging_new";
+        String outputTableName = "hex_fact_adi";
 
-    boolean success = job.waitForCompletion(true);
-    System.out.println("output written to: " + tempPath.toString());
+        String reportFilePath = "/user/hive/warehouse/hwwdev.db/hex_reporting_requirements/000000_0";
+        String reportTableName = "hex_reporting_requirements";
+        String tmpOutputPath = "/tmp/" + jobName;
 
-    Set<String> newPartitionsAdded = Sets.newHashSet();
-    cl = new HiveMetaStoreClient(new HiveConf());
-    String tableLocation = null;
-    try {
-      Table table = cl.getTable(dbName, outputTableName);
-      Map<String, String> params = new HashMap<String, String>();
-      StorageDescriptor tableSd = table.getSd();
-      tableLocation = tableSd.getLocation();
-      Set<String> partStrings = getPartitions(tmpOutputPath, tableLocation, job);
+        int numReduceTasks = 100;
 
-      for (String partString : partStrings) {
-        StorageDescriptor partSd = new StorageDescriptor(tableSd);
-        partSd.setLocation(tableLocation + Path.SEPARATOR + partString);
-        List<String> values = getValues(partString);
+        JobConfigurator configurator = new JobConfigurator();
+        Job job = configurator.initJob(super.getConf(), jobName, queueName);
 
-        if (!values.isEmpty()) {
-          Partition part = new Partition(values, dbName, outputTableName, (int) (System.currentTimeMillis() & 0x00000000FFFFFFFFL), 0,
-              partSd, params);
-          try {
-            cl.dropPartition(dbName, outputTableName, values, false);
-          } catch (NoSuchObjectException ex) {
-            System.out.println("New Partition:" + partString);
-            newPartitionsAdded.add(partString);
-          }
-          cl.add_partition(part);
-        }
-      }
-    } catch (Exception ex) {
-      restoreDataFromBkup(tmpOutputPath + "bkup", tableLocation, job, newPartitionsAdded);
-      throw new UnableToMoveDataException(ex);
-    } finally {
-      cl.close();
-    }
-    return success ? 0 : -1;
+        List<String> lhsfields, rhsfields;
+        HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
+        try {
 
-  }
+            Table table = cl.getTable(dbName, tableName);
+            Path tblPath = new Path(table.getSd().getLocation());
+            FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
+            RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
 
-  private String getDataAsString(String reportFilePath, JobConfigurator configurator, Job job) throws IOException {
-    StringBuilder data = new StringBuilder();
-    SequenceFile.Reader repReader = new SequenceFile.Reader(job.getConfiguration(), SequenceFile.Reader.file(new Path(reportFilePath)));
-
-    try {
-      BytesWritable ignored = (BytesWritable) ReflectionUtils.newInstance(repReader.getKeyClass(), job.getConfiguration());
-
-      Text value = (Text) ReflectionUtils.newInstance(repReader.getValueClass(), job.getConfiguration());
-
-      while (repReader.next(ignored, value)) {
-        configurator.stripe(new String(value.getBytes()), data);
-        data.append("\n");
-      }
-    } finally {
-      IOUtils.closeStream(repReader);
-    }
-    return data.toString();
-  }
-
-  private List<String> getValues(final String partString) throws UnsupportedEncodingException {
-    String[] pairs = partString.split("/");
-    List<String> values = new ArrayList<String>(3);
-    if (partString.contains("=")) {
-      for (String pair : pairs) {
-        String val = pair.split("=")[1];
-        val = URLDecoder.decode(val, "UTF-8");
-        values.add(val);
-      }
-    }
-    return values;
-  }
-
-  private Set<String> getPartitions(String tmpOutputPath, String tableOutputPath, Job job) throws IOException, UnableToMoveDataException {
-    String bkupTmpOutput = tmpOutputPath + "bkup";
-    Path tmpOutPath = new Path(tmpOutputPath);
-    Path bkupTmpOutPath = new Path(bkupTmpOutput);
-    FileSystem outFileSystem = null;
-    Set<String> partitionNames = Sets.newHashSet();
-    try {
-      outFileSystem = tmpOutPath.getFileSystem(job.getConfiguration());
-      // delete & recreate bkup path, if exists
-      outFileSystem.delete(bkupTmpOutPath, true);
-      outFileSystem.mkdirs(bkupTmpOutPath);
-      // recursively fetch all files in job output location
-      RemoteIterator<LocatedFileStatus> files = outFileSystem.listFiles(tmpOutPath, true);
-      boolean success = true;
-      while (files.hasNext()) {
-        LocatedFileStatus fs = files.next();
-        String path = fs.getPath().toString();
-        if (!path.contains(logsDirName)) {
-          Matcher m = partitionDirPattern.matcher(path);
-          boolean found = m.find();
-          if (found) {
-            // extract just the partition path
-            String partition = m.group(4);
-            // if the partition has not been moved already
-            if (partitionNames.add(partition)) {
-              // System.out.println("Partition: " + partition);
-              String[] partitions = partition.split("\\/");
-              StringBuilder partitionMinusChild = new StringBuilder();
-              for (int i = 0; i < partitions.length - 1; i++) {
-                partitionMinusChild.append(partitions[i] + Path.SEPARATOR);
-              }
-              String partitionMinusChildStr = partitionMinusChild.toString();
-              // System.out.println(">>>>>>partitionMinusChildStr>>>>>>>>>>" + partitionMinusChildStr + "<<<<<<<<<<<<<<");
-              Path tablePartitionPath = new Path(tableOutputPath + Path.SEPARATOR + partition);
-              Path tablePartitionMinusChildPath = new Path(tableOutputPath + Path.SEPARATOR + partitionMinusChildStr);
-              // System.out.println(">>>>>>tablePartitionMinusChildPath>>>>>>>>>>" + tablePartitionMinusChildPath +
-              // "<<<<<<<<<<<<<<");
-              Path bkupPartionPath = new Path(bkupTmpOutput + Path.SEPARATOR + partition);
-              Path bkupPartionMinusChildPath = new Path(bkupTmpOutput + Path.SEPARATOR + partitionMinusChildStr);
-
-              boolean tablePartitionExists = outFileSystem.exists(tablePartitionPath);
-              // default true, as if table partition doesn't exist, we don't need any bkup
-              success = true;
-              // take existing data bkup, if exists
-              if (tablePartitionExists) {
-                if (!outFileSystem.exists(bkupPartionMinusChildPath)) {
-                  success = outFileSystem.mkdirs(bkupPartionMinusChildPath);
-                  if (!success) {
-                    throw new UnableToMoveDataException("Unable to make backup directory: " + bkupPartionMinusChildPath);
-                  }
-                }
-                success = outFileSystem.rename(tablePartitionPath, bkupPartionMinusChildPath);
-                if (!success) {
-                  throw new UnableToMoveDataException("Unable to take table partition data backup. " + "Renaming " + tablePartitionPath
-                      + " to " + bkupPartionMinusChildPath);
-                }
-              } else if (!outFileSystem.exists(tablePartitionMinusChildPath)) {
-                success = outFileSystem.mkdirs(tablePartitionMinusChildPath);
-                if (!success) {
-                  throw new UnableToMoveDataException("Unable to make table partition directory: " + tablePartitionMinusChildPath);
-                }
-              }
-              // move temp data to table
-              String tmpPartitionPathLoc = new StringBuilder(m.group(1)).append(m.group(2)).append(m.group(3)).append(m.group(4))
-                  .toString();
-              // System.out.println(">>>>tmp to table-> Rename " + tmpPartitionPathLoc + " to " +
-              // tablePartitionMinusChildPath);
-              success = outFileSystem.rename(new Path(tmpPartitionPathLoc), tablePartitionMinusChildPath);
-              if (!success) {
-                throw new UnableToMoveDataException("Unable to move data to table partition directory: " + tablePartitionMinusChildPath
-                    + " from tmp directory: " + tmpPartitionPathLoc);
-              }
-              if (success && tablePartitionExists) {
-                // System.out.println(">>>>>Delete " + bkupPartionPath);
-                outFileSystem.delete(bkupPartionPath, true);
-              }
+            while (files.hasNext()) {
+                FileInputFormat.addInputPath(job, files.next().getPath());
             }
-          } else {
-            System.out.println(">not matching>>>" + fs.getPath() + "<<<<" + found);
-          }
-        }
-      }
-    } finally {
-      if (outFileSystem != null) {
-        outFileSystem.close();
-      }
-    }
-    return partitionNames;
-  }
+            fileSystem.close();
 
-  private void restoreDataFromBkup(String bkupTmpOutput, String tableOutputPath, Job job, Set<String> newPartitionsAdded) {
-    Path bkupTmpOutPath = new Path(bkupTmpOutput);
-    FileSystem outFileSystem = null;
-    Set<String> partitionNames = Sets.newHashSet();
-    try {
-      outFileSystem = bkupTmpOutPath.getFileSystem(job.getConfiguration());
-      // recursively fetch all files in job output location
-      RemoteIterator<LocatedFileStatus> files = outFileSystem.listFiles(bkupTmpOutPath, true);
-      while (files.hasNext()) {
-        LocatedFileStatus fs = files.next();
-        String path = fs.getPath().toString();
-        Matcher m = partitionBkupDirPattern.matcher(path);
-        boolean found = m.find();
-        if (found) {
-          // extract just the partition path
-          String partition = m.group(4);
-          // if the partition has not been moved already
-          if (partitionNames.add(partition)) {
-            // System.out.println("Partition: " + partition);
-            String[] partitions = partition.split("\\/");
-            StringBuilder partitionMinusChild = new StringBuilder();
-            for (int i = 0; i < partitions.length - 1; i++) {
-              partitionMinusChild.append(partitions[i] + Path.SEPARATOR);
+            List<FieldSchema> fieldschemas = cl.getFields(dbName, tableName);
+            lhsfields = new ArrayList<String>(fieldschemas.size());
+            for (FieldSchema field : fieldschemas) {
+                lhsfields.add(field.getName());
             }
-            String partitionMinusChildStr = partitionMinusChild.toString();
-            // System.out.println(">>>>>>partitionMinusChildStr>>>>>>>>>>" + partitionMinusChildStr + "<<<<<<<<<<<<<<");
-            Path tablePartitionPath = new Path(tableOutputPath + Path.SEPARATOR + partition);
-            Path tablePartitionMinusChildPath = new Path(tableOutputPath + Path.SEPARATOR + partitionMinusChildStr);
-            // System.out.println(">>>>>>tablePartitionMinusChildPath>>>>>>>>>>" + tablePartitionMinusChildPath +
-            // "<<<<<<<<<<<<<<");
-            Path bkupPartionPath = new Path(bkupTmpOutput + Path.SEPARATOR + partition);
-            // Path bkupPartionMinusChildPath = new Path(bkupTmpOutput + Path.SEPARATOR + partitionMinusChildStr);
-            // System.out.println(">>>>>>bkupPartionMinusChildPath>>>>>>>>>>" + bkupPartionMinusChildPath + "<<<<<<<<<<<<<<");
-            // take existing data bkup, if exists
-            if (outFileSystem.exists(tablePartitionPath)) {
-              outFileSystem.delete(tablePartitionPath, true);
+            List<FieldSchema> rhsfieldschemas = cl.getFields(dbName, reportTableName);
+            rhsfields = new ArrayList<String>(rhsfieldschemas.size());
+            for (FieldSchema field : rhsfieldschemas) {
+                rhsfields.add(field.getName());
             }
-            outFileSystem.rename(bkupPartionPath, tablePartitionMinusChildPath);
-            // System.out.println(">>>>>Delete " + bkupPartionPath);
-            outFileSystem.delete(bkupPartionPath, true);
-          }
-        } else {
-          System.out.println(">not matching>>>" + fs.getPath() + "<<<<" + found);
+        } finally {
+            cl.close();
         }
-      }
-      // delete all new partitions
-      for (String part : newPartitionsAdded) {
-        Path tablePartitionPath = new Path(tableOutputPath + Path.SEPARATOR + part);
-        outFileSystem.delete(tablePartitionPath, true);
-      }
-    } catch (IOException e) {
-      throw new UnableToMoveDataException("Unable to restore data from bkup. ", e);
-    } finally {
-      try {
-        if (outFileSystem != null) {
-          outFileSystem.close();
+        configurator.lhsFields(lhsfields).rhsFields(rhsfields).numReduceTasks(numReduceTasks);
+        configurator.configureJob(job);
+        job.getConfiguration().set("data", getDataAsString(reportFilePath, configurator, job));
+
+        Path tempPath = new Path(tmpOutputPath);
+        FileSystem fileSystem = tempPath.getFileSystem(job.getConfiguration());
+        fileSystem.delete(tempPath, true);
+        MultipleOutputs.setCountersEnabled(job, true);
+        MultipleOutputs.addNamedOutput(job, "outroot", SequenceFileOutputFormat.class, BytesWritable.class, Text.class);
+        FileOutputFormat.setOutputPath(job, tempPath);
+        FileOutputFormat.setCompressOutput(job, true);
+        FileOutputFormat.setOutputCompressorClass(job, org.apache.hadoop.io.compress.SnappyCodec.class);
+
+        boolean success = job.waitForCompletion(true);
+        System.out.println("output written to: " + tempPath.toString());
+
+        Set<String> newPartitionsAdded = Sets.newHashSet();
+        cl = new HiveMetaStoreClient(new HiveConf());
+        String tableLocation = null;
+        try {
+            Table table = cl.getTable(dbName, outputTableName);
+            Map<String, String> params = new HashMap<String, String>();
+            StorageDescriptor tableSd = table.getSd();
+            tableLocation = tableSd.getLocation();
+            Set<String> partStrings = getPartitions(tmpOutputPath, tableLocation, job);
+
+            for (String partString : partStrings) {
+                StorageDescriptor partSd = new StorageDescriptor(tableSd);
+                partSd.setLocation(tableLocation + Path.SEPARATOR + partString);
+                List<String> values = getValues(partString);
+
+                if (!values.isEmpty()) {
+                    Partition part = new Partition(values, dbName, outputTableName,
+                            (int) (System.currentTimeMillis() & 0x00000000FFFFFFFFL), 0, partSd, params);
+                    try {
+                        cl.dropPartition(dbName, outputTableName, values, false);
+                    } catch (NoSuchObjectException ex) {
+                        System.out.println("New Partition:" + partString);
+                        newPartitionsAdded.add(partString);
+                    }
+                    cl.add_partition(part);
+                }
+            }
+        } catch (Exception ex) {
+            restoreDataFromBkup(tmpOutputPath + "bkup", tableLocation, job, newPartitionsAdded);
+            throw new UnableToMoveDataException(ex);
+        } finally {
+            cl.close();
         }
-      } catch (IOException e) {
-        throw new UnableToMoveDataException("Unable to close filesystem obj while restoring data from bkup. ", e);
-      }
+        return success ? 0 : -1;
+
     }
-  }
+
+    private String getDataAsString(String reportFilePath, JobConfigurator configurator, Job job) throws IOException {
+        StringBuilder data = new StringBuilder();
+        SequenceFile.Reader repReader = new SequenceFile.Reader(job.getConfiguration(), SequenceFile.Reader.file(new Path(reportFilePath)));
+
+        try {
+            BytesWritable ignored = (BytesWritable) ReflectionUtils.newInstance(repReader.getKeyClass(), job.getConfiguration());
+
+            Text value = (Text) ReflectionUtils.newInstance(repReader.getValueClass(), job.getConfiguration());
+
+            while (repReader.next(ignored, value)) {
+                configurator.stripe(new String(value.getBytes()), data);
+                data.append("\n");
+            }
+        } finally {
+            IOUtils.closeStream(repReader);
+        }
+        return data.toString();
+    }
+
+    private List<String> getValues(final String partString) throws UnsupportedEncodingException {
+        String[] pairs = partString.split("/");
+        List<String> values = new ArrayList<String>(3);
+        if (partString.contains("=")) {
+            for (String pair : pairs) {
+                String val = pair.split("=")[1];
+                val = URLDecoder.decode(val, "UTF-8");
+                values.add(val);
+            }
+        }
+        return values;
+    }
+
+    private Set<String> getPartitions(String tmpOutputPath, String tableOutputPath, Job job) throws IOException, UnableToMoveDataException {
+        String bkupTmpOutput = tmpOutputPath + "bkup";
+        Path tmpOutPath = new Path(tmpOutputPath);
+        Path bkupTmpOutPath = new Path(bkupTmpOutput);
+        FileSystem outFileSystem = null;
+        Set<String> partitionNames = Sets.newHashSet();
+        try {
+            outFileSystem = tmpOutPath.getFileSystem(job.getConfiguration());
+            // delete & recreate bkup path, if exists
+            outFileSystem.delete(bkupTmpOutPath, true);
+            outFileSystem.mkdirs(bkupTmpOutPath);
+            // recursively fetch all files in job output location
+            RemoteIterator<LocatedFileStatus> files = outFileSystem.listFiles(tmpOutPath, true);
+            boolean success = true;
+            while (files.hasNext()) {
+                LocatedFileStatus fs = files.next();
+                String path = fs.getPath().toString();
+                if (!path.contains(logsDirName)) {
+                    Matcher m = partitionDirPattern.matcher(path);
+                    boolean found = m.find();
+                    if (found) {
+                        // extract just the partition path
+                        String partition = m.group(4);
+                        // if the partition has not been moved already
+                        if (partitionNames.add(partition)) {
+                            // System.out.println("Partition: " + partition);
+                            String[] partitions = partition.split("\\/");
+                            StringBuilder partitionMinusChild = new StringBuilder();
+                            for (int i = 0; i < partitions.length - 1; i++) {
+                                partitionMinusChild.append(partitions[i] + Path.SEPARATOR);
+                            }
+                            String partitionMinusChildStr = partitionMinusChild.toString();
+                            // System.out.println(">>>>>>partitionMinusChildStr>>>>>>>>>>" + partitionMinusChildStr + "<<<<<<<<<<<<<<");
+                            Path tablePartitionPath = new Path(tableOutputPath + Path.SEPARATOR + partition);
+                            Path tablePartitionMinusChildPath = new Path(tableOutputPath + Path.SEPARATOR + partitionMinusChildStr);
+                            // System.out.println(">>>>>>tablePartitionMinusChildPath>>>>>>>>>>" + tablePartitionMinusChildPath +
+                            // "<<<<<<<<<<<<<<");
+                            Path bkupPartionPath = new Path(bkupTmpOutput + Path.SEPARATOR + partition);
+                            Path bkupPartionMinusChildPath = new Path(bkupTmpOutput + Path.SEPARATOR + partitionMinusChildStr);
+
+                            boolean tablePartitionExists = outFileSystem.exists(tablePartitionPath);
+                            // default true, as if table partition doesn't exist, we don't need any bkup
+                            success = true;
+                            // take existing data bkup, if exists
+                            if (tablePartitionExists) {
+                                if (!outFileSystem.exists(bkupPartionMinusChildPath)) {
+                                    success = outFileSystem.mkdirs(bkupPartionMinusChildPath);
+                                    if (!success) {
+                                        throw new UnableToMoveDataException("Unable to make backup directory: " 
+                                                + bkupPartionMinusChildPath);
+                                    }
+                                }
+                                success = outFileSystem.rename(tablePartitionPath, bkupPartionMinusChildPath);
+                                if (!success) {
+                                    throw new UnableToMoveDataException("Unable to take table partition data backup. " + "Renaming "
+                                            + tablePartitionPath + " to " + bkupPartionMinusChildPath);
+                                }
+                            } else if (!outFileSystem.exists(tablePartitionMinusChildPath)) {
+                                success = outFileSystem.mkdirs(tablePartitionMinusChildPath);
+                                if (!success) {
+                                    throw new UnableToMoveDataException("Unable to make table partition directory: "
+                                            + tablePartitionMinusChildPath);
+                                }
+                            }
+                            // move temp data to table
+                            String tmpPartitionPathLoc = new StringBuilder(m.group(1)).append(m.group(2)).append(m.group(3))
+                                    .append(m.group(4)).toString();
+                            // System.out.println(">>>>tmp to table-> Rename " + tmpPartitionPathLoc + " to " +
+                            // tablePartitionMinusChildPath);
+                            success = outFileSystem.rename(new Path(tmpPartitionPathLoc), tablePartitionMinusChildPath);
+                            if (!success) {
+                                throw new UnableToMoveDataException("Unable to move data to table partition directory: "
+                                        + tablePartitionMinusChildPath + " from tmp directory: " + tmpPartitionPathLoc);
+                            }
+                            if (success && tablePartitionExists) {
+                                // System.out.println(">>>>>Delete " + bkupPartionPath);
+                                outFileSystem.delete(bkupPartionPath, true);
+                            }
+                        }
+                    } else {
+                        System.out.println(">not matching>>>" + fs.getPath() + "<<<<" + found);
+                    }
+                }
+            }
+        } finally {
+            if (outFileSystem != null) {
+                outFileSystem.close();
+            }
+        }
+        return partitionNames;
+    }
+
+    private void restoreDataFromBkup(String bkupTmpOutput, String tableOutputPath, Job job, Set<String> newPartitionsAdded) {
+        Path bkupTmpOutPath = new Path(bkupTmpOutput);
+        FileSystem outFileSystem = null;
+        Set<String> partitionNames = Sets.newHashSet();
+        try {
+            outFileSystem = bkupTmpOutPath.getFileSystem(job.getConfiguration());
+            // recursively fetch all files in job output location
+            RemoteIterator<LocatedFileStatus> files = outFileSystem.listFiles(bkupTmpOutPath, true);
+            while (files.hasNext()) {
+                LocatedFileStatus fs = files.next();
+                String path = fs.getPath().toString();
+                Matcher m = partitionBkupDirPattern.matcher(path);
+                boolean found = m.find();
+                if (found) {
+                    // extract just the partition path
+                    String partition = m.group(4);
+                    // if the partition has not been moved already
+                    if (partitionNames.add(partition)) {
+                        // System.out.println("Partition: " + partition);
+                        String[] partitions = partition.split("\\/");
+                        StringBuilder partitionMinusChild = new StringBuilder();
+                        for (int i = 0; i < partitions.length - 1; i++) {
+                            partitionMinusChild.append(partitions[i] + Path.SEPARATOR);
+                        }
+                        String partitionMinusChildStr = partitionMinusChild.toString();
+                        // System.out.println(">>>>>>partitionMinusChildStr>>>>>>>>>>" + partitionMinusChildStr + "<<<<<<<<<<<<<<");
+                        Path tablePartitionPath = new Path(tableOutputPath + Path.SEPARATOR + partition);
+                        Path tablePartitionMinusChildPath = new Path(tableOutputPath + Path.SEPARATOR + partitionMinusChildStr);
+                        // System.out.println(">>>>>>tablePartitionMinusChildPath>>>>>>>>>>" + tablePartitionMinusChildPath +
+                        // "<<<<<<<<<<<<<<");
+                        Path bkupPartionPath = new Path(bkupTmpOutput + Path.SEPARATOR + partition);
+                        // Path bkupPartionMinusChildPath = new Path(bkupTmpOutput + Path.SEPARATOR + partitionMinusChildStr);
+                        // System.out.println(">>>>>>bkupPartionMinusChildPath>>>>>>>>>>" + bkupPartionMinusChildPath + "<<<<<<<<<<<<<<");
+                        // take existing data bkup, if exists
+                        if (outFileSystem.exists(tablePartitionPath)) {
+                            outFileSystem.delete(tablePartitionPath, true);
+                        }
+                        outFileSystem.rename(bkupPartionPath, tablePartitionMinusChildPath);
+                        // System.out.println(">>>>>Delete " + bkupPartionPath);
+                        outFileSystem.delete(bkupPartionPath, true);
+                    }
+                } else {
+                    System.out.println(">not matching>>>" + fs.getPath() + "<<<<" + found);
+                }
+            }
+            // delete all new partitions
+            for (String part : newPartitionsAdded) {
+                Path tablePartitionPath = new Path(tableOutputPath + Path.SEPARATOR + part);
+                outFileSystem.delete(tablePartitionPath, true);
+            }
+        } catch (IOException e) {
+            throw new UnableToMoveDataException("Unable to restore data from bkup. ", e);
+        } finally {
+            try {
+                if (outFileSystem != null) {
+                    outFileSystem.close();
+                }
+            } catch (IOException e) {
+                throw new UnableToMoveDataException("Unable to close filesystem obj while restoring data from bkup. ", e);
+            }
+        }
+    }
 }
