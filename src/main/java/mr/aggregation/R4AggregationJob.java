@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,12 +66,13 @@ public final class R4AggregationJob extends Configured implements Tool {
         System.exit(res);
     }
 
-    @Override
+
     public int run(final String[] arg0) throws IOException, TException, InterruptedException, ClassNotFoundException {
         String queueName = "edwdev";
-        String dbName = "hwwdev";
-        String tableName = "etl_hcom_hex_fact_staging_new";
-        String outputTableName = "hex_fact_adi";
+        String dbName = "etldata";
+        String repDbName = "hwwdev";
+        String tableName = "etl_hcom_hex_fact_staging";
+        String outputTableName = "etl_hcom_hex_fact";
 
         String reportFilePath = "/user/hive/warehouse/hwwdev.db/hex_reporting_requirements/000000_0";
         String reportTableName = "hex_reporting_requirements";
@@ -88,19 +90,40 @@ public final class R4AggregationJob extends Configured implements Tool {
             Table table = cl.getTable(dbName, tableName);
             Path tblPath = new Path(table.getSd().getLocation());
             FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
-            RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
-
+            RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(
+                    tblPath, true);
+            Set<String> inputPathsAdded = new HashSet<String>();
+            StringBuilder inputPathsBuilder = new StringBuilder();
+            boolean first = true;
             while (files.hasNext()) {
-                FileInputFormat.addInputPath(job, files.next().getPath());
+                LocatedFileStatus lfs = files.next();
+                String[] pathSplits = lfs.getPath().toString()
+                        .split("\\" + Path.SEPARATOR);
+                StringBuilder pathMinusFileName = new StringBuilder();
+                for (int j = 0; j < pathSplits.length - 1; j++) {
+                    pathMinusFileName.append(pathSplits[j] + Path.SEPARATOR);
+                }
+                if (!inputPathsAdded.contains(pathMinusFileName.toString())) {
+                    if (!first) {
+                        inputPathsBuilder.append(",");
+                    }
+                    inputPathsBuilder.append(pathMinusFileName).append("*");
+                    log.info("Adding input path to process: "
+                            + pathMinusFileName);
+                    first = false;
+                    inputPathsAdded.add(pathMinusFileName.toString());
+                }
             }
             fileSystem.close();
+            FileInputFormat.setInputPaths(job, inputPathsBuilder.toString());
 
             List<FieldSchema> fieldschemas = cl.getFields(dbName, tableName);
             lhsfields = new ArrayList<String>(fieldschemas.size());
             for (FieldSchema field : fieldschemas) {
                 lhsfields.add(field.getName());
             }
-            List<FieldSchema> rhsfieldschemas = cl.getFields(dbName, reportTableName);
+            List<FieldSchema> rhsfieldschemas = cl.getFields(repDbName,
+                    reportTableName);
             rhsfields = new ArrayList<String>(rhsfieldschemas.size());
             for (FieldSchema field : rhsfieldschemas) {
                 rhsfields.add(field.getName());
@@ -110,7 +133,8 @@ public final class R4AggregationJob extends Configured implements Tool {
         }
         configurator.lhsFields(lhsfields).rhsFields(rhsfields).numReduceTasks(numReduceTasks);
         configurator.configureJob(job);
-        job.getConfiguration().set("data", getDataAsString(reportFilePath, configurator, job));
+        job.getConfiguration().set("data",
+                getDataAsString(reportFilePath, configurator, job));
 
         Path tempPath = new Path(tmpOutputPath);
         FileSystem fileSystem = tempPath.getFileSystem(job.getConfiguration());
