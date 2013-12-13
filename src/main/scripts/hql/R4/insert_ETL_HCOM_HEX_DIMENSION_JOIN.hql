@@ -29,7 +29,7 @@ length_of_stay,
 number_of_rooms, 
 number_of_adults, 
 number_of_children, 
-children_in_search,
+children_in_search_flag,
 entry_page_name,                               
 
 active_metrics.experiment_code,
@@ -41,52 +41,57 @@ active_metrics.report_start_date,
 active_metrics.report_end_date,
 active_metrics.status,
 active_metrics.trans_date as report_transaction_end_date,
-active_metrics.test_manager,
-active_metrics.product_manager,
-active_metrics.pod,
-active_metrics.experiment_test_id,
+case when active_metrics.test_manager is null then 'Unknown' else active_metrics.test_manager end as test_manager,
+case when active_metrics.product_manager is null then 'Unknown' else active_metrics.product_manager end as product_manager,
+case when active_metrics.pod is null then 'Unknown' else active_metrics.pod end as pod,
+case when active_metrics.experiment_test_id is null then 'Unknown' else active_metrics.experiment_test_id end as experiment_test_id,
 
-os.OPERATING_SYSTEMS as operating_system_name,
+case when os.OPERATING_SYSTEMS is null then 'Unknown' else os.OPERATING_SYSTEMS end as operating_system_name,
 
-browsr.brwsr_name,
-browsr.brwsr_typ_name,
+case when browsr.brwsr_name is null then 'Unknown' else browsr.brwsr_name end as brwsr_name,
+case when browsr.brwsr_typ_name is null then 'Unknown' else browsr.brwsr_typ_name end as brwsr_typ_name,
 
-lpd.property_typ_name, 
-lpd.property_parnt_chain_name, 
-lpd.property_brand_name, 
-lpd.property_super_regn_name, 
-lpd.property_regn_id, 
-lpd.property_regn_name,
-lpd.property_mkt_id, 
-lpd.property_mkt_name, 
-lpd.property_sub_mkt_id, 
-lpd.property_sub_mkt_name, 
-lpd.property_cntry_name, 
-lpd.property_state_provnc_name, 
-lpd.property_city_name, 
-lpd.expe_half_star_rtg,
-lpd.property_parnt_chain_acct_typ_name, 
-lpd.property_paymnt_choice_enabl_ind, 
-lpd.property_cntrct_model_name,
+case when lpd.property_typ_name is null then 'Unknown' else lpd.property_typ_name end as property_typ_name, 
+case when lpd.property_parnt_chain_name is null then 'Unknown' else lpd.property_parnt_chain_name end as property_parnt_chain_name, 
+case when lpd.property_brand_name is null then 'Unknown' else lpd.property_brand_name end as property_brand_name, 
+case when lpd.property_super_regn_name is null then 'Unknown' else lpd.property_super_regn_name end as property_super_regn_name, 
+case when lpd.property_regn_id is null then -9998 else lpd.property_regn_id end as property_regn_id, 
+case when lpd.property_regn_name is null then 'Unknown' else lpd.property_regn_name end as property_regn_name,
+case when lpd.property_mkt_id is null then -9998 else lpd.property_mkt_id end as property_mkt_id, 
+case when lpd.property_mkt_name is null then 'Unknown' else lpd.property_mkt_name end as property_mkt_name, 
+case when lpd.property_sub_mkt_id is null then -9998 else lpd.property_sub_mkt_id end as property_sub_mkt_id, 
+case when lpd.property_sub_mkt_name is null then 'Unknown' else lpd.property_sub_mkt_name end as property_sub_mkt_name, 
+case when lpd.property_cntry_name is null then 'Unknown' else lpd.property_cntry_name end as property_cntry_name, 
+case when lpd.property_state_provnc_name is null then 'Unknown' else lpd.property_state_provnc_name end as property_state_provnc_name, 
+case when lpd.property_city_name is null then 'Unknown' else lpd.property_city_name end as property_city_name, 
+case when lpd.expe_half_star_rtg is null then 'Unknown' else cast(lpd.expe_half_star_rtg as string) end as expe_half_star_rtg,
+case when lpd.property_parnt_chain_acct_typ_name is null then 'Unknown' else lpd.property_parnt_chain_acct_typ_name end as property_parnt_chain_acct_typ_name, 
+case when lpd.property_paymnt_choice_enabl_ind is null then 'Unknown' else lpd.property_paymnt_choice_enabl_ind end as property_paymnt_choice_enabl_ind, 
+case when lpd.property_cntrct_model_name is null then 'Unknown' else lpd.property_cntrct_model_name end as property_cntrct_model_name,
                                            
-site.site_super_regn_name as POSa_Super_Region, 
-site.site_regn_name as POSa_Region,
-site.site_cntry_name as POSa_Country,
+case when site.site_super_regn_name is null then 'Unknown' else site.site_super_regn_name end as POSa_Super_Region, 
+case when site.site_regn_name is null then 'Unknown' else site.site_regn_name end as POSa_Region,
+case when site.site_cntry_name is null then 'Unknown' else site.site_cntry_name end as POSa_Country,
 
-mktg.mktg_chnnl_name as mktg_chnnl_name,
-mktg.mktg_sub_chnnl_name as mktg_sub_chnnl_name,
+case when mktg.mktg_chnnl_name is null then 'Unknown' else mktg.mktg_chnnl_name end as mktg_chnnl_name,
+case when mktg.mktg_sub_chnnl_name is null then 'Unknown' else mktg.mktg_sub_chnnl_name end as mktg_sub_chnnl_name,
 
-mktg_dir.mktg_chnnl_name as mktg_chnnl_name_direct,
-mktg_dir.mktg_sub_chnnl_name as mktg_sub_chnnl_name_direct,
+case when mktg_dir.mktg_chnnl_name is null then 'Unknown' else mktg_dir.mktg_chnnl_name end as mktg_chnnl_name_direct,
+case when mktg_dir.mktg_sub_chnnl_name is null then 'Unknown' else mktg_dir.mktg_sub_chnnl_name end as mktg_sub_chnnl_name_direct,
 
-sdd.hcom_srch_dest_typ_name, 
-sdd.hcom_srch_dest_name, 
-sdd.hcom_srch_dest_cntry_name,
-property_destination_id as hcom_srch_dest_id,
+case when sdd.hcom_srch_dest_typ_name is null then 'Unknown' else sdd.hcom_srch_dest_typ_name end as hcom_srch_dest_typ_name, 
+case when sdd.hcom_srch_dest_name is null then 'Unknown' else sdd.hcom_srch_dest_name end as hcom_srch_dest_name, 
+case when sdd.hcom_srch_dest_cntry_name is null then 'Unknown' else sdd.hcom_srch_dest_cntry_name end as hcom_srch_dest_cntry_name,
+case when property_destination_id is null then 'Unknown' else cast(property_destination_id as string) end as hcom_srch_dest_id,
 
-pmd.property_mkt_name as PSG_mkt_name,
-pmd.property_mkt_regn_name as PSG_mkt_regn_name,
-pmd.property_mkt_super_regn_name as PSG_mkt_super_regn_name,
+case when pmd.property_mkt_name is null then 'Unknown' else pmd.property_mkt_name end as PSG_mkt_name,
+case when pmd.property_mkt_regn_name is null then 'Unknown' else pmd.property_mkt_regn_name end as PSG_mkt_regn_name,
+case when pmd.property_mkt_super_regn_name is null then 'Unknown' else pmd.property_mkt_super_regn_name end as PSG_mkt_super_regn_name,
+
+case when coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name) is null then 'Not Applicable'
+     when coalesce(property_cntry_name,hcom_srch_dest_cntry_name) = site.site_cntry_name then 'Domestic'
+     else 'International'
+end as dom_intl_flag,
 
 sum(num_unique_viewers),
 sum(num_unique_purchasers),
@@ -122,7 +127,10 @@ from
             Else 'Not Applicable'
       End as browser_width, brwsr_id, mobile_ind,  
       property_destination_id, randomize(property_destination_id, ${hiveconf:hex.dim.pd.seed}, ${hiveconf:hex.dim.pd.separator}, true, ${hiveconf:hex.dim.pd.randomize.array})[0] 
-      as property_destination_id_random, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, children_in_search,
+      as property_destination_id_random, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, 
+      case when children_in_search > 0 then 'true' 
+           when children_in_search=0 then 'false' 
+           else 'Not Applicable' end as children_in_search_flag,
       operating_system_id,all_mktg_seo_30_day,randomize(all_mktg_seo_30_day, ${hiveconf:hex.dim.mktg.seed}, ${hiveconf:hex.dim.mktg.separator}, true, 
       ${hiveconf:hex.dim.mktg.randomize.array})[0] as all_mktg_seo_random,all_mktg_seo_30_day_direct, 
       randomize(all_mktg_seo_30_day_direct, ${hiveconf:hex.dim.mktg.direct.seed}, ${hiveconf:hex.dim.mktg.direct.separator}, true, ${hiveconf:hex.dim.mktg.direct.randomize.array})[0] 
@@ -212,8 +220,8 @@ from
             select brwsr_id, brwsr_name, brwsr_typ_name from dm.brwsr_dim
       ) browsr 
       on (active_metrics.brwsr_id=browsr.brwsr_id)
-      group by cid, local_date, new_visitor_ind,  page_assigned_entry_page_name,  site_sectn_name,  user_cntext_name,  browser_height,  browser_width,  mobile_ind,    
-      platform_type,  days_until_stay,  length_of_stay,  number_of_rooms,  number_of_adults,  number_of_children,  children_in_search, entry_page_name, active_metrics.experiment_code, 
+      group by local_date, new_visitor_ind,  page_assigned_entry_page_name,  site_sectn_name,  user_cntext_name,  browser_height,  browser_width,  mobile_ind,    
+      platform_type,  days_until_stay,  length_of_stay,  number_of_rooms,  number_of_adults,  number_of_children,  children_in_search_flag, entry_page_name, active_metrics.experiment_code, 
       active_metrics.experiment_name, active_metrics.variant_code, active_metrics.variant_name, active_metrics.version_number, active_metrics.report_start_date, 
       active_metrics.report_end_date, active_metrics.status, active_metrics.trans_date, active_metrics.test_manager, active_metrics.product_manager, active_metrics.pod, 
       active_metrics.experiment_test_id,  os.OPERATING_SYSTEMS,  browsr.brwsr_name, browsr.brwsr_typ_name,  lpd.property_typ_name, lpd.property_parnt_chain_name,  
@@ -221,4 +229,6 @@ from
       lpd.property_sub_mkt_id,  lpd.property_sub_mkt_name,  lpd.property_cntry_name,  lpd.property_state_provnc_name,  lpd.property_city_name,  lpd.expe_half_star_rtg, 
       lpd.property_parnt_chain_acct_typ_name,  lpd.property_paymnt_choice_enabl_ind,  lpd.property_cntrct_model_name, site.site_super_regn_name, site.site_regn_name,
       site.site_cntry_name, mktg.mktg_chnnl_name, mktg.mktg_sub_chnnl_name,  mktg_dir.mktg_chnnl_name, mktg_dir.mktg_sub_chnnl_name,  sdd.hcom_srch_dest_typ_name,  
-      sdd.hcom_srch_dest_name, sdd.hcom_srch_dest_cntry_name, property_destination_id, pmd.property_mkt_name, pmd.property_mkt_regn_name, pmd.property_mkt_super_regn_name;                                                                                                                                                    
+      sdd.hcom_srch_dest_name, sdd.hcom_srch_dest_cntry_name, property_destination_id, pmd.property_mkt_name, pmd.property_mkt_regn_name, pmd.property_mkt_super_regn_name, 
+      case when coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name) is null then 'Not Applicable' 
+      when coalesce(property_cntry_name,hcom_srch_dest_cntry_name) = site.site_cntry_name then 'Domestic' else 'International' end as dom_intl_flag;                                                                                                                                                    

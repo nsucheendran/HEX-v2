@@ -18,7 +18,7 @@ length_of_stay int,
 number_of_rooms int, 
 number_of_adults int, 
 number_of_children int, 
-children_in_search int,
+children_in_search_flag int,
 entry_page_name string,                        
 
 experiment_code string,
@@ -76,6 +76,8 @@ hcom_srch_dest_id string,
 PSG_mkt_name string,
 PSG_mkt_regn_name string,
 PSG_mkt_super_regn_name string,
+
+dom_intl_flag string,
 
 num_unique_viewers bigint,
 num_unique_purchasers bigint,
