@@ -1,13 +1,13 @@
 use hwwdev;
 
-drop table if exists hwwdev.hex_fact_adi;
+drop table if exists hwwdev.etl_hcom_hex_fact;
 
 create table hwwdev.etl_hcom_hex_fact(
 num_unique_viewers bigint,
 num_unique_purchasers bigint,
 num_unique_cancellers bigint,
 num_active_purchasers bigint,
-num_nil_net_order_purchasers bigint,
+num_inactive_purchasers bigint,
 total_cancellations bigint,
 net_orders bigint,
 net_bkg_gbv double,
@@ -45,9 +45,9 @@ variant_name string,
 status string,
 experiment_test_id string
 ) partitioned by (
-variant_code string,
 experiment_code string,
-version_number smallint
+version_number smallint,
+variant_code string
 ) 
 stored as sequencefile
 location "/user/hive/warehouse/hwwdev.db/etl_hcom_hex_fact";
