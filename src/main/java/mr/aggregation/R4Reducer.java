@@ -33,9 +33,12 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
     private String generateFileName(final Text variantCode, final Text experimentCode, final Text versionNum)
         throws UnsupportedEncodingException {
         String res = new StringBuilder().append(outputDir).append(Path.SEPARATOR).append("experiment_code=")
-                .append(URLEncoder.encode(experimentCode.toString(), "UTF-8")).append(Path.SEPARATOR).append("variant_code=")
-                .append(URLEncoder.encode(variantCode.toString(), "UTF-8")).append(Path.SEPARATOR).append("version_number=")
-                .append(URLEncoder.encode(versionNum.toString(), "UTF-8")).append(Path.SEPARATOR).append("/result").toString();
+                .append(URLEncoder.encode(experimentCode.toString(), "UTF-8"))
+                .append(Path.SEPARATOR).append("version_number=")
+                .append(URLEncoder.encode(versionNum.toString(), "UTF-8"))
+                .append(Path.SEPARATOR).append("variant_code=")
+                .append(URLEncoder.encode(variantCode.toString(), "UTF-8"))
+                .append(Path.SEPARATOR).append("/result").toString();
         return res;
     }
 
@@ -97,7 +100,6 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
             netOmnitureRoomNights += userAggTransData.getValue().getTotalOmnitureRoomNights();
             netGrossProfit += userAggTransData.getValue().getNetGrossProfit();
         }
-        // System.out.println("key>>>>>" + key);
         Set<Integer> excludes = new HashSet<Integer>() {
             /**
        * 
