@@ -89,11 +89,11 @@ public final class R4AggregationJob extends Configured implements Tool {
             Path tblPath = new Path(table.getSd().getLocation());
             FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
             RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
-
+            fileSystem.close();
             while (files.hasNext()) {
                 FileInputFormat.addInputPath(job, files.next().getPath());
             }
-            fileSystem.close();
+            
 
             List<FieldSchema> fieldschemas = cl.getFields(dbName, tableName);
             lhsfields = new ArrayList<String>(fieldschemas.size());
