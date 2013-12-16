@@ -16,21 +16,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>2.3.3</version>
-                <configuration>
-                    <!-- findbugs:help -Ddetail=true for outputDirectory: 
-                        Location where generated html will be created. -->
-                    <outputDirectory>${project.build.directory}/findbugs</outputDirectory>
-
-                    <htmlOutput>true</htmlOutput>
-                    <findbugsHtmlWithMessages>true</findbugsHtmlWithMessages>
-                    <htmlOutputDirectory>target/findbugs</htmlOutputDirectory>
-                    <failOnError>false</failOnError>
-                </configuration>
-            </plugin>
-            <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.2.1</version>
                 <configuration>
@@ -52,59 +37,35 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <version>2.5.2</version>
-                <configuration>
-                    <formats>
-                        <format>xml</format>
-                        <format>html</format>
-                    </formats>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>cobertura</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
     <reporting>
         <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <version>2.5.2</version>
-            </plugin>
         </plugins>
     </reporting>
     <dependencies>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-core</artifactId>
-            <version>2.0.0-mr1-cdh4.2.1</version>
+            <version>2.0.0-mr1-cdh4.4.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
-            <version>2.0.0-cdh4.2.1</version>
+            <version>2.0.0-cdh4.4.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-hdfs</artifactId>
-            <version>2.0.0-cdh4.2.1</version>
+            <version>2.0.0-cdh4.4.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
-            <version>0.10.0-cdh4.2.1</version>
+            <version>0.10.0-cdh4.4.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -129,7 +90,7 @@
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-test</artifactId>
-            <version>2.0.0-mr1-cdh4.2.1</version>
+            <version>2.0.0-mr1-cdh4.4.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -142,14 +103,14 @@
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-hdfs</artifactId>
-            <version>2.0.0-cdh4.2.1</version>
+            <version>2.0.0-cdh4.4.0</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
-            <version>2.0.0-cdh4.2.1</version>
+            <version>2.0.0-cdh4.4.0</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>

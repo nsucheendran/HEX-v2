@@ -315,6 +315,8 @@ else
   _LOG_PROCESS_DETAIL $RUN_ID "AFTER_SRC_BOOKMARK_BKG" "$BKG_BOOKMARK_DATE"
   
   _LOG "Updated Transactions source bookmark to to [$BKG_BOOKMARK_DATE]"
+  
+  
 fi
 
 _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "SUCCESS"
