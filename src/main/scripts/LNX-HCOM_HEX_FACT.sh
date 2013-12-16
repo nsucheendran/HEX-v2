@@ -349,7 +349,7 @@ else
   -DtargetDbName=${STAGE_DB} \
   -DsourceTableName=${STAGE_TABLE} \
   -DtargetTableName=${FACT_TABLE} \
-  -DreportFilePath=/user/hive/warehouse/etldata.db/etl_hex_reporting_requirements/000000_0 \
+  -DreportFilePath=/user/hive/warehouse/etldata.db/${REPORT_TABLE}/000000_0 \
   -DreportTableName=${REPORT_TABLE}
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT: Booking Fact load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
