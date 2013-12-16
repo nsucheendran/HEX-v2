@@ -1,8 +1,13 @@
-CREATE TABLE IF NOT EXISTS ${hiveconf:hex.fah.db}.${hiveconf:hex.fah.table} (
+use ${hiveconf:hex.fah.db};
+
+DROP TABLE IF EXISTS ${hiveconf:hex.fah.table};
+
+CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.fah.table} (
   guid string, 
   cid int, 
-  experiment_variant_code string, 
+  experiment_variant_code string,
   local_date string, 
+  local_hour smallint,
   gmt int, 
   gmt_timestamp string, 
   hit_data_id bigint, 
@@ -22,9 +27,16 @@ CREATE TABLE IF NOT EXISTS ${hiveconf:hex.fah.db}.${hiveconf:hex.fah.table} (
   number_of_rooms int, 
   number_of_adults int, 
   number_of_children int, 
-  children_in_search int)
+  children_in_search int,
+  operating_system_id smallint,
+  all_mktg_seo_30_day string,
+  all_mktg_seo_30_day_direct string,
+  entry_page_name string,
+  supplier_property_id int
+)
 PARTITIONED BY ( 
-  year int, 
-  month int)
-STORED AS RCFILE;
+  year_month string)
+STORED AS RCFILE
+LOCATION "/data/HWW/ETLDATA/${hiveconf:hex.fah.table}";
 
+ALTER TABLE ${hiveconf:hex.fah.table} ENABLE NO_DROP;
