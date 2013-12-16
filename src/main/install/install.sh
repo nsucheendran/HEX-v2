@@ -455,6 +455,12 @@ else
   _LOG "Process $FACT_PROCESS_NAME already exists"
 fi
 
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "FACT_TABLE" "$FACT_TABLE"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "JAR_PATH" "$JAR_DEST_PATH"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
