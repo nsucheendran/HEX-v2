@@ -45,3 +45,4 @@ public interface Constants {
     String HIVE_NULL_VALUE = "\\N";
 
 }
+

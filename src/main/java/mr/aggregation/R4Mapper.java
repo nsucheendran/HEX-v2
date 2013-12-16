@@ -127,3 +127,4 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
         }
     }
 }
+

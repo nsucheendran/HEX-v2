@@ -142,3 +142,4 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
         return strBuff.toString();
     }
 }
+

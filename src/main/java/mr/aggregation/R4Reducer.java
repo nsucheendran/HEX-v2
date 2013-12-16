@@ -129,3 +129,4 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
         mos.close();
     }
 }
+
