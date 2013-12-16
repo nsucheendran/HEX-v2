@@ -60,6 +60,9 @@ JOB_QUEUE=`_READ_PROCESS_CONTEXT $PROCESS_ID "JOB_QUEUE"`
 SRC_BOOKMARK_OMNI_FULL=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_OMNI"`
 SRC_BOOKMARK_BKG=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_BKG"`
 PROCESSING_TYPE=`_READ_PROCESS_CONTEXT $PROCESS_ID "PROCESSING_TYPE"`
+FACT_REDUCERS=`_READ_PROCESS_CONTEXT $PROCESS_ID "FACT_REDUCERS"`
+JAR_PATH=`_READ_PROCESS_CONTEXT $PROCESS_ID "JAR_PATH"`
+
 
 FAH_PROCESS_ID=`_READ_PROCESS_CONTEXT $PROCESS_ID "FAH_PROCESS_ID"`
 FAH_BOOKMARK_DATE_FULL=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK"`
@@ -163,6 +166,16 @@ then
       exit 1
     fi
     
+    hdfs dfs -rm -f "/data/HWW/${STAGE_DB}/${STAGE_TABLE}/year_month=${CURR_YEAR}-${CURR_MONTH}/source=omniture/*"
+    ERROR_CODE=$?
+    if [[ $ERROR_CODE -ne 0 ]]; then
+      _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+      _END_PROCESS $RUN_ID $ERROR_CODE
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+      _FREE_LOCK $HWW_LOCK_NAME
+      exit 1
+    fi
+    
     _LOG "Dropping partition [year_month='$CURR_YEAR-$CURR_MONTH', source='booking'] from target: $STAGE_DB.$STAGE_TABLE"
     hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "use ${STAGE_DB}; alter table ${STAGE_TABLE} drop if exists partition (year_month='${CURR_YEAR}-${CURR_MONTH}', source='booking');" >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
     ERROR_CODE=$?
@@ -174,6 +187,16 @@ then
       exit 1
     fi
 
+    hdfs dfs -rm -f "/data/HWW/${STAGE_DB}/${STAGE_TABLE}/year_month=${CURR_YEAR}-${CURR_MONTH}/source=booking/*"
+    ERROR_CODE=$?
+    if [[ $ERROR_CODE -ne 0 ]]; then
+      _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+      _END_PROCESS $RUN_ID $ERROR_CODE
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+      _FREE_LOCK $HWW_LOCK_NAME
+      exit 1
+    fi
+    
     NEW_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%Y'`
     CURR_MONTH=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%m'`
     CURR_YEAR=$NEW_YEAR
@@ -303,7 +326,7 @@ else
   fi
   _LOG "Updated Omniture source bookmark to to [$FAH_BOOKMARK_DATE]"
   
-   _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "SRC_BOOKMARK_BKG" "$BKG_BOOKMARK_DATE"
+  _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "SRC_BOOKMARK_BKG" "$BKG_BOOKMARK_DATE"
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!"
     _END_PROCESS $RUN_ID $ERROR_CODE
@@ -316,6 +339,24 @@ else
   
   _LOG "Updated Transactions source bookmark to to [$BKG_BOOKMARK_DATE]"
   
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
+  hadoop jar ${JAR_PATH} mr.aggregation.R4AggregationJob \
+  -DqueueName=${JOB_QUEUE} \
+  -Dreducers=${FACT_REDUCERS} \
+  -DsourceDbName=${STAGE_DB} \
+  -DtargetDbName=${STAGE_DB} \
+  -DsourceTableName=${STAGE_TABLE} \
+  -DtargetTableName=${FACT_TABLE} \
+  -DreportFilePath=/user/hive/warehouse/etldata.db/${REPORT_TABLE}/000000_0 \
+  -DreportTableName=${REPORT_TABLE}
+  if [[ $ERROR_CODE -ne 0 ]]; then
+    _LOG "HEX_FACT: Booking Fact load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
   
 fi
 
