@@ -37,6 +37,7 @@ TRANS_TABLE='ETL_HCOM_HEX_TRANSACTIONS'
 
 ACTIVE_FAH_TABLE='ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HIT'
 FACT_STAGE_TABLE='ETL_HCOM_HEX_FACT_STAGING'
+FACT_TABLE='ETL_HCOM_HEX_FACT'
 REPORT_TABLE='ETL_HEX_REPORTING_REQUIREMENTS'
 REPORT_FILE='/autofs/edwfileserver/sherlock_in/HEX/HEXV2UAT/HEX_REPORTING_INPUT.csv'
 EMAIL_TO='agurumurthi@expedia.com,nsucheendran@expedia.com'
@@ -281,6 +282,28 @@ FACT_PROCESS_NAME="ETL_HCOM_HEX_FACT"
 _LOG "Configuring process $FACT_PROCESS_NAME ..."
 
 FACT_PROCESS_DESCRIPTION="Loads HEX FACT Data"
+
+_LOG "(re-)creating table $FACT_TABLE ..." 
+_LOG "disable nodrop - OK if errors here." 
+set +o errexit 
+sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $FACT_TABLE disable NO_DROP;" 
+set -o errexit 
+_LOG "disable nodrop ended." 
+if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$FACT_TABLE; then 
+  _LOG "removing existing table files ... " 
+  sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$FACT_TABLE 
+  if [ $? -ne 0 ]; then
+    _LOG "Error deleting table files. Installation FAILED."
+    exit 1
+  fi
+fi 
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${FAH_DB}" -hiveconf hex.table="${FACT_TABLE}" -f $SCRIPT_PATH_FACT/createTable_ETL_HCOM_HEX_FACT.hql
+if [ $? -ne 0 ]; then
+  _LOG "Error creating table. Installation FAILED."
+  exit 1
+fi
+_LOG "(re-)creating table $FACT_TABLE Done." 
+
 
 FACT_PROCESS_ID=$(_GET_PROCESS_ID "$FACT_PROCESS_NAME")
 if [ -z "$FACT_PROCESS_ID" ]; then

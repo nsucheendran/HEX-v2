@@ -1,8 +1,8 @@
-use hwwdev;
+use ${hiveconf:hex.db};
 
-drop table if exists hwwdev.etl_hcom_hex_fact;
+DROP TABLE IF EXISTS ${hiveconf:hex.table};
 
-create table hwwdev.etl_hcom_hex_fact(
+CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.table} (
 num_unique_viewers bigint,
 num_unique_purchasers bigint,
 num_unique_cancellers bigint,
@@ -50,4 +50,6 @@ version_number smallint,
 variant_code string
 ) 
 stored as sequencefile
-location "/user/hive/warehouse/hwwdev.db/etl_hcom_hex_fact";
+LOCATION "/data/HWW/${hiveconf:hex.db}/${hiveconf:hex.table}";
+
+ALTER TABLE ${hiveconf:hex.table} ENABLE NO_DROP;
