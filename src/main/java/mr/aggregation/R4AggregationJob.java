@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import mr.JobConfigurator;
 import mr.exceptions.UnableToMoveDataException;
 
+import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -37,6 +38,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -60,46 +62,44 @@ public final class R4AggregationJob extends Configured implements Tool {
     private static final Pattern partitionDirPattern = Pattern.compile("(.*)(" + jobName + ")(\\/)(.*)(\\/)(^\\/)*");
     private static final Pattern partitionBkupDirPattern = Pattern.compile("(.*)(" + jobName + "bkup)(\\/)(.*)(\\/)(^\\/)*");
 
+    
     public static void main(final String[] args) throws Exception {
-        Configuration conf = new Configuration();
-        int res = ToolRunner.run(conf, new R4AggregationJob(), args);
+        GenericOptionsParser parser = new GenericOptionsParser(new Configuration(), new Options(), args);
+        int res = ToolRunner.run(parser.getConfiguration(), new R4AggregationJob(), args);
         System.exit(res);
     }
 
-
     public int run(final String[] arg0) throws IOException, TException, InterruptedException, ClassNotFoundException {
-        String queueName = "edwdev";
-        String dbName = "etldata";
-        String repDbName = "hwwdev";
-        String tableName = "etl_hcom_hex_fact_staging";
-        String outputTableName = "etl_hcom_hex_fact";
-
-        String reportFilePath = "/user/hive/warehouse/hwwdev.db/hex_reporting_requirements/000000_0";
-        String reportTableName = "hex_reporting_requirements";
+        Configuration mainConf = super.getConf();
+        int numReduceTasks = Integer.parseInt(mainConf.get("reducers", "100"));
+        String queueName = mainConf.get("queueName", "edwdev");
+        String sourceDbName = mainConf.get("sourceDbName", "etldata");
+        String targetDbName = mainConf.get("targetDbName", "hwwdev");
+        String sourceTableName = mainConf.get("sourceTableName", "etl_hcom_hex_fact_staging");
+        String targetTableName = mainConf.get("targetTableName", "etl_hcom_hex_fact");
+        String reportFilePath = mainConf.get("reportFilePath", "/user/hive/warehouse/hwwdev.db/hex_reporting_requirements/000000_0");
+        String reportTableName = mainConf.get("reportTableName", "hex_reporting_requirements");
+        
         String tmpOutputPath = "/tmp/" + jobName;
 
-        int numReduceTasks = 100;
-
         JobConfigurator configurator = new JobConfigurator();
-        Job job = configurator.initJob(super.getConf(), jobName, queueName);
+        Job job = configurator.initJob(mainConf, jobName, queueName);
 
         List<String> lhsfields, rhsfields;
         HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
         try {
 
-            Table table = cl.getTable(dbName, tableName);
+            Table table = cl.getTable(sourceDbName, sourceTableName);
             Path tblPath = new Path(table.getSd().getLocation());
             FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
 
-            RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(
-                    tblPath, true);
+            RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
             Set<String> inputPathsAdded = new HashSet<String>();
             StringBuilder inputPathsBuilder = new StringBuilder();
             boolean first = true;
             while (files.hasNext()) {
                 LocatedFileStatus lfs = files.next();
-                String[] pathSplits = lfs.getPath().toString()
-                        .split("\\" + Path.SEPARATOR);
+                String[] pathSplits = lfs.getPath().toString().split("\\" + Path.SEPARATOR);
                 StringBuilder pathMinusFileName = new StringBuilder();
                 for (int j = 0; j < pathSplits.length - 1; j++) {
                     pathMinusFileName.append(pathSplits[j] + Path.SEPARATOR);
@@ -109,8 +109,7 @@ public final class R4AggregationJob extends Configured implements Tool {
                         inputPathsBuilder.append(",");
                     }
                     inputPathsBuilder.append(pathMinusFileName).append("*");
-                    log.info("Adding input path to process: "
-                            + pathMinusFileName);
+                    log.info("Adding input path to process: " + pathMinusFileName);
                     first = false;
                     inputPathsAdded.add(pathMinusFileName.toString());
                 }
@@ -118,13 +117,12 @@ public final class R4AggregationJob extends Configured implements Tool {
             fileSystem.close();
             FileInputFormat.setInputPaths(job, inputPathsBuilder.toString());
 
-            List<FieldSchema> fieldschemas = cl.getFields(dbName, tableName);
+            List<FieldSchema> fieldschemas = cl.getFields(sourceDbName, sourceTableName);
             lhsfields = new ArrayList<String>(fieldschemas.size());
             for (FieldSchema field : fieldschemas) {
                 lhsfields.add(field.getName());
             }
-            List<FieldSchema> rhsfieldschemas = cl.getFields(repDbName,
-                    reportTableName);
+            List<FieldSchema> rhsfieldschemas = cl.getFields(targetDbName, reportTableName);
             rhsfields = new ArrayList<String>(rhsfieldschemas.size());
             for (FieldSchema field : rhsfieldschemas) {
                 rhsfields.add(field.getName());
@@ -134,8 +132,7 @@ public final class R4AggregationJob extends Configured implements Tool {
         }
         configurator.lhsFields(lhsfields).rhsFields(rhsfields).numReduceTasks(numReduceTasks);
         configurator.configureJob(job);
-        job.getConfiguration().set("data",
-                getDataAsString(reportFilePath, configurator, job));
+        job.getConfiguration().set("data", getDataAsString(reportFilePath, configurator, job));
 
         Path tempPath = new Path(tmpOutputPath);
         FileSystem fileSystem = tempPath.getFileSystem(job.getConfiguration());
@@ -153,7 +150,7 @@ public final class R4AggregationJob extends Configured implements Tool {
         cl = new HiveMetaStoreClient(new HiveConf());
         String tableLocation = null;
         try {
-            Table table = cl.getTable(dbName, outputTableName);
+            Table table = cl.getTable(sourceDbName, targetTableName);
             Map<String, String> params = new HashMap<String, String>();
             StorageDescriptor tableSd = table.getSd();
             tableLocation = tableSd.getLocation();
@@ -165,10 +162,10 @@ public final class R4AggregationJob extends Configured implements Tool {
                 List<String> values = getValues(partString);
 
                 if (!values.isEmpty()) {
-                    Partition part = new Partition(values, dbName, outputTableName,
+                    Partition part = new Partition(values, sourceDbName, targetTableName,
                             (int) (System.currentTimeMillis() & 0x00000000FFFFFFFFL), 0, partSd, params);
                     try {
-                        cl.dropPartition(dbName, outputTableName, values, false);
+                        cl.dropPartition(sourceDbName, targetTableName, values, false);
                     } catch (NoSuchObjectException ex) {
                         log.debug("New Partition:" + partString);
                         newPartitionsAdded.add(partString);
