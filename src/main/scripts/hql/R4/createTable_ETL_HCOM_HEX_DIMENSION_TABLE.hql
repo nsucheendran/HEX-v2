@@ -18,14 +18,11 @@ length_of_stay int,
 number_of_rooms int, 
 number_of_adults int, 
 number_of_children int, 
-children_in_search_flag int,
+children_in_search_flag string,
 entry_page_name string,                        
 
-experiment_code string,
 experiment_name string,
-variant_code string,
 variant_name string,
-version_number smallint,
 report_start_date string,
 report_end_date string,
 status string,
@@ -83,7 +80,7 @@ num_unique_viewers bigint,
 num_unique_purchasers bigint,
 num_unique_cancellers bigint,
 num_active_purchasers bigint,
-num_nil_net_order_purchasers bigint,
+num_inactive_purchasers bigint,
 total_cancellations bigint,
 net_orders bigint,
 net_bkg_gbv double,
@@ -92,6 +89,10 @@ net_omniture_gbv double,
 net_omniture_room_nights bigint,
 net_gross_profit double,
 num_repeat_purchasers bigint
-)
+) partitioned by (
+experiment_code string,
+version_number smallint,
+variant_code string
+) 
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t' 
 stored as textfile;

@@ -13,7 +13,7 @@ CREATE TEMPORARY FUNCTION randomize as 'udf.GenericUDFRandomizeInput';
 set mapred.reduce.tasks=400;
 set mapred.job.reduce.total.mem.bytes=99061748;
 
-insert overwrite table ${hiveconf:hex.dim.table}
+insert overwrite table ${hiveconf:hex.dim.table} PARTITION(experiment_code,version_number,variant_code)
 select 
 local_date,
 new_visitor_ind,
@@ -32,11 +32,8 @@ number_of_children,
 children_in_search_flag,
 entry_page_name,                               
 
-active_metrics.experiment_code,
 active_metrics.experiment_name,
-active_metrics.variant_code,
 active_metrics.variant_name,
-active_metrics.version_number,
 active_metrics.report_start_date,
 active_metrics.report_end_date,
 active_metrics.status,
@@ -97,7 +94,7 @@ sum(num_unique_viewers),
 sum(num_unique_purchasers),
 sum(num_unique_cancellers),
 sum(num_active_purchasers),
-sum(num_nil_net_order_purchasers),
+sum(num_inactive_purchasers),
 sum(total_cancellations),
 sum(net_orders),
 sum(net_bkg_gbv),
@@ -105,7 +102,10 @@ sum(net_bkg_room_nights),
 sum(net_omniture_gbv),
 sum(net_omniture_room_nights),
 sum(net_gross_profit),
-sum(num_repeat_purchasers)
+sum(num_repeat_purchasers),
+active_metrics.experiment_code,
+active_metrics.version_number,
+active_metrics.variant_code,
 from                                                  
       (select cid, local_date, 
       case when new_visitor_ind = 1 then 'new'
@@ -136,14 +136,14 @@ from
       randomize(all_mktg_seo_30_day_direct, ${hiveconf:hex.dim.mktg.direct.seed}, ${hiveconf:hex.dim.mktg.direct.separator}, true, ${hiveconf:hex.dim.mktg.direct.randomize.array})[0] 
       as all_mktg_seo_direct_random,entry_page_name,supplier_property_id,
       randomize(supplier_property_id, ${hiveconf:hex.dim.sp.seed}, ${hiveconf:hex.dim.sp.separator}, true, ${hiveconf:hex.dim.sp.randomize.array})[0] as supplier_property_id_random,
-      rep.variant_code,rep.experiment_code,rep.version_number,num_unique_viewers,num_unique_purchasers,num_unique_cancellers,num_active_purchasers,num_nil_net_order_purchasers,
+      rep.variant_code,rep.experiment_code,rep.version_number,num_unique_viewers,num_unique_purchasers,num_unique_cancellers,num_active_purchasers,num_inactive_purchasers,
       total_cancellations,net_orders,net_bkg_gbv,net_bkg_room_nights,net_omniture_gbv,net_omniture_room_nights,net_gross_profit,num_repeat_purchasers, experiment_name,variant_name,
       report_start_date,report_end_date,status,trans_date, test_manager,product_manager,pod,experiment_test_id from 
       (
            select cid, local_date, new_visitor_ind, page_assigned_entry_page_name, site_sectn_name, user_cntext_name, browser_height, browser_width, brwsr_id, mobile_ind,  
            property_destination_id, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, children_in_search,operating_system_id,
            all_mktg_seo_30_day,all_mktg_seo_30_day_direct,entry_page_name,supplier_property_id,variant_code,experiment_code,version_number,
-           num_unique_viewers,num_unique_purchasers,num_unique_cancellers,num_active_purchasers,num_nil_net_order_purchasers,total_cancellations,net_orders,net_bkg_gbv,net_bkg_room_nights,
+           num_unique_viewers,num_unique_purchasers,num_unique_cancellers,num_active_purchasers,num_inactive_purchasers,total_cancellations,net_orders,net_bkg_gbv,net_bkg_room_nights,
            net_omniture_gbv,net_omniture_room_nights,net_gross_profit,num_repeat_purchasers
            from ${hiveconf:hex.fact.table}) metrics 
            inner join 
@@ -174,7 +174,7 @@ from
        ) lpd 
        on (active_metrics.supplier_property_id_random=lpd.expe_lodg_property_id_random)
        left outer join dm.site_dim site 
-       on (site.brand_id = 2 and active_metrics.cid=site.ian_business_partnr_id)
+       on (site.brand_id = 2  and site.ian_business_partnr_id not in ('-9998', '0') and active_metrics.cid=site.ian_business_partnr_id)
        left outer join 
        (
             select mktg_chnnl_name, mktg_sub_chnnl_name, mktg_code_random from 
@@ -231,4 +231,4 @@ from
       site.site_cntry_name, mktg.mktg_chnnl_name, mktg.mktg_sub_chnnl_name,  mktg_dir.mktg_chnnl_name, mktg_dir.mktg_sub_chnnl_name,  sdd.hcom_srch_dest_typ_name,  
       sdd.hcom_srch_dest_name, sdd.hcom_srch_dest_cntry_name, property_destination_id, pmd.property_mkt_name, pmd.property_mkt_regn_name, pmd.property_mkt_super_regn_name, 
       case when coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name) is null then 'Not Applicable' 
-      when coalesce(property_cntry_name,hcom_srch_dest_cntry_name) = site.site_cntry_name then 'Domestic' else 'International' end as dom_intl_flag;                                                                                                                                                    
+      when coalesce(property_cntry_name,hcom_srch_dest_cntry_name) = site.site_cntry_name then 'Domestic' else 'International' end;                                                                                                                                                    
