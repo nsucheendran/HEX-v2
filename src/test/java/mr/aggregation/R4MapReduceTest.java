@@ -14,7 +14,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import mr.Constants;
-import mr.JobConfigurator;
 import mr.dto.TextMultiple;
 
 import org.apache.hadoop.fs.FileSystem;

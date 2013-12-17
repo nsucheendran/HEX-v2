@@ -1,4 +1,4 @@
-package mr;
+package mr.segmentation;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -7,9 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import mr.aggregation.R4AggregationJob;
-import mr.aggregation.R4Mapper;
-import mr.aggregation.R4Reducer;
+import mr.Constants;
 import mr.dto.TextMultiple;
 
 import org.apache.hadoop.conf.Configuration;
@@ -141,10 +139,10 @@ public final class JobConfigurator {
         JobConf conf = new JobConf(config);
         conf.setQueueName(queueName);
         Job job = new Job(conf, jobName);
-        job.setJarByClass(R4AggregationJob.class);
+        job.setJarByClass(DenormalizedSegmentationJob.class);
 
-        job.setMapperClass(R4Mapper.class);
-        job.setReducerClass(R4Reducer.class);
+        job.setMapperClass(DenormalizedSegmentationMapper.class);
+        job.setReducerClass(DenormalizedSegmentationReducer.class);
 
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(NullOutputFormat.class);

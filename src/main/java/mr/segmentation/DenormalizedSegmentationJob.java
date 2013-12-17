@@ -1,4 +1,4 @@
-package mr.aggregation;
+package mr.segmentation;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -54,8 +54,8 @@ import com.google.common.collect.Sets;
  * @author nsood
  * @author achadha
  */
-public final class R4AggregationJob extends Configured implements Tool {
-    private static final Logger log = Logger.getLogger(R4AggregationJob.class);
+public final class DenormalizedSegmentationJob extends Configured implements Tool {
+    private static final Logger log = Logger.getLogger(DenormalizedSegmentationJob.class);
     private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
     private static final String logsDirName = "_logs";
     private static final Pattern partitionDirPattern = Pattern.compile("(.*)(" + jobName + ")(\\/)(.*)(\\/)(^\\/)*");
@@ -64,7 +64,7 @@ public final class R4AggregationJob extends Configured implements Tool {
     
     public static void main(final String[] args) throws Exception {
         GenericOptionsParser parser = new GenericOptionsParser(new Configuration(), new Options(), args);
-        int res = ToolRunner.run(parser.getConfiguration(), new R4AggregationJob(), args);
+        int res = ToolRunner.run(parser.getConfiguration(), new DenormalizedSegmentationJob(), args);
         System.exit(res);
     }
 
@@ -72,10 +72,10 @@ public final class R4AggregationJob extends Configured implements Tool {
         Configuration mainConf = super.getConf();
         int numReduceTasks = Integer.parseInt(mainConf.get("reducers", "100"));
         String queueName = mainConf.get("queueName", "edwdev");
-        String sourceDbName = mainConf.get("sourceDbName", "etldata");
+        String sourceDbName = mainConf.get("sourceDbName", "hwwdev");
         String targetDbName = mainConf.get("targetDbName", "hwwdev");
-        String sourceTableName = mainConf.get("sourceTableName", "etl_hcom_hex_fact_staging");
-        String targetTableName = mainConf.get("targetTableName", "etl_hcom_hex_fact");
+        String sourceTableName = mainConf.get("sourceTableName", "etl_hcom_hex_fact");
+        String targetTableName = mainConf.get("targetTableName", "etl_hcom_hex_dimensions");
         String reportFilePath = mainConf.get("reportFilePath", "/user/hive/warehouse/hwwdev.db/hex_reporting_requirements/000000_0");
         String reportTableName = mainConf.get("reportTableName", "hex_reporting_requirements");
         
