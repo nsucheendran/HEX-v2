@@ -1,7 +1,7 @@
 package udf;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Random;
 
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentLengthException;
@@ -19,12 +19,11 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspe
 import org.apache.hadoop.io.Text;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 // Return output as List of STRINGS (always), independent of the input dataType
-public class GenericUDFRandomizeInputV2 extends GenericUDF {
+public class GenericUDFRandomizeInput extends GenericUDF {
     private ListObjectInspector whitelistValuesOI;
-    private Map<Text, Integer> circularValueAssignmentTracker;
+    private static final Random RANDOM_GENERATOR = new Random();
 
     @Override
     public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
@@ -33,7 +32,6 @@ public class GenericUDFRandomizeInputV2 extends GenericUDF {
                     "The function repeatInput(inputValue, seed, seedValSeparator, randomize, whitelistValues) "
                             + "requires atleast 3 arguments.");
         }
-        circularValueAssignmentTracker = Maps.newHashMap();
         // 1. Check we received the right object types.
         ObjectInspector inputValOI = arguments[0];
         ObjectInspector seedOI = arguments[1];
@@ -89,12 +87,8 @@ public class GenericUDFRandomizeInputV2 extends GenericUDF {
             return Lists.newArrayList(inputValText);
         }
         if (randomizeInput == null || randomizeInput) {
-            Integer inc = circularValueAssignmentTracker.get(inputValText);
-            if (inc == null || (inc + 1) == seed) {
-                inc = -1;
-            }
-            circularValueAssignmentTracker.put(inputValText, ++inc);
-            return Lists.newArrayList(new Text(inputValText + seedValSeparator + inc));
+            int randomVal = RANDOM_GENERATOR.nextInt(seed);
+            return Lists.newArrayList(new Text(inputValText + seedValSeparator + randomVal));
         }
         List<Text> repInputValues = Lists.newArrayList();
         for (int num = 0; num < seed; num++) {
