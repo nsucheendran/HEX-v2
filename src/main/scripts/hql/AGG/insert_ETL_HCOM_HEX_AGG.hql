@@ -146,11 +146,11 @@ from
            all_mktg_seo_30_day,all_mktg_seo_30_day_direct,entry_page_name,supplier_property_id,variant_code,experiment_code,version_number,
            num_unique_viewers,num_unique_purchasers,num_unique_cancellers,num_active_purchasers,num_inactive_purchasers,total_cancellations,net_orders,net_bkg_gbv,net_bkg_room_nights,
            net_omniture_gbv,net_omniture_room_nights,net_gross_profit,num_repeat_purchasers
-           from ${hiveconf:hex.fact.table}) metrics 
+           from ${hiveconf:stage.db}.${hiveconf:hex.fact.table}) metrics 
            inner join 
            (
                select experiment_code, experiment_name,variant_code,variant_name,version_number,report_start_date,report_end_date,status,trans_date,test_manager,product_manager,pod,
-               experiment_test_id from ${hiveconf:hex.report.table}
+               experiment_test_id from ${hiveconf:stage.db}.${hiveconf:hex.report.table}
            ) rep 
            on 
            (

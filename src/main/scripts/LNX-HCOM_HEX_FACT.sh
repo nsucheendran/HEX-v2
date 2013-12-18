@@ -56,6 +56,7 @@ ACTIVE_FAH_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "ACTIVE_FAH_TABLE"`
 REPORT_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPORT_TABLE"`
 REPORT_FILE=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPORT_FILE"`
 STAGE_DB=`_READ_PROCESS_CONTEXT $PROCESS_ID "STAGE_DB"`
+AGG_DB=`_READ_PROCESS_CONTEXT $PROCESS_ID "AGG_DB"`
 JOB_QUEUE=`_READ_PROCESS_CONTEXT $PROCESS_ID "JOB_QUEUE"`
 SRC_BOOKMARK_OMNI_FULL=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_OMNI"`
 SRC_BOOKMARK_BKG=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_BKG"`
@@ -399,7 +400,7 @@ else
   SUPPLIER_PROP_STR_FINAL=${SUPPLIER_PROP_STR_FINAL:${#delimiter}};
   SUPPLIER_PROP_STR_FINAL="array('"${SUPPLIER_PROP_STR_FINAL}"')";
     
-  _LOG -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf agg.num.reduce.tasks="${AGG_NUM_REDUCERS}" -hiveconf hex.fact.table="${FACT_TABLE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.agg.pd.randomize.array="${PROP_DEST_STR_FINAL}" -hiveconf hex.agg.mktg.randomize.array="${MKTG_SEO_STR_FINAL}" -hiveconf hex.agg.mktg.direct.randomize.array="${MKTG_SEO_DIRECT_STR_FINAL}" -hiveconf hex.agg.sp.randomize.array="${SUPPLIER_PROP_STR_FINAL}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.seed="1000" -hiveconf hex.agg.separator="###" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+  _LOG -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf agg.num.reduce.tasks="${AGG_NUM_REDUCERS}" -hiveconf hex.fact.table="${FACT_TABLE}" -hiveconf hex.db="${AGG_DB}" -hiveconf stage.db="${STAGE_DB}" -hiveconf hex.agg.pd.randomize.array="${PROP_DEST_STR_FINAL}" -hiveconf hex.agg.mktg.randomize.array="${MKTG_SEO_STR_FINAL}" -hiveconf hex.agg.mktg.direct.randomize.array="${MKTG_SEO_DIRECT_STR_FINAL}" -hiveconf hex.agg.sp.randomize.array="${SUPPLIER_PROP_STR_FINAL}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.seed="1000" -hiveconf hex.agg.separator="###" -hiveconf -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
   
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "ENDED"
 fi
