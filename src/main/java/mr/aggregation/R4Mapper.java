@@ -77,7 +77,7 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
                 return coalesce(lval, "0").compareTo(rval) <= 0;
             }
         };
-        gteJoiner = new FilterCondition(lteJoin) {
+        gteJoiner = new FilterCondition(gteJoin) {
 
             @Override
             protected boolean checkCondition(String lval, String rval) {
