@@ -1,9 +1,8 @@
 use ${hiveconf:hex.dim.db};
 
-DROP TABLE IF EXISTS ${hiveconf:hex.dim.table};
+DROP TABLE IF EXISTS ${hiveconf:hex.table};
 
--- TODO change the storage format based on the DB2 requirements
-create table ${hiveconf:hex.dim.table} (
+CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.table} (
 local_date string,
 new_visitor_ind string, 
 page_assigned_entry_page_name string,
@@ -95,4 +94,7 @@ version_number smallint,
 variant_code string
 ) 
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t' 
-stored as textfile;
+stored as textfile
+LOCATION "/data/HWW/${hiveconf:hex.db}/${hiveconf:hex.table}";
+
+ALTER TABLE ${hiveconf:hex.table} ENABLE NO_DROP;

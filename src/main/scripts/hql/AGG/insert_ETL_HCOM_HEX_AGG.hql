@@ -1,3 +1,5 @@
+CREATE TEMPORARY FUNCTION randomize as 'udf.GenericUDFRandomizeInput';
+
 set hive.auto.convert.join=true;
 set hive.exec.dynamic.partition.mode=nonstrict;
 set hive.exec.dynamic.partition=true;
@@ -7,13 +9,12 @@ set mapred.job.queue.name=edwdev;
 set mapred.max.split.size=256000000;
 set mapred.compress.map.output=true;
 set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
-use hwwdev;
-add jar /tmp/testProd.jar;
-CREATE TEMPORARY FUNCTION randomize as 'udf.GenericUDFRandomizeInput';
-set mapred.reduce.tasks=400;
+set mapred.reduce.tasks=${hiveconf:agg.num.reduce.tasks};
 set mapred.job.reduce.total.mem.bytes=99061748;
 
-insert overwrite table ${hiveconf:hex.dim.table} PARTITION(experiment_code,version_number,variant_code)
+use ${hiveconf:hex.db};
+
+insert overwrite table ${hiveconf:hex.agg.table} PARTITION(experiment_code,version_number,variant_code)
 select 
 local_date,
 new_visitor_ind,
@@ -105,7 +106,7 @@ sum(net_gross_profit),
 sum(num_repeat_purchasers),
 active_metrics.experiment_code,
 active_metrics.version_number,
-active_metrics.variant_code,
+active_metrics.variant_code
 from                                                  
       (select cid, local_date, 
       case when new_visitor_ind = 1 then 'new'
@@ -126,16 +127,16 @@ from
             When browser_width >= 1200 Then '>=1200'
             Else 'Not Applicable'
       End as browser_width, brwsr_id, mobile_ind,  
-      property_destination_id, randomize(property_destination_id, ${hiveconf:hex.dim.pd.seed}, ${hiveconf:hex.dim.pd.separator}, true, ${hiveconf:hex.dim.pd.randomize.array})[0] 
+      property_destination_id, randomize(property_destination_id, ${hiveconf:hex.agg.seed}, "###", true, ${hiveconf:hex.agg.pd.randomize.array})[0] 
       as property_destination_id_random, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, 
       case when children_in_search > 0 then 'true' 
            when children_in_search=0 then 'false' 
            else 'Not Applicable' end as children_in_search_flag,
-      operating_system_id,all_mktg_seo_30_day,randomize(all_mktg_seo_30_day, ${hiveconf:hex.dim.mktg.seed}, ${hiveconf:hex.dim.mktg.separator}, true, 
-      ${hiveconf:hex.dim.mktg.randomize.array})[0] as all_mktg_seo_random,all_mktg_seo_30_day_direct, 
-      randomize(all_mktg_seo_30_day_direct, ${hiveconf:hex.dim.mktg.direct.seed}, ${hiveconf:hex.dim.mktg.direct.separator}, true, ${hiveconf:hex.dim.mktg.direct.randomize.array})[0] 
+      operating_system_id,all_mktg_seo_30_day,randomize(all_mktg_seo_30_day, ${hiveconf:hex.agg.seed}, "###", true, 
+      ${hiveconf:hex.agg.mktg.randomize.array})[0] as all_mktg_seo_random,all_mktg_seo_30_day_direct, 
+      randomize(all_mktg_seo_30_day_direct, ${hiveconf:hex.agg.seed}, "###", true, ${hiveconf:hex.agg.mktg.direct.randomize.array})[0] 
       as all_mktg_seo_direct_random,entry_page_name,supplier_property_id,
-      randomize(supplier_property_id, ${hiveconf:hex.dim.sp.seed}, ${hiveconf:hex.dim.sp.separator}, true, ${hiveconf:hex.dim.sp.randomize.array})[0] as supplier_property_id_random,
+      randomize(supplier_property_id, ${hiveconf:hex.agg.seed}, "###", true, ${hiveconf:hex.agg.sp.randomize.array})[0] as supplier_property_id_random,
       rep.variant_code,rep.experiment_code,rep.version_number,num_unique_viewers,num_unique_purchasers,num_unique_cancellers,num_active_purchasers,num_inactive_purchasers,
       total_cancellations,net_orders,net_bkg_gbv,net_bkg_room_nights,net_omniture_gbv,net_omniture_room_nights,net_gross_profit,num_repeat_purchasers, experiment_name,variant_name,
       report_start_date,report_end_date,status,trans_date, test_manager,product_manager,pod,experiment_test_id from 
@@ -149,7 +150,7 @@ from
            inner join 
            (
                select experiment_code, experiment_name,variant_code,variant_name,version_number,report_start_date,report_end_date,status,trans_date,test_manager,product_manager,pod,
-               experiment_test_id from ${hiveconf:hex.rep.table}
+               experiment_test_id from ${hiveconf:hex.report.table}
            ) rep 
            on 
            (
@@ -167,7 +168,7 @@ from
                  select property_typ_name, property_parnt_chain_name, property_brand_name, property_super_regn_name, property_regn_id, property_regn_name,
                  property_mkt_id, property_mkt_name, property_sub_mkt_id, property_sub_mkt_name, property_cntry_name, property_state_provnc_name, property_city_name, expe_half_star_rtg,
                  property_parnt_chain_acct_typ_name, property_paymnt_choice_enabl_ind, property_cntrct_model_name, 
-                 randomize(expe_lodg_property_id, ${hiveconf:hex.dim.sp.seed}, ${hiveconf:hex.dim.sp.separator}, false, ${hiveconf:hex.dim.sp.randomize.array}) as expe_lodg_property_id_arr
+                 randomize(expe_lodg_property_id, ${hiveconf:hex.agg.seed}, "###", false, ${hiveconf:hex.agg.sp.randomize.array}) as expe_lodg_property_id_arr
                  from dm.lodg_property_dim where expe_lodg_property_id<>-9998
             ) lodg_property_dim_inner
             LATERAL VIEW explode(expe_lodg_property_id_arr) tt as expe_lodg_property_id_random
@@ -180,7 +181,7 @@ from
             select mktg_chnnl_name, mktg_sub_chnnl_name, mktg_code_random from 
             (
                  select mktg_chnnl_name, mktg_sub_chnnl_name, 
-                 randomize(mktg_code, ${hiveconf:hex.dim.mktg.seed}, ${hiveconf:hex.dim.mktg.separator}, false, ${hiveconf:hex.dim.mktg.randomize.array}) mktg_code_arr
+                 randomize(mktg_code, ${hiveconf:hex.agg.seed}, "###", false, ${hiveconf:hex.agg.mktg.randomize.array}) mktg_code_arr
                  from hwwdev.web_analytic_mktg_code_dim_non_expedia where mktg_code<>'Unknown'
             ) web_analytic_mktg_code_dim_non_expedia_inner 
             LATERAL VIEW explode(mktg_code_arr) tt as mktg_code_random
@@ -191,7 +192,7 @@ from
             select mktg_chnnl_name, mktg_sub_chnnl_name, mktg_code_random from 
             (
                  select mktg_chnnl_name, mktg_sub_chnnl_name, 
-                 randomize(mktg_code, ${hiveconf:hex.dim.mktg.direct.seed}, ${hiveconf:hex.dim.mktg.direct.separator}, false, ${hiveconf:hex.dim.mktg.direct.randomize.array}) mktg_code_arr
+                 randomize(mktg_code, ${hiveconf:hex.agg.seed}, "###", false, ${hiveconf:hex.agg.mktg.direct.randomize.array}) mktg_code_arr
                  from hwwdev.web_analytic_mktg_code_dim_non_expedia where mktg_code<>'Unknown'
             )  web_analytic_mktg_code_dim_non_expedia_inner
             LATERAL VIEW explode(mktg_code_arr) tt as mktg_code_random
@@ -202,7 +203,7 @@ from
             select hcom_srch_dest_typ_name, hcom_srch_dest_name, hcom_srch_dest_cntry_name, hcom_srch_dest_property_mkt_key, hcom_srch_dest_id_random from 
             (
                 select hcom_srch_dest_typ_name, hcom_srch_dest_name, hcom_srch_dest_cntry_name, hcom_srch_dest_property_mkt_key, 
-                randomize(hcom_srch_dest_id, ${hiveconf:hex.dim.pd.seed}, ${hiveconf:hex.dim.pd.separator}, false, ${hiveconf:hex.dim.pd.randomize.array}) as hcom_srch_dest_id_arr
+                randomize(hcom_srch_dest_id, ${hiveconf:hex.agg.seed}, "###", false, ${hiveconf:hex.agg.pd.randomize.array}) as hcom_srch_dest_id_arr
                 from dm.hcom_srch_dest_dim where hcom_srch_dest_id<>-9998
             ) hcom_srch_dest_dim_inner
             LATERAL VIEW explode(hcom_srch_dest_id_arr) tt as hcom_srch_dest_id_random
@@ -231,4 +232,4 @@ from
       site.site_cntry_name, mktg.mktg_chnnl_name, mktg.mktg_sub_chnnl_name,  mktg_dir.mktg_chnnl_name, mktg_dir.mktg_sub_chnnl_name,  sdd.hcom_srch_dest_typ_name,  
       sdd.hcom_srch_dest_name, sdd.hcom_srch_dest_cntry_name, property_destination_id, pmd.property_mkt_name, pmd.property_mkt_regn_name, pmd.property_mkt_super_regn_name, 
       case when coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name) is null then 'Not Applicable' 
-      when coalesce(property_cntry_name,hcom_srch_dest_cntry_name) = site.site_cntry_name then 'Domestic' else 'International' end;                                                                                                                                                    
+      when coalesce(property_cntry_name,hcom_srch_dest_cntry_name) = site.site_cntry_name then 'Domestic' else 'International' end;
