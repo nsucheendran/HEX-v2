@@ -23,6 +23,20 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
     private static BytesWritable bw = new BytesWritable(new byte[0], 0);
     private MultipleOutputs<NullWritable, TextMultiple> mos;
     private String outputDir;
+    
+    // exclude values for columns in the following positions from the output
+    private final Set<Integer> excludes = new HashSet<Integer>() {
+        /**
+   * 
+   */
+        private static final long serialVersionUID = 1L;
+
+        {
+            add(2);  
+            add(3);
+            add(4);
+        }
+    };
 
     @Override
     public final void setup(final Context context) {
@@ -33,12 +47,9 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
     private String generateFileName(final Text variantCode, final Text experimentCode, final Text versionNum)
         throws UnsupportedEncodingException {
         String res = new StringBuilder().append(outputDir).append(Path.SEPARATOR).append("experiment_code=")
-                .append(URLEncoder.encode(experimentCode.toString(), "UTF-8"))
-                .append(Path.SEPARATOR).append("version_number=")
-                .append(URLEncoder.encode(versionNum.toString(), "UTF-8"))
-                .append(Path.SEPARATOR).append("variant_code=")
-                .append(URLEncoder.encode(variantCode.toString(), "UTF-8"))
-                .append(Path.SEPARATOR).append("/result").toString();
+                .append(URLEncoder.encode(experimentCode.toString(), "UTF-8")).append(Path.SEPARATOR).append("version_number=")
+                .append(URLEncoder.encode(versionNum.toString(), "UTF-8")).append(Path.SEPARATOR).append("variant_code=")
+                .append(URLEncoder.encode(variantCode.toString(), "UTF-8")).append(Path.SEPARATOR).append("/result").toString();
         return res;
     }
 
@@ -100,18 +111,7 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
             netOmnitureRoomNights += userAggTransData.getValue().getTotalOmnitureRoomNights();
             netGrossProfit += userAggTransData.getValue().getNetGrossProfit();
         }
-        Set<Integer> excludes = new HashSet<Integer>() {
-            /**
-       * 
-       */
-            private static final long serialVersionUID = 1L;
 
-            {
-                add(2);
-                add(3);
-                add(4);
-            }
-        };
         mos.write(
                 "outroot",
                 bw,
@@ -129,4 +129,3 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
         mos.close();
     }
 }
-

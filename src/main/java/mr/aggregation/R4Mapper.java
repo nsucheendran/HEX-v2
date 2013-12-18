@@ -18,14 +18,13 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
     private int[] lhsKeyPositions;
     private int[] lhsValPositions;
     private int[] rhsKeyPositions;
-    // private int[] rhsValPositions;
-    private final Map<Integer, Integer> eqJoin = new HashMap<Integer, Integer>();
-    private final Map<Integer, Integer> lteJoin = new HashMap<Integer, Integer>();
-    private final Map<Integer, Integer> gteJoin = new HashMap<Integer, Integer>();
+
     private String[][] rtable;
+    private FilterCondition eqJoiner, lteJoiner, gteJoiner;
 
     public R4Mapper() {
         super();
+
     }
 
     private final void parsePosMap(Map<Integer, Integer> output, String conf) {
@@ -45,6 +44,12 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
 
         rhsKeyPositions = getPositions(context, "rhsKeys");
 
+        // lhs-rhs mapped positions of join-participant columns
+        // all join conditions are combined into a logical conjunction
+        // of match conditions
+        Map<Integer, Integer> eqJoin = new HashMap<Integer, Integer>();
+        Map<Integer, Integer> lteJoin = new HashMap<Integer, Integer>();
+        Map<Integer, Integer> gteJoin = new HashMap<Integer, Integer>();
         parsePosMap(eqJoin, context.getConfiguration().get("eqjoin"));
         parsePosMap(lteJoin, context.getConfiguration().get("ltejoin"));
         parsePosMap(gteJoin, context.getConfiguration().get("gtejoin"));
@@ -56,6 +61,29 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
             rtable[i++] = line.split("\t");
         }
 
+        // joiners encapsulate the join condition applications represented by the corresponding
+        // position maps
+        eqJoiner = new FilterCondition(eqJoin) {
+
+            @Override
+            protected boolean checkCondition(String lval, String rval) {
+                return lval.equals(rval);
+            }
+        };
+        lteJoiner = new FilterCondition(lteJoin) {
+
+            @Override
+            protected boolean checkCondition(String lval, String rval) {
+                return coalesce(lval, "0").compareTo(rval) <= 0;
+            }
+        };
+        gteJoiner = new FilterCondition(lteJoin) {
+
+            @Override
+            protected boolean checkCondition(String lval, String rval) {
+                return coalesce(lval, "9").compareTo(rval) >= 0;
+            }
+        };
     }
 
     private int[] getPositions(Context context, String attr) {
@@ -68,36 +96,40 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
         return positions;
     }
 
-    private final String[] filter(String[] lrow) {
+    /*
+     * helper class whose derivatives encapsulate join logic as specified by configuration of the context from the job
+     */
+    private static abstract class FilterCondition {
+        private final Map<Integer, Integer> joinMap;
 
-        for (String[] rrow : rtable) {
+        public FilterCondition(Map<Integer, Integer> joinMap) {
+            this.joinMap = joinMap;
+        }
+
+        protected abstract boolean checkCondition(String lval, String rval);
+
+        public final boolean satisfiedBy(String[] lrow, String[] rrow) {
             boolean res = true;
-            for (int lpos : eqJoin.keySet()) {
-                int rpos = eqJoin.get(lpos);
-                res = lrow[lpos].equals(rrow[rpos]);
+            for (int lpos : joinMap.keySet()) {
+                int rpos = joinMap.get(lpos);
+                res = checkCondition(lrow[lpos], rrow[rpos]);
                 if (!res) {
                     break;
                 }
             }
-            if (res) {
-                for (int lpos : lteJoin.keySet()) {
-                    int rpos = lteJoin.get(lpos);
-                    res = coalesce(lrow[lpos], "0").compareTo(rrow[rpos]) <= 0;
-                    if (!res) {
-                        break;
-                    }
-                }
-            }
-            if (res) {
-                for (int lpos : gteJoin.keySet()) {
-                    int rpos = gteJoin.get(lpos);
-                    res = coalesce(lrow[lpos], "9").compareTo(rrow[rpos]) >= 0;
-                    if (!res) {
-                        break;
-                    }
-                }
-            }
-            if (res) {
+            return res;
+        }
+
+    }
+
+    /*
+     * apply rtable (smaller table) as a filter and emit non-null rtable rows iff the lrow passes the join criteria (technically not
+     * inner/right-outer join, but practically an inner join where the join key combinations are assumed to be unique in rtable)
+     */
+    private final String[] filter(String[] lrow) {
+
+        for (String[] rrow : rtable) {
+            if (eqJoiner.satisfiedBy(lrow, rrow) && lteJoiner.satisfiedBy(lrow, rrow) && gteJoiner.satisfiedBy(lrow, rrow)) {
                 return stripe(rrow, rhsKeyPositions);
             }
         }
@@ -127,4 +159,3 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
         }
     }
 }
-

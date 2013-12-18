@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
@@ -58,10 +59,9 @@ public final class R4AggregationJob extends Configured implements Tool {
     private static final Logger log = Logger.getLogger(R4AggregationJob.class);
     private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
     private static final String logsDirName = "_logs";
-    private static final Pattern partitionDirPattern = Pattern.compile("(.*)(" + jobName + ")(\\/)(.*)(\\/)(^\\/)*");
-    private static final Pattern partitionBkupDirPattern = Pattern.compile("(.*)(" + jobName + "bkup)(\\/)(.*)(\\/)(^\\/)*");
+    private Pattern partitionDirPattern; // = Pattern.compile("(.*)(" + jobName + ")(\\/)(.*)(\\/)(^\\/)*");
+    private Pattern partitionBkupDirPattern; // = Pattern.compile("(.*)(" + jobName + "bkup)(\\/)(.*)(\\/)(^\\/)*");
 
-    
     public static void main(final String[] args) throws Exception {
         GenericOptionsParser parser = new GenericOptionsParser(new Configuration(), new Options(), args);
         int res = ToolRunner.run(parser.getConfiguration(), new R4AggregationJob(), args);
@@ -78,43 +78,17 @@ public final class R4AggregationJob extends Configured implements Tool {
         String targetTableName = mainConf.get("targetTableName", "etl_hcom_hex_fact");
         String reportFilePath = mainConf.get("reportFilePath", "/user/hive/warehouse/hwwdev.db/hex_reporting_requirements/000000_0");
         String reportTableName = mainConf.get("reportTableName", "hex_reporting_requirements");
-        
-        String tmpOutputPath = "/tmp/" + jobName;
 
         JobConfigurator configurator = new JobConfigurator();
         Job job = configurator.initJob(mainConf, jobName, queueName);
 
+        String tmpOutputPath = "/tmp/" + job.getJobID();
+        partitionDirPattern = Pattern.compile("(.*)(" + job.getJobID() + ")(\\/)(.*)(\\/)(^\\/)*");
+        partitionBkupDirPattern = Pattern.compile("(.*)(" + job.getJobID() + "bkup)(\\/)(.*)(\\/)(^\\/)*");
         List<String> lhsfields, rhsfields;
         HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
         try {
-
-            Table table = cl.getTable(sourceDbName, sourceTableName);
-            Path tblPath = new Path(table.getSd().getLocation());
-            FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
-
-            RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
-            Set<String> inputPathsAdded = new HashSet<String>();
-            StringBuilder inputPathsBuilder = new StringBuilder();
-            boolean first = true;
-            while (files.hasNext()) {
-                LocatedFileStatus lfs = files.next();
-                String[] pathSplits = lfs.getPath().toString().split("\\" + Path.SEPARATOR);
-                StringBuilder pathMinusFileName = new StringBuilder();
-                for (int j = 0; j < pathSplits.length - 1; j++) {
-                    pathMinusFileName.append(pathSplits[j] + Path.SEPARATOR);
-                }
-                if (!inputPathsAdded.contains(pathMinusFileName.toString())) {
-                    if (!first) {
-                        inputPathsBuilder.append(",");
-                    }
-                    inputPathsBuilder.append(pathMinusFileName).append("*");
-                    log.info("Adding input path to process: " + pathMinusFileName);
-                    first = false;
-                    inputPathsAdded.add(pathMinusFileName.toString());
-                }
-            }
-            fileSystem.close();
-            FileInputFormat.setInputPaths(job, inputPathsBuilder.toString());
+            setInputPathsFromTable(sourceDbName, sourceTableName, job, cl);
 
             List<FieldSchema> fieldschemas = cl.getFields(sourceDbName, sourceTableName);
             lhsfields = new ArrayList<String>(fieldschemas.size());
@@ -145,6 +119,44 @@ public final class R4AggregationJob extends Configured implements Tool {
         boolean success = job.waitForCompletion(true);
         log.info("output written to: " + tempPath.toString());
 
+        createPartitions(sourceDbName, targetTableName, job, tmpOutputPath);
+        return success ? 0 : -1;
+
+    }
+
+    private void setInputPathsFromTable(String sourceDbName, String sourceTableName, Job job, HiveMetaStoreClient cl) throws TException,
+            IOException {
+        Table table = cl.getTable(sourceDbName, sourceTableName);
+        Path tblPath = new Path(table.getSd().getLocation());
+        FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
+
+        RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
+        Set<String> inputPathsAdded = new HashSet<String>();
+        StringBuilder inputPathsBuilder = new StringBuilder();
+        boolean first = true;
+        while (files.hasNext()) {
+            LocatedFileStatus lfs = files.next();
+            String[] pathSplits = lfs.getPath().toString().split("\\" + Path.SEPARATOR);
+            StringBuilder pathMinusFileName = new StringBuilder();
+            for (int j = 0; j < pathSplits.length - 1; j++) {
+                pathMinusFileName.append(pathSplits[j] + Path.SEPARATOR);
+            }
+            if (!inputPathsAdded.contains(pathMinusFileName.toString())) {
+                if (!first) {
+                    inputPathsBuilder.append(",");
+                }
+                inputPathsBuilder.append(pathMinusFileName).append("*");
+                log.info("Adding input path to process: " + pathMinusFileName);
+                first = false;
+                inputPathsAdded.add(pathMinusFileName.toString());
+            }
+        }
+        fileSystem.close();
+        FileInputFormat.setInputPaths(job, inputPathsBuilder.toString());
+    }
+
+    private void createPartitions(String sourceDbName, String targetTableName, Job job, String tmpOutputPath) throws MetaException {
+        HiveMetaStoreClient cl;
         Set<String> newPartitionsAdded = Sets.newHashSet();
         cl = new HiveMetaStoreClient(new HiveConf());
         String tableLocation = null;
@@ -178,8 +190,6 @@ public final class R4AggregationJob extends Configured implements Tool {
         } finally {
             cl.close();
         }
-        return success ? 0 : -1;
-
     }
 
     private String getDataAsString(String reportFilePath, JobConfigurator configurator, Job job) throws IOException {
@@ -214,19 +224,19 @@ public final class R4AggregationJob extends Configured implements Tool {
         return values;
     }
 
-    private Set<String> getPartitions(String tmpOutputPath, String tableOutputPath, Job job) throws IOException, UnableToMoveDataException {
-        String bkupTmpOutput = tmpOutputPath + "bkup";
-        Path tmpOutPath = new Path(tmpOutputPath);
-        Path bkupTmpOutPath = new Path(bkupTmpOutput);
+    private Set<String> getPartitions(String sourcePath, String targetPath, Job job) throws IOException, UnableToMoveDataException {
+        String backupPath = sourcePath + "bkup";
+        Path srcPath = new Path(sourcePath);
+        Path bkpPath = new Path(backupPath);
         FileSystem outFileSystem = null;
         Set<String> partitionNames = Sets.newHashSet();
         try {
-            outFileSystem = tmpOutPath.getFileSystem(job.getConfiguration());
+            outFileSystem = srcPath.getFileSystem(job.getConfiguration());
             // delete & recreate bkup path, if exists
-            outFileSystem.delete(bkupTmpOutPath, true);
-            outFileSystem.mkdirs(bkupTmpOutPath);
+            outFileSystem.delete(bkpPath, true);
+            outFileSystem.mkdirs(bkpPath);
             // recursively fetch all files in job output location
-            RemoteIterator<LocatedFileStatus> files = outFileSystem.listFiles(tmpOutPath, true);
+            RemoteIterator<LocatedFileStatus> files = outFileSystem.listFiles(srcPath, true);
             boolean success = true;
             while (files.hasNext()) {
                 LocatedFileStatus fs = files.next();
@@ -239,25 +249,22 @@ public final class R4AggregationJob extends Configured implements Tool {
                         String partition = m.group(4);
                         // if the partition has not been moved already
                         if (partitionNames.add(partition)) {
-                            // System.out.println("Partition: " + partition);
                             String[] partitions = partition.split("\\/");
                             StringBuilder partitionMinusChild = new StringBuilder();
                             for (int i = 0; i < partitions.length - 1; i++) {
                                 partitionMinusChild.append(partitions[i] + Path.SEPARATOR);
                             }
                             String partitionMinusChildStr = partitionMinusChild.toString();
-                            // System.out.println(">>>>>>partitionMinusChildStr>>>>>>>>>>" + partitionMinusChildStr + "<<<<<<<<<<<<<<");
-                            Path tablePartitionPath = new Path(tableOutputPath + Path.SEPARATOR + partition);
-                            Path tablePartitionMinusChildPath = new Path(tableOutputPath + Path.SEPARATOR + partitionMinusChildStr);
-                            // System.out.println(">>>>>>tablePartitionMinusChildPath>>>>>>>>>>" + tablePartitionMinusChildPath +
-                            // "<<<<<<<<<<<<<<");
-                            Path bkupPartionPath = new Path(bkupTmpOutput + Path.SEPARATOR + partition);
-                            Path bkupPartionMinusChildPath = new Path(bkupTmpOutput + Path.SEPARATOR + partitionMinusChildStr);
+                            Path tablePartitionPath = new Path(targetPath + Path.SEPARATOR + partition);
+                            Path tablePartitionMinusChildPath = new Path(targetPath + Path.SEPARATOR + partitionMinusChildStr);
+                            Path bkupPartionPath = new Path(backupPath + Path.SEPARATOR + partition);
+                            
+                            Path bkupPartionMinusChildPath = new Path(backupPath + Path.SEPARATOR + partitionMinusChildStr);
 
-                            boolean tablePartitionExists = outFileSystem.exists(tablePartitionPath);
                             // default true, as if table partition doesn't exist, we don't need any bkup
                             success = true;
                             // take existing data bkup, if exists
+                            boolean tablePartitionExists = outFileSystem.exists(tablePartitionPath);
                             if (tablePartitionExists) {
                                 if (!outFileSystem.exists(bkupPartionMinusChildPath)) {
                                     success = outFileSystem.mkdirs(bkupPartionMinusChildPath);
@@ -281,15 +288,13 @@ public final class R4AggregationJob extends Configured implements Tool {
                             // move temp data to table
                             String tmpPartitionPathLoc = new StringBuilder(m.group(1)).append(m.group(2)).append(m.group(3))
                                     .append(m.group(4)).toString();
-                            // System.out.println(">>>>tmp to table-> Rename " + tmpPartitionPathLoc + " to " +
-                            // tablePartitionMinusChildPath);
+
                             success = outFileSystem.rename(new Path(tmpPartitionPathLoc), tablePartitionMinusChildPath);
                             if (!success) {
                                 throw new UnableToMoveDataException("Unable to move data to table partition directory: "
                                         + tablePartitionMinusChildPath + " from tmp directory: " + tmpPartitionPathLoc);
                             }
                             if (success && tablePartitionExists) {
-                                // System.out.println(">>>>>Delete " + bkupPartionPath);
                                 outFileSystem.delete(bkupPartionPath, true);
                             }
                         }
@@ -306,14 +311,14 @@ public final class R4AggregationJob extends Configured implements Tool {
         return partitionNames;
     }
 
-    private void restoreDataFromBkup(String bkupTmpOutput, String tableOutputPath, Job job, Set<String> newPartitionsAdded) {
-        Path bkupTmpOutPath = new Path(bkupTmpOutput);
+    private void restoreDataFromBkup(String sourcePath, String targetPath, Job job, Set<String> newPartitionsAdded) {
+        Path bkpPath = new Path(sourcePath);
         FileSystem outFileSystem = null;
         Set<String> partitionNames = Sets.newHashSet();
         try {
-            outFileSystem = bkupTmpOutPath.getFileSystem(job.getConfiguration());
+            outFileSystem = bkpPath.getFileSystem(job.getConfiguration());
             // recursively fetch all files in job output location
-            RemoteIterator<LocatedFileStatus> files = outFileSystem.listFiles(bkupTmpOutPath, true);
+            RemoteIterator<LocatedFileStatus> files = outFileSystem.listFiles(bkpPath, true);
             while (files.hasNext()) {
                 LocatedFileStatus fs = files.next();
                 String path = fs.getPath().toString();
@@ -324,27 +329,21 @@ public final class R4AggregationJob extends Configured implements Tool {
                     String partition = m.group(4);
                     // if the partition has not been moved already
                     if (partitionNames.add(partition)) {
-                        // System.out.println("Partition: " + partition);
                         String[] partitions = partition.split("\\/");
                         StringBuilder partitionMinusChild = new StringBuilder();
                         for (int i = 0; i < partitions.length - 1; i++) {
                             partitionMinusChild.append(partitions[i] + Path.SEPARATOR);
                         }
                         String partitionMinusChildStr = partitionMinusChild.toString();
-                        // System.out.println(">>>>>>partitionMinusChildStr>>>>>>>>>>" + partitionMinusChildStr + "<<<<<<<<<<<<<<");
-                        Path tablePartitionPath = new Path(tableOutputPath + Path.SEPARATOR + partition);
-                        Path tablePartitionMinusChildPath = new Path(tableOutputPath + Path.SEPARATOR + partitionMinusChildStr);
-                        // System.out.println(">>>>>>tablePartitionMinusChildPath>>>>>>>>>>" + tablePartitionMinusChildPath +
-                        // "<<<<<<<<<<<<<<");
-                        Path bkupPartionPath = new Path(bkupTmpOutput + Path.SEPARATOR + partition);
-                        // Path bkupPartionMinusChildPath = new Path(bkupTmpOutput + Path.SEPARATOR + partitionMinusChildStr);
-                        // System.out.println(">>>>>>bkupPartionMinusChildPath>>>>>>>>>>" + bkupPartionMinusChildPath + "<<<<<<<<<<<<<<");
+                        Path tablePartitionPath = new Path(targetPath + Path.SEPARATOR + partition);
+                        Path tablePartitionMinusChildPath = new Path(targetPath + Path.SEPARATOR + partitionMinusChildStr);
+                        Path bkupPartionPath = new Path(sourcePath + Path.SEPARATOR + partition);
+                        
                         // take existing data bkup, if exists
                         if (outFileSystem.exists(tablePartitionPath)) {
                             outFileSystem.delete(tablePartitionPath, true);
                         }
                         outFileSystem.rename(bkupPartionPath, tablePartitionMinusChildPath);
-                        // System.out.println(">>>>>Delete " + bkupPartionPath);
                         outFileSystem.delete(bkupPartionPath, true);
                     }
                 } else {
@@ -353,7 +352,7 @@ public final class R4AggregationJob extends Configured implements Tool {
             }
             // delete all new partitions
             for (String part : newPartitionsAdded) {
-                Path tablePartitionPath = new Path(tableOutputPath + Path.SEPARATOR + part);
+                Path tablePartitionPath = new Path(targetPath + Path.SEPARATOR + part);
                 outFileSystem.delete(tablePartitionPath, true);
             }
         } catch (IOException e) {
@@ -369,4 +368,3 @@ public final class R4AggregationJob extends Configured implements Tool {
         }
     }
 }
-
