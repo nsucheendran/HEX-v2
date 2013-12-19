@@ -1,4 +1,4 @@
-use ${hiveconf:hex.dim.db};
+use ${hiveconf:hex.db};
 
 DROP TABLE IF EXISTS ${hiveconf:hex.table};
 
