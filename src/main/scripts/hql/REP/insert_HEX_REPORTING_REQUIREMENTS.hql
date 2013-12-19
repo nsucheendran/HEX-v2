@@ -16,7 +16,7 @@ select experiment_code,
        case when min(report_end_date)<>'' and min(report_end_date) is not null then FROM_UNIXTIME(UNIX_TIMESTAMP(min(report_end_date), "MM/dd/yyyy"), "yyyy-MM-dd") 
             else '9999-99-99' 
        end as report_end_date, 
-       status, 
+       min(status), 
        case when min(trans_date)<>'' and min(trans_date) is not null then FROM_UNIXTIME(UNIX_TIMESTAMP(min(trans_date), "MM/dd/yyyy"), "yyyy-MM-dd") else 
             case when min(report_end_date)<>'' and min(report_end_date) is not null then FROM_UNIXTIME(UNIX_TIMESTAMP(min(report_end_date), "MM/dd/yyyy"), "yyyy-MM-dd") 
                   else '9999-99-99' 
