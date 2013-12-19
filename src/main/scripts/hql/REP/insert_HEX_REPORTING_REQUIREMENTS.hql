@@ -1,9 +1,3 @@
-SET hive.exec.compress.output=true;
-SET mapred.output.compression.type=BLOCK;
-SET mapred.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
-set mapred.compress.map.output=true;
-set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
-
 use ${hiveconf:hex.db};
 
 insert overwrite table ${hiveconf:hex.db}.${hiveconf:hex.report.table}
