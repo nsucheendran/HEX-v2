@@ -357,7 +357,6 @@ else
   -DtargetDbName=${STAGE_DB} \
   -DsourceTableName=${STAGE_TABLE} \
   -DtargetTableName=${FACT_TABLE} \
-  -DreportFilePath=/user/hive/warehouse/etldata.db/${REPORT_TABLE}/000000_0 \
   -DreportTableName=${REPORT_TABLE}
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then

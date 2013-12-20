@@ -36,6 +36,8 @@ public interface Constants {
 
     String COL_DELIM = new String(new char[] { 1 });
 
+    String REPORT_TABLE_COL_DELIM = new String("\t");
+
     Pattern TAB_SEP_PATTERN = Pattern.compile(COL_DELIM);
 
     String SEGMENTATION_DATA_PATH_KEY = "segmentationDataPath";

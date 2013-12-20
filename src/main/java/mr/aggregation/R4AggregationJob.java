@@ -1,6 +1,8 @@
 package mr.aggregation;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -12,6 +14,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import mr.Constants;
 import mr.exceptions.UnableToMoveDataException;
 
 import org.apache.commons.cli.Options;
@@ -30,8 +33,6 @@ import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.IOUtils;
-import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -39,7 +40,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
@@ -76,7 +76,6 @@ public final class R4AggregationJob extends Configured implements Tool {
         String targetDbName = mainConf.get("targetDbName", "hwwdev");
         String sourceTableName = mainConf.get("sourceTableName", "etl_hcom_hex_fact_staging");
         String targetTableName = mainConf.get("targetTableName", "etl_hcom_hex_fact");
-        String reportFilePath = mainConf.get("reportFilePath", "/user/hive/warehouse/hwwdev.db/hex_reporting_requirements/000000_0");
         String reportTableName = mainConf.get("reportTableName", "hex_reporting_requirements");
 
         JobConfigurator configurator = new JobConfigurator();
@@ -105,7 +104,10 @@ public final class R4AggregationJob extends Configured implements Tool {
         }
         configurator.lhsFields(lhsfields).rhsFields(rhsfields).numReduceTasks(numReduceTasks);
         configurator.configureJob(job);
-        job.getConfiguration().set("data", getDataAsString(reportFilePath, configurator, job));
+        job.getConfiguration().set(
+                "data",
+                getReportDataAsString(reportTableName, targetDbName, configurator,
+                        job, cl));
 
         Path tempPath = new Path(tmpOutputPath);
         FileSystem fileSystem = tempPath.getFileSystem(job.getConfiguration());
@@ -192,22 +194,38 @@ public final class R4AggregationJob extends Configured implements Tool {
         }
     }
 
-    private String getDataAsString(String reportFilePath, JobConfigurator configurator, Job job) throws IOException {
+    private String getReportDataAsString(String reportTableName, String reportDbName,
+            JobConfigurator configurator, Job job, HiveMetaStoreClient cl)
+            throws IOException, MetaException, NoSuchObjectException,
+            TException {
         StringBuilder data = new StringBuilder();
-        SequenceFile.Reader repReader = new SequenceFile.Reader(job.getConfiguration(), SequenceFile.Reader.file(new Path(reportFilePath)));
+        Table table = cl.getTable(reportDbName, reportTableName);
+        Path tblPath = new Path(table.getSd().getLocation());
+        FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
 
+        RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath,
+                true);
+        BufferedReader br = null;
         try {
-            BytesWritable ignored = (BytesWritable) ReflectionUtils.newInstance(repReader.getKeyClass(), job.getConfiguration());
-
-            Text value = (Text) ReflectionUtils.newInstance(repReader.getValueClass(), job.getConfiguration());
-
-            while (repReader.next(ignored, value)) {
-                configurator.stripe(new String(value.getBytes(), "utf-8"), data);
-                data.append("\n");
+            while (files.hasNext()) {
+                br = new BufferedReader(new InputStreamReader(
+                        fileSystem.open(files.next().getPath())));
+                String line;
+                while ((line = br.readLine()) != null) {
+                    configurator.stripe(line, data,
+                            Constants.REPORT_TABLE_COL_DELIM);
+                    data.append("\n");
+                }
             }
         } finally {
-            IOUtils.closeStream(repReader);
+            if (br != null) {
+                br.close();
+            }
+            if (fileSystem != null) {
+                fileSystem.close();
+            }
         }
+        log.info("Reporting Data: " + data.toString());
         return data.toString();
     }
 
