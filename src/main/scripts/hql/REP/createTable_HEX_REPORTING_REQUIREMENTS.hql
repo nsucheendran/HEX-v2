@@ -44,4 +44,6 @@ pod string,
 experiment_test_id string,
 last_updated_dt string,
 insert_dt string)
+
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 stored as textfile;
