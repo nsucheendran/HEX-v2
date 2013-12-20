@@ -437,7 +437,7 @@ else
   
   DATE=$(date +"%Y%m%d%H%M");
   LOG_FILE_NAME="agg_"$DATE".log";
-  _LOG -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf agg.num.reduce.tasks="${AGG_NUM_REDUCERS}" -hiveconf hex.fact.table="${FACT_TABLE}" -hiveconf hex.db="${AGG_DB}" -hiveconf stage.db="${STAGE_DB}" -hiveconf hex.agg.pd.randomize.array="${PROP_DEST_STR_FINAL}" -hiveconf hex.agg.mktg.randomize.array="${MKTG_SEO_STR_FINAL}" -hiveconf hex.agg.mktg.direct.randomize.array="${MKTG_SEO_DIRECT_STR_FINAL}" -hiveconf hex.agg.sp.randomize.array="${SUPPLIER_PROP_STR_FINAL}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.seed="1000" -hiveconf hex.agg.separator="###" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+  hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf agg.num.reduce.tasks="${AGG_NUM_REDUCERS}" -hiveconf hex.fact.table="${FACT_TABLE}" -hiveconf hex.db="${AGG_DB}" -hiveconf stage.db="${STAGE_DB}" -hiveconf hex.agg.pd.randomize.array="${PROP_DEST_STR_FINAL}" -hiveconf hex.agg.mktg.randomize.array="${MKTG_SEO_STR_FINAL}" -hiveconf hex.agg.mktg.direct.randomize.array="${MKTG_SEO_DIRECT_STR_FINAL}" -hiveconf hex.agg.sp.randomize.array="${SUPPLIER_PROP_STR_FINAL}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.seed="1000" -hiveconf hex.agg.separator="###" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT: Aggregation load FAILED. [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
