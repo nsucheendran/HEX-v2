@@ -14,7 +14,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 
 public final class JobConfigurator {
@@ -143,13 +142,14 @@ public final class JobConfigurator {
 
         job.setMapperClass(R4Mapper.class);
         job.setReducerClass(R4Reducer.class);
-
-        job.setInputFormatClass(SequenceFileInputFormat.class);
+        // job.setInputFormatClass(SequenceFileInputFormat.class);
+        job.setInputFormatClass(CFInputFormat.class);
         job.setOutputFormatClass(NullOutputFormat.class);
         job.setOutputKeyClass(NullWritable.class);
         job.setOutputValueClass(TextMultiple.class);
         job.setMapOutputKeyClass(TextMultiple.class);
         job.setMapOutputValueClass(TextMultiple.class);
+        // job.getConfiguration().setLong("mapred.min.split.size", 536870912L);
         return job;
     }
 

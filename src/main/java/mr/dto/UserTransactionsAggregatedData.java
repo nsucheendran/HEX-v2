@@ -59,7 +59,8 @@ public class UserTransactionsAggregatedData {
 
     public void addTransaction(UserTransactionData newTransData) {
         if (allTransDataByItinNumber == null) {
-            allTransDataByItinNumber = new HashMap<String, AggItineraryData>();
+            allTransDataByItinNumber = new HashMap<String, AggItineraryData>(
+                    2000);
         }
         AggItineraryData aggTransByItinNumber = allTransDataByItinNumber.get(newTransData.getItinNumber());
         if (aggTransByItinNumber == null) {

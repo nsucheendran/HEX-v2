@@ -84,7 +84,7 @@ insert overwrite table hwwdev.ETL_HCOM_HEX_FACT partition(experiment_code, versi
             children_in_search, operating_system_id, all_mktg_seo_30_day, all_mktg_seo_30_day_direct, entry_page_name, rep.experiment_name, rep.variant_name, rep.status, rep.experiment_test_id,
             supplier_property_id
             from 
-            hwwdev.etl_hcom_hex_fact_staging agg 
+            etldata.etl_hcom_hex_fact_staging agg 
             join 
             HWWDEV.HEX_REPORTING_REQUIREMENTS rep
             on (agg.variant_code=rep.variant_code and rep.experiment_code=agg.experiment_code and rep.version_number=agg.version_number)

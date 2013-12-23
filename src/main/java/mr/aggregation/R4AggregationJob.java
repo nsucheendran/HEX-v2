@@ -35,7 +35,6 @@ import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
@@ -76,14 +75,17 @@ public final class R4AggregationJob extends Configured implements Tool {
         String targetDbName = mainConf.get("targetDbName", "hwwdev");
         String sourceTableName = mainConf.get("sourceTableName", "etl_hcom_hex_fact_staging");
         String targetTableName = mainConf.get("targetTableName", "etl_hcom_hex_fact");
-        String reportTableName = mainConf.get("reportTableName", "hex_reporting_requirements");
+        String reportTableName = mainConf.get("reportTableName",
+                "hex_reporting_requirements");
 
         JobConfigurator configurator = new JobConfigurator();
         Job job = configurator.initJob(mainConf, jobName, queueName);
 
-        String tmpOutputPath = "/tmp/" + job.getJobID();
-        partitionDirPattern = Pattern.compile("(.*)(" + job.getJobID() + ")(\\/)(.*)(\\/)(^\\/)*");
-        partitionBkupDirPattern = Pattern.compile("(.*)(" + job.getJobID() + "bkup)(\\/)(.*)(\\/)(^\\/)*");
+        String tmpOutputPath = "/tmp/" + jobName;
+        partitionDirPattern = Pattern.compile("(.*)(" + jobName
+                + ")(\\/)(.*)(\\/)(^\\/)*");
+        partitionBkupDirPattern = Pattern.compile("(.*)(" + jobName
+                + "bkup)(\\/)(.*)(\\/)(^\\/)*");
         List<String> lhsfields, rhsfields;
         HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
         try {
@@ -108,20 +110,42 @@ public final class R4AggregationJob extends Configured implements Tool {
                 "data",
                 getReportDataAsString(reportTableName, targetDbName, configurator,
                         job, cl));
-
+        // job.getConfiguration().set
+        // Set JVM reuse to speed up reducer
+        // conf.setNumTasksToExecutePerJvm(-1);
         Path tempPath = new Path(tmpOutputPath);
-        FileSystem fileSystem = tempPath.getFileSystem(job.getConfiguration());
-        fileSystem.delete(tempPath, true);
-        MultipleOutputs.setCountersEnabled(job, true);
-        MultipleOutputs.addNamedOutput(job, "outroot", SequenceFileOutputFormat.class, BytesWritable.class, Text.class);
-        FileOutputFormat.setOutputPath(job, tempPath);
-        FileOutputFormat.setCompressOutput(job, true);
-        FileOutputFormat.setOutputCompressorClass(job, org.apache.hadoop.io.compress.SnappyCodec.class);
+        FileSystem fileSystem = null;
+        boolean success = false;
+        try {
+            fileSystem = tempPath.getFileSystem(job.getConfiguration());
+            if (success = fileSystem.delete(tempPath, true)) {
+                // MultipleOutputs.setCountersEnabled(job, true);
+                job.getConfiguration().setBoolean("mapred.compress.map.output",
+                        true);
+                job.getConfiguration().set(
+                        "mapred.map.output.compression.codec",
+                        "org.apache.hadoop.io.compress.SnappyCodec");
+                MultipleOutputs.addNamedOutput(job, "outroot",
+                        SequenceFileOutputFormat.class, BytesWritable.class,
+                        Text.class);
+                FileOutputFormat.setOutputPath(job, tempPath);
 
-        boolean success = job.waitForCompletion(true);
-        log.info("output written to: " + tempPath.toString());
+                FileOutputFormat.setCompressOutput(job, true);
+                FileOutputFormat.setOutputCompressorClass(job,
+                        org.apache.hadoop.io.compress.SnappyCodec.class);
 
-        createPartitions(sourceDbName, targetTableName, job, tmpOutputPath);
+                success = job.waitForCompletion(true);
+                log.info("output written to: " + tempPath.toString());
+
+                createPartitions(sourceDbName, targetTableName, job,
+                        tmpOutputPath);
+            } else {
+                log.info("Not able to delete temp path: " + tempPath
+                        + ". Exiting!!!");
+            }
+        } finally {
+            fileSystem.close();
+        }
         return success ? 0 : -1;
 
     }
@@ -154,7 +178,7 @@ public final class R4AggregationJob extends Configured implements Tool {
             }
         }
         fileSystem.close();
-        FileInputFormat.setInputPaths(job, inputPathsBuilder.toString());
+        CFInputFormat.setInputPaths(job, inputPathsBuilder.toString());
     }
 
     private void createPartitions(String sourceDbName, String targetTableName, Job job, String tmpOutputPath) throws MetaException {
