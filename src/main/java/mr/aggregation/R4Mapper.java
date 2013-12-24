@@ -1,6 +1,6 @@
 package mr.aggregation;
 
-import static mr.Constants.TAB_SEP_PATTERN;
+import static mr.Constants.TAB_SEP_PATTERN; 
 import static mr.utils.Utils.coalesce;
 
 import java.io.IOException;
@@ -18,6 +18,9 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
     private int[] lhsKeyPositions;
     private int[] lhsValPositions;
     private int[] rhsKeyPositions;
+    private TextMultiple keysout;
+    private TextMultiple valsout;
+    private String[] rkeys;
 
     private String[][] rtable;
     private FilterCondition eqJoiner, lteJoiner, gteJoiner;
@@ -44,6 +47,9 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
 
         rhsKeyPositions = getPositions(context, "rhsKeys");
 
+        keysout = new TextMultiple(new String[lhsKeyPositions.length + rhsKeyPositions.length]);
+        valsout = new TextMultiple(new String[lhsValPositions.length]);
+        rkeys = new String[rhsKeyPositions.length];
         // lhs-rhs mapped positions of join-participant columns
         // all join conditions are combined into a logical conjunction
         // of match conditions
@@ -126,36 +132,31 @@ public class R4Mapper extends Mapper<BytesWritable, Text, TextMultiple, TextMult
      * apply rtable (smaller table) as a filter and emit non-null rtable rows iff the lrow passes the join criteria (technically not
      * inner/right-outer join, but practically an inner join where the join key combinations are assumed to be unique in rtable)
      */
-    private final String[] filter(String[] lrow) {
-
+    private final boolean filter(String[] lrow, String[] row) {
         for (String[] rrow : rtable) {
             if (eqJoiner.satisfiedBy(lrow, rrow) && lteJoiner.satisfiedBy(lrow, rrow) && gteJoiner.satisfiedBy(lrow, rrow)) {
-                return stripe(rrow, rhsKeyPositions);
+                stripe(rrow, rhsKeyPositions, row);
+                return true;
             }
         }
-        return null;
+        return false;
     }
 
-    private String[] stripe(String[] rrow, int[] pos) {
-        String[] row = new String[pos.length];
+    private void stripe(String[] rrow, int[] pos, String[] row) {
         int i = 0;
         for (int p : pos) {
             row[i++] = rrow[p];
         }
-        return row;
     }
 
     @Override
     public void map(BytesWritable ignored, Text value, Context context) throws IOException, InterruptedException {
         String[] columns = TAB_SEP_PATTERN.split(value.toString());
-        String[] rkeys = filter(columns);
-        if (rkeys != null) {
-            TextMultiple keys = new TextMultiple(columns, lhsKeyPositions);
-            TextMultiple vals = new TextMultiple(columns, lhsValPositions);
 
-            keys = new TextMultiple(keys, rkeys);
-
-            context.write(keys, vals);
+        if (filter(columns, rkeys)) {
+            keysout.stripeAppend(columns, lhsKeyPositions, rkeys);
+            valsout.stripeAppend(columns, lhsValPositions);
+            context.write(keysout, valsout);
         }
     }
 }

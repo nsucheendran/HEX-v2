@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import mr.dto.TextMultiple;
 import mr.dto.UserTransactionData;
@@ -19,33 +17,25 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
-public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable, TextMultiple> {
-    private static BytesWritable bw = new BytesWritable(new byte[0], 0);
-    private MultipleOutputs<NullWritable, TextMultiple> mos;
-    private String outputDir;
-    
-    // exclude values for columns in the following positions from the output
-    private final Set<Integer> excludes = new HashSet<Integer>() {
-        /**
-   * 
-   */
-        private static final long serialVersionUID = 1L;
+public class R4Reducer extends Reducer<TextMultiple, TextMultiple, BytesWritable, Text> {
+    private final BytesWritable bw = new BytesWritable(new byte[0], 0);
+    private final Text outText = new Text();
+    private final StringBuilder outStr = new StringBuilder();
 
-        {
-            add(2);  
-            add(3);
-            add(4);
-        }
-    };
+    //private MultipleOutputs<BytesWritable, Text> mos;
+    private String outputDir;
+
+    // exclude values for columns in the following positions from the output
+    private final int[] excludes = new int[] { 2, 3, 4 };
 
     @Override
     public final void setup(final Context context) {
-        mos = new MultipleOutputs<NullWritable, TextMultiple>(context);
+        //mos = new MultipleOutputs<BytesWritable, Text>(context);
         outputDir = context.getConfiguration().get("mapred.output.dir");
     }
 
     private String generateFileName(final Text variantCode, final Text experimentCode, final Text versionNum)
-        throws UnsupportedEncodingException {
+            throws UnsupportedEncodingException {
         String res = new StringBuilder().append(outputDir).append(Path.SEPARATOR).append("experiment_code=")
                 .append(URLEncoder.encode(experimentCode.toString(), "UTF-8")).append(Path.SEPARATOR).append("version_number=")
                 .append(URLEncoder.encode(versionNum.toString(), "UTF-8")).append(Path.SEPARATOR).append("variant_code=")
@@ -53,23 +43,38 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
         return res;
     }
 
+    private Map<String, UserTransactionsAggregatedData> perUserTransactionData;
+    private long numUniquePurchasers = 0;
+    private long numUniqueCancellers = 0;
+    private long numActivePurchasers = 0;
+    private long numNilNetOrdersPurchasers = 0;
+    private long numCancellations = 0;
+    private long netOrders = 0;
+    private double netBkgGBV = 0;
+    private long netBkgRoomNights = 0;
+    private double netOmnitureGBV = 0;
+    private long netOmnitureRoomNights = 0;
+    private double netGrossProfit = 0;
+    private long numUniqueViewers = 0;
+    private long numRepeatPurchasers = 0;
+
     @Override
     public final void reduce(final TextMultiple key, final Iterable<TextMultiple> values, final Context context) throws IOException,
             InterruptedException {
-        Map<String, UserTransactionsAggregatedData> perUserTransactionData = new HashMap<String, UserTransactionsAggregatedData>();
-        long numUniquePurchasers = 0;
-        long numUniqueCancellers = 0;
-        long numActivePurchasers = 0;
-        long numNilNetOrdersPurchasers = 0;
-        long numCancellations = 0;
-        long netOrders = 0;
-        double netBkgGBV = 0;
-        long netBkgRoomNights = 0;
-        double netOmnitureGBV = 0;
-        long netOmnitureRoomNights = 0;
-        double netGrossProfit = 0;
-        long numUniqueViewers = 0;
-        long numRepeatPurchasers = 0;
+        perUserTransactionData = new HashMap<String, UserTransactionsAggregatedData>(5000);
+        numUniquePurchasers = 0;
+        numUniqueCancellers = 0;
+        numActivePurchasers = 0;
+        numNilNetOrdersPurchasers = 0;
+        numCancellations = 0;
+        netOrders = 0;
+        netBkgGBV = 0;
+        netBkgRoomNights = 0;
+        netOmnitureGBV = 0;
+        netOmnitureRoomNights = 0;
+        netGrossProfit = 0;
+        numUniqueViewers = 0;
+        numRepeatPurchasers = 0;
         /*
          * guid => 0 itin_number => 1 trans_date => 2 num_transactions => 3 bkg_gbv => 4 bkg_room_nights => 5 omniture_gbv => 6
          * omniture_room_nights => 7 gross_profit => 8
@@ -111,21 +116,26 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, NullWritable,
             netOmnitureRoomNights += userAggTransData.getValue().getTotalOmnitureRoomNights();
             netGrossProfit += userAggTransData.getValue().getNetGrossProfit();
         }
-
-        mos.write(
-                "outroot",
-                bw,
-                new Text(new TextMultiple(key, excludes, Long.toString(numUniqueViewers), Long.toString(numUniquePurchasers), Long
-                        .toString(numUniqueCancellers), Long.toString(numActivePurchasers), Long.toString(numNilNetOrdersPurchasers), Long
-                        .toString(numCancellations), Long.toString(netOrders), Double.toString(netBkgGBV), Long.toString(netBkgRoomNights),
-                        Double.toString(netOmnitureGBV), Long.toString(netOmnitureRoomNights), Double.toString(netGrossProfit), Long
-                                .toString(numRepeatPurchasers)).toString()),
-                generateFileName(key.getTextElementAt(2), key.getTextElementAt(3), key.getTextElementAt(4)));
+        outStr.setLength(0);
+        key.toStringBuilder(excludes,
+                outStr.append(numUniqueViewers).append(SEP).append(numUniquePurchasers).append(SEP).append(numUniqueCancellers).append(SEP)
+                        .append(numActivePurchasers).append(SEP).append(numNilNetOrdersPurchasers).append(SEP).append(numCancellations)
+                        .append(SEP).append(netOrders).append(SEP).append(netBkgGBV).append(SEP).append(netBkgRoomNights).append(SEP)
+                        .append(netOmnitureGBV).append(SEP).append(netOmnitureRoomNights).append(SEP).append(netGrossProfit).append(SEP)
+                        .append(numRepeatPurchasers).append(SEP));
+        outStr.append(SEP).append(key.getTextElementAt(3).toString()).append(SEP).append(key.getTextElementAt(4).toString())
+                .append(SEP).append(key.getTextElementAt(4).toString());
+        outText.set(outStr.toString());
+        context.write(bw, outText);
+        //mos.write("outroot", bw, outText, generateFileName(key.getTextElementAt(2), key.getTextElementAt(3), key.getTextElementAt(4)));
 
     }
 
+    private static final char SEP = (char) 1;
+/*
     @Override
     public final void cleanup(final Context context) throws IOException, InterruptedException {
-        mos.close();
+        // mos.close();
     }
+    */
 }

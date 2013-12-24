@@ -1,7 +1,7 @@
 package mr.segmentation;
 
 import static mr.Constants.TAB_SEP_PATTERN;
-import static mr.utils.Utils.coalesce;
+import static mr.utils.Utils.coalesce; 
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -112,7 +112,7 @@ public class DenormalizedSegmentationMapper extends Mapper<BytesWritable, Text, 
         }
         return row;
     }
-
+/*
     @Override
     public void map(BytesWritable ignored, Text value, Context context) throws IOException, InterruptedException {
         String[] columns = TAB_SEP_PATTERN.split(value.toString());
@@ -125,6 +125,6 @@ public class DenormalizedSegmentationMapper extends Mapper<BytesWritable, Text, 
 
             context.write(keys, vals);
         }
-    }
+    }*/
 }
 

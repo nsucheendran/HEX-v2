@@ -11,10 +11,11 @@ import mr.Constants;
 import mr.dto.TextMultiple;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
 public final class JobConfigurator {
     private Map<String, String> equiJoinKeys = new HashMap<String, String>() {
@@ -144,9 +145,9 @@ public final class JobConfigurator {
         job.setReducerClass(R4Reducer.class);
         // job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setInputFormatClass(CFInputFormat.class);
-        job.setOutputFormatClass(NullOutputFormat.class);
-        job.setOutputKeyClass(NullWritable.class);
-        job.setOutputValueClass(TextMultiple.class);
+        job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        job.setOutputKeyClass(BytesWritable.class);
+        job.setOutputValueClass(Text.class);
         job.setMapOutputKeyClass(TextMultiple.class);
         job.setMapOutputValueClass(TextMultiple.class);
         // job.getConfiguration().setLong("mapred.min.split.size", 536870912L);

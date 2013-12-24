@@ -16,7 +16,7 @@ import org.apache.hadoop.mapreduce.lib.input.CombineFileSplit;
 public class CFInputFormat extends CombineFileInputFormat<BytesWritable, Text> {
     public CFInputFormat() {
         super();
-        setMaxSplitSize(134217728); // 128 MB
+        setMaxSplitSize(536870912L); // 128 MB
     }
 
     public RecordReader<BytesWritable, Text> createRecordReader(

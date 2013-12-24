@@ -112,6 +112,7 @@ public class DenormalizedSegmentationReducer extends Reducer<TextMultiple, TextM
                 add(4);
             }
         };
+        /*
         mos.write(
                 "outroot",
                 bw,
@@ -121,7 +122,7 @@ public class DenormalizedSegmentationReducer extends Reducer<TextMultiple, TextM
                         Double.toString(netOmnitureGBV), Long.toString(netOmnitureRoomNights), Double.toString(netGrossProfit), Long
                                 .toString(numRepeatPurchasers)).toString()),
                 generateFileName(key.getTextElementAt(2), key.getTextElementAt(3), key.getTextElementAt(4)));
-
+*/
     }
 
     @Override

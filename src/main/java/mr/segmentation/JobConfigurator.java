@@ -270,8 +270,14 @@ public final class JobConfigurator {
     }
 
     public void stripe(String row, StringBuilder data) {
-        String[] values = row.split(Constants.COL_DELIM);
+        this.stripe(row, data, Constants.COL_DELIM);
+    }
+
+    // stripe-out the columns from the rhs table that are needed for the join or select clauses
+    public void stripe(String row, StringBuilder data, String colDelim) {
+        String[] values = row.split(colDelim);
         String[] vals = new String[rhsPosMap.size()];
+        // columns to be striped/collected may not be contiguously positioned in the table
         for (IntPair p : rhsPosMap.values()) {
             vals[p.two] = values[p.one];
         }
@@ -301,4 +307,3 @@ public final class JobConfigurator {
     }
 
 }
-

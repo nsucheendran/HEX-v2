@@ -125,9 +125,9 @@ public final class R4AggregationJob extends Configured implements Tool {
                 job.getConfiguration().set(
                         "mapred.map.output.compression.codec",
                         "org.apache.hadoop.io.compress.SnappyCodec");
-                MultipleOutputs.addNamedOutput(job, "outroot",
-                        SequenceFileOutputFormat.class, BytesWritable.class,
-                        Text.class);
+                //MultipleOutputs.addNamedOutput(job, "outroot",
+                  //      SequenceFileOutputFormat.class, BytesWritable.class,
+                    //    Text.class);
                 FileOutputFormat.setOutputPath(job, tempPath);
 
                 FileOutputFormat.setCompressOutput(job, true);
@@ -220,7 +220,7 @@ public final class R4AggregationJob extends Configured implements Tool {
 
     private String getReportDataAsString(String reportTableName, String reportDbName,
             JobConfigurator configurator, Job job, HiveMetaStoreClient cl)
-            throws IOException, MetaException, NoSuchObjectException,
+        throws IOException,
             TException {
         StringBuilder data = new StringBuilder();
         Table table = cl.getTable(reportDbName, reportTableName);
