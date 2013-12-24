@@ -1,8 +1,6 @@
 package mr.aggregation;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,12 +8,9 @@ import mr.dto.TextMultiple;
 import mr.dto.UserTransactionData;
 import mr.dto.UserTransactionsAggregatedData;
 
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
 public class R4Reducer extends Reducer<TextMultiple, TextMultiple, BytesWritable, Text> {
     private final BytesWritable bw = new BytesWritable(new byte[0], 0);
@@ -23,25 +18,9 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, BytesWritable
     private final StringBuilder outStr = new StringBuilder();
 
     //private MultipleOutputs<BytesWritable, Text> mos;
-    private String outputDir;
 
     // exclude values for columns in the following positions from the output
     private final int[] excludes = new int[] { 2, 3, 4 };
-
-    @Override
-    public final void setup(final Context context) {
-        //mos = new MultipleOutputs<BytesWritable, Text>(context);
-        outputDir = context.getConfiguration().get("mapred.output.dir");
-    }
-
-    private String generateFileName(final Text variantCode, final Text experimentCode, final Text versionNum)
-            throws UnsupportedEncodingException {
-        String res = new StringBuilder().append(outputDir).append(Path.SEPARATOR).append("experiment_code=")
-                .append(URLEncoder.encode(experimentCode.toString(), "UTF-8")).append(Path.SEPARATOR).append("version_number=")
-                .append(URLEncoder.encode(versionNum.toString(), "UTF-8")).append(Path.SEPARATOR).append("variant_code=")
-                .append(URLEncoder.encode(variantCode.toString(), "UTF-8")).append(Path.SEPARATOR).append("/result").toString();
-        return res;
-    }
 
     private Map<String, UserTransactionsAggregatedData> perUserTransactionData;
     private long numUniquePurchasers = 0;
@@ -123,7 +102,7 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, BytesWritable
                         .append(SEP).append(netOrders).append(SEP).append(netBkgGBV).append(SEP).append(netBkgRoomNights).append(SEP)
                         .append(netOmnitureGBV).append(SEP).append(netOmnitureRoomNights).append(SEP).append(netGrossProfit).append(SEP)
                         .append(numRepeatPurchasers).append(SEP));
-        outStr.append(SEP).append(key.getTextElementAt(3).toString()).append(SEP).append(key.getTextElementAt(4).toString())
+        outStr.append(key.getTextElementAt(2).toString()).append(SEP).append(key.getTextElementAt(3).toString())
                 .append(SEP).append(key.getTextElementAt(4).toString());
         outText.set(outStr.toString());
         context.write(bw, outText);
