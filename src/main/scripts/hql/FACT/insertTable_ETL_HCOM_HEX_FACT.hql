@@ -88,6 +88,7 @@ insert overwrite table hwwdev.ETL_HCOM_HEX_FACT partition(experiment_code, versi
             join 
             HWWDEV.HEX_REPORTING_REQUIREMENTS rep
             on (agg.variant_code=rep.variant_code and rep.experiment_code=agg.experiment_code and rep.version_number=agg.version_number)
+            where agg.local_date>=rep.report_start_date and agg.local_date<=rep.report_end_date and agg.trans_date>=rep.report_start_date and agg.trans_date<=rep.trans_date
             group by itin_number, guid, cid, local_date, rep.variant_code, rep.experiment_code, rep.version_number,
             new_visitor_ind, page_assigned_entry_page_name, site_sectn_name, user_cntext_name, browser_height, browser_width, brwsr_id, mobile_ind, 
             destination_id, property_destination_id, platform_type, days_until_stay, length_of_stay, number_of_rooms, number_of_adults, number_of_children, 
