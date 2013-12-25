@@ -10,8 +10,8 @@ set mapred.output.compression.type=BLOCK;
 set mapred.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 set mapred.compress.map.output=true;
 set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
-set mapred.min.split.size=${hiveconf:split.size}
-set mapred.max.split.size=${hiveconf:split.size}
+set mapred.min.split.size=${hiveconf:split.size};
+set mapred.max.split.size=${hiveconf:split.size};
 set hive.exec.max.created.files=10000000;
 
 use ${hiveconf:hex.db};

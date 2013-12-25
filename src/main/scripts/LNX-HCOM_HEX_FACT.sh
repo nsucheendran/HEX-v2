@@ -349,6 +349,7 @@ else
   
   _LOG "Updated Transactions source bookmark to to [$BKG_BOOKMARK_DATE]"
   
+  _LOG "Starting Fact MapReduce"
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_UNPARTED_STATUS" "STARTED"
   export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/usr/lib/hive/lib/*:/app/edw/hive/conf
   
@@ -369,7 +370,9 @@ else
     exit 1
   fi
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_UNPARTED_STATUS" "ENDED"
+  _LOG "Fact MapReduce Done"
   
+  _LOG "Starting Fact Partition Load"
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
   
   hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${FACT_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
@@ -383,7 +386,7 @@ else
   fi
   
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
-
+  _LOG "Fact Partition Load Done"
 
   
 # _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "STARTED"
