@@ -38,12 +38,14 @@ TRANS_TABLE='ETL_HCOM_HEX_TRANSACTIONS'
 
 ACTIVE_FAH_TABLE='ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HIT'
 FACT_STAGE_TABLE='ETL_HCOM_HEX_FACT_STAGING'
+FACT_UNPARTED_TABLE='ETL_HCOM_HEX_FACT_UNPARTED'
 FACT_TABLE='ETL_HCOM_HEX_FACT'
 FACT_AGG_TABLE='RPT_HEXDM_AGG'
 REPORT_TABLE='etl_hex_reporting_requirements'
 REPORT_FILE='/autofs/edwfileserver/sherlock_in/HEX/HEXV2UAT/HEX_REPORTING_INPUT.csv'
 KEYS_COUNT_LIMIT=1000;
 AGG_NUM_REDUCERS=400;
+FACT_LOAD_SPLIT_SIZE=1073741824;
 EMAIL_TO='agurumurthi@expedia.com,nsucheendran@expedia.com'
 EMAIL_CC='achadha@expedia.com,nsood@expedia.com'
 
@@ -54,7 +56,7 @@ JOB_QUEUE='hwwetl'
 REPROCESS_START_YEAR='2012'
 REPROCESS_START_MONTH='11'
 
-FACT_REDUCERS='100'
+FACT_REDUCERS='800'
 
 
 FAH_PROCESS_NAME="ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS"
@@ -308,6 +310,28 @@ if [ $? -ne 0 ]; then
 fi
 _LOG "(re-)creating table $FACT_TABLE Done." 
 
+_LOG "(re-)creating table $FACT_UNPARTED_TABLE ..." 
+_LOG "disable nodrop - OK if errors here." 
+set +o errexit 
+sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $FACT_UNPARTED_TABLE disable NO_DROP;" 
+set -o errexit 
+_LOG "disable nodrop ended." 
+if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$FACT_UNPARTED_TABLE; then 
+  _LOG "removing existing table files ... " 
+  sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$FACT_UNPARTED_TABLE 
+  if [ $? -ne 0 ]; then
+    _LOG "Error deleting table files. Installation FAILED."
+    exit 1
+  fi
+fi 
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${FAH_DB}" -hiveconf hex.table="${FACT_UNPARTED_TABLE}" -f $SCRIPT_PATH_FACT/createTable_ETL_HCOM_HEX_FACT_UNPARTED.hql
+if [ $? -ne 0 ]; then
+  _LOG "Error creating table. Installation FAILED."
+  exit 1
+fi
+_LOG "(re-)creating table $FACT_UNPARTED_TABLE Done." 
+
+
 
 FACT_PROCESS_ID=$(_GET_PROCESS_ID "$FACT_PROCESS_NAME")
 if [ -z "$FACT_PROCESS_ID" ]; then
@@ -510,6 +534,12 @@ if [ $? -ne 0 ]; then
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
   exit 1
 fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "FACT_TABLE_UNPARTED" "$FACT_UNPARTED_TABLE"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "JAR_PATH" "$JAR_DEST_PATH"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
@@ -517,6 +547,12 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "FACT_REDUCERS" "$FACT_REDUCERS"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "FACT_LOAD_SPLIT_SIZE" "$FACT_LOAD_SPLIT_SIZE"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"

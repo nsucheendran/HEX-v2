@@ -102,8 +102,8 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, BytesWritable
                         .append(SEP).append(netOrders).append(SEP).append(netBkgGBV).append(SEP).append(netBkgRoomNights).append(SEP)
                         .append(netOmnitureGBV).append(SEP).append(netOmnitureRoomNights).append(SEP).append(netGrossProfit).append(SEP)
                         .append(numRepeatPurchasers).append(SEP));
-        outStr.append(key.getTextElementAt(2).toString()).append(SEP).append(key.getTextElementAt(3).toString())
-                .append(SEP).append(key.getTextElementAt(4).toString());
+        outStr.append(SEP).append(key.getTextElementAt(3).toString()).append(SEP).append(key.getTextElementAt(4).toString())
+                .append(SEP).append(key.getTextElementAt(2).toString());
         outText.set(outStr.toString());
         context.write(bw, outText);
         //mos.write("outroot", bw, outText, generateFileName(key.getTextElementAt(2), key.getTextElementAt(3), key.getTextElementAt(4)));

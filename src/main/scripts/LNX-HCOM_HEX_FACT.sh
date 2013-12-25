@@ -62,7 +62,9 @@ SRC_BOOKMARK_OMNI_FULL=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_OMNI"`
 SRC_BOOKMARK_BKG=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_BKG"`
 PROCESSING_TYPE=`_READ_PROCESS_CONTEXT $PROCESS_ID "PROCESSING_TYPE"`
 FACT_REDUCERS=`_READ_PROCESS_CONTEXT $PROCESS_ID "FACT_REDUCERS"`
+FACT_LOAD_SPLIT_SIZE=`_READ_PROCESS_CONTEXT $PROCESS_ID "FACT_LOAD_SPLIT_SIZE"`
 FACT_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "FACT_TABLE"`
+FACT_TABLE_UNPARTED=`_READ_PROCESS_CONTEXT $PROCESS_ID "FACT_TABLE_UNPARTED"`
 JAR_PATH=`_READ_PROCESS_CONTEXT $PROCESS_ID "JAR_PATH"`
 AGG_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "FACT_AGG_TABLE"`
 KEYS_COUNT_LIMIT=`_READ_PROCESS_CONTEXT $PROCESS_ID "KEYS_COUNT_LIMIT"`
@@ -347,7 +349,7 @@ else
   
   _LOG "Updated Transactions source bookmark to to [$BKG_BOOKMARK_DATE]"
   
-  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_UNPARTED_STATUS" "STARTED"
   export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/usr/lib/hive/lib/*:/app/edw/hive/conf
   
   hadoop jar ${JAR_PATH} mr.aggregation.R4AggregationJob \
@@ -356,8 +358,8 @@ else
   -DsourceDbName=${STAGE_DB} \
   -DtargetDbName=${STAGE_DB} \
   -DsourceTableName=${STAGE_TABLE} \
-  -DtargetTableName=${FACT_TABLE} \
-  -DreportTableName=${REPORT_TABLE}
+  -DtargetTableName=${FACT_TABLE_UNPARTED} \
+  -DreportTableName=${REPORT_TABLE} >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT: Booking Fact load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
@@ -366,87 +368,103 @@ else
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_UNPARTED_STATUS" "ENDED"
+  
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
+  
+  hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${FACT_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  ERROR_CODE=$?
+  if [[ $ERROR_CODE -ne 0 ]]; then
+    _LOG "HEX_FACT: Booking Fact load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
+  
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
+
+
   
-  _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "STARTED"
-  
-  MKTG_SEO_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ all_mktg_seo_30_day from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by all_mktg_seo_30_day having count(*)>${KEYS_COUNT_LIMIT};"`
-  ERROR_CODE=$?
-  if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching all_mktg_seo_30_day keys. [ERROR_CODE=$ERROR_CODE]."
-    _END_PROCESS $RUN_ID $ERROR_CODE
-    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-    _FREE_LOCK $HWW_LOCK_NAME
-    exit 1
-  fi
-  MKTG_SEO_ARR=( $MKTG_SEO_STR );
-  delimiter="','";
-  MKTG_SEO_STR_FINAL=$(printf "${delimiter}%s" "${MKTG_SEO_ARR[@]}");
-  MKTG_SEO_STR_FINAL=${MKTG_SEO_STR_FINAL:${#delimiter}};
-  MKTG_SEO_STR_FINAL="array('"${MKTG_SEO_STR_FINAL}"')";
+# _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "STARTED"
+# 
+# MKTG_SEO_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ all_mktg_seo_30_day from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by all_mktg_seo_30_day having count(*)>${KEYS_COUNT_LIMIT};"`
+# ERROR_CODE=$?
+# if [[ $ERROR_CODE -ne 0 ]]; then
+#   _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching all_mktg_seo_30_day keys. [ERROR_CODE=$ERROR_CODE]."
+#   _END_PROCESS $RUN_ID $ERROR_CODE
+#   _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+#   _FREE_LOCK $HWW_LOCK_NAME
+#   exit 1
+# fi
+# MKTG_SEO_ARR=( $MKTG_SEO_STR );
+# delimiter="','";
+# MKTG_SEO_STR_FINAL=$(printf "${delimiter}%s" "${MKTG_SEO_ARR[@]}");
+# MKTG_SEO_STR_FINAL=${MKTG_SEO_STR_FINAL:${#delimiter}};
+# MKTG_SEO_STR_FINAL="array('"${MKTG_SEO_STR_FINAL}"')";
 
-  _LOG "MKTG_SEO_STR_FINAL: " $MKTG_SEO_STR_FINAL
+# _LOG "MKTG_SEO_STR_FINAL: " $MKTG_SEO_STR_FINAL
 
-  MKTG_SEO_DIRECT_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ all_mktg_seo_30_day_direct from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by all_mktg_seo_30_day_direct having count(*)>${KEYS_COUNT_LIMIT};"`
-  ERROR_CODE=$?
-  if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching all_mktg_seo_30_day_direct keys. [ERROR_CODE=$ERROR_CODE]."
-    _END_PROCESS $RUN_ID $ERROR_CODE
-    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-    _FREE_LOCK $HWW_LOCK_NAME
-    exit 1
-  fi
-  MKTG_SEO_DIRECT_ARR=( $MKTG_SEO_DIRECT_STR );
-  MKTG_SEO_DIRECT_STR_FINAL=$(printf "${delimiter}%s" "${MKTG_SEO_DIRECT_ARR[@]}");
-  MKTG_SEO_DIRECT_STR_FINAL=${MKTG_SEO_DIRECT_STR_FINAL:${#delimiter}};
-  MKTG_SEO_DIRECT_STR_FINAL="array('"${MKTG_SEO_DIRECT_STR_FINAL}"')";
+# MKTG_SEO_DIRECT_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ all_mktg_seo_30_day_direct from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by all_mktg_seo_30_day_direct having count(*)>${KEYS_COUNT_LIMIT};"`
+# ERROR_CODE=$?
+# if [[ $ERROR_CODE -ne 0 ]]; then
+#   _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching all_mktg_seo_30_day_direct keys. [ERROR_CODE=$ERROR_CODE]."
+#   _END_PROCESS $RUN_ID $ERROR_CODE
+#   _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+#   _FREE_LOCK $HWW_LOCK_NAME
+#   exit 1
+# fi
+# MKTG_SEO_DIRECT_ARR=( $MKTG_SEO_DIRECT_STR );
+# MKTG_SEO_DIRECT_STR_FINAL=$(printf "${delimiter}%s" "${MKTG_SEO_DIRECT_ARR[@]}");
+# MKTG_SEO_DIRECT_STR_FINAL=${MKTG_SEO_DIRECT_STR_FINAL:${#delimiter}};
+# MKTG_SEO_DIRECT_STR_FINAL="array('"${MKTG_SEO_DIRECT_STR_FINAL}"')";
 
-  _LOG "MKTG_SEO_DIRECT_STR_FINAL: " $MKTG_SEO_DIRECT_STR_FINAL  
+# _LOG "MKTG_SEO_DIRECT_STR_FINAL: " $MKTG_SEO_DIRECT_STR_FINAL  
 
-  PROP_DEST_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ property_destination_id from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by property_destination_id having count(*)>${KEYS_COUNT_LIMIT};"`
-  ERROR_CODE=$?
-  if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching property_destination_id keys. [ERROR_CODE=$ERROR_CODE]."
-    _END_PROCESS $RUN_ID $ERROR_CODE
-    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-    _FREE_LOCK $HWW_LOCK_NAME
-    exit 1
-  fi
-  PROP_DEST_ARR=( $PROP_DEST_STR );
-  delimiter="','";
-  PROP_DEST_STR_FINAL=$(printf "${delimiter}%s" "${PROP_DEST_ARR[@]}");
-  PROP_DEST_STR_FINAL=${PROP_DEST_STR_FINAL:${#delimiter}};
-  PROP_DEST_STR_FINAL="array('"${PROP_DEST_STR_FINAL}"')";
+# PROP_DEST_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ property_destination_id from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by property_destination_id having count(*)>${KEYS_COUNT_LIMIT};"`
+# ERROR_CODE=$?
+# if [[ $ERROR_CODE -ne 0 ]]; then
+#   _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching property_destination_id keys. [ERROR_CODE=$ERROR_CODE]."
+#   _END_PROCESS $RUN_ID $ERROR_CODE
+#   _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+#   _FREE_LOCK $HWW_LOCK_NAME
+#   exit 1
+# fi
+# PROP_DEST_ARR=( $PROP_DEST_STR );
+# delimiter="','";
+# PROP_DEST_STR_FINAL=$(printf "${delimiter}%s" "${PROP_DEST_ARR[@]}");
+# PROP_DEST_STR_FINAL=${PROP_DEST_STR_FINAL:${#delimiter}};
+# PROP_DEST_STR_FINAL="array('"${PROP_DEST_STR_FINAL}"')";
 
-  _LOG "PROP_DEST_STR_FINAL: " $PROP_DEST_STR_FINAL
+# _LOG "PROP_DEST_STR_FINAL: " $PROP_DEST_STR_FINAL
 
-  SUPPLIER_PROP_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ supplier_property_id from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by supplier_property_id having count(*)>${KEYS_COUNT_LIMIT};"`
-  ERROR_CODE=$?
-  if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching supplier_property_id keys. [ERROR_CODE=$ERROR_CODE]."
-    _END_PROCESS $RUN_ID $ERROR_CODE
-    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-    _FREE_LOCK $HWW_LOCK_NAME
-    exit 1
-  fi
-  SUPPLIER_PROP_ARR=( $SUPPLIER_PROP_STR );
-  delimiter="','";
-  SUPPLIER_PROP_STR_FINAL=$(printf "${delimiter}%s" "${SUPPLIER_PROP_ARR[@]}");
-  SUPPLIER_PROP_STR_FINAL=${SUPPLIER_PROP_STR_FINAL:${#delimiter}};
-  SUPPLIER_PROP_STR_FINAL="array('"${SUPPLIER_PROP_STR_FINAL}"')";
-  
-  DATE=$(date +"%Y%m%d%H%M");
-  LOG_FILE_NAME="agg_"$DATE".log";
-  hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf agg.num.reduce.tasks="${AGG_NUM_REDUCERS}" -hiveconf hex.fact.table="${FACT_TABLE}" -hiveconf hex.db="${AGG_DB}" -hiveconf stage.db="${STAGE_DB}" -hiveconf hex.agg.pd.randomize.array="${PROP_DEST_STR_FINAL}" -hiveconf hex.agg.mktg.randomize.array="${MKTG_SEO_STR_FINAL}" -hiveconf hex.agg.mktg.direct.randomize.array="${MKTG_SEO_DIRECT_STR_FINAL}" -hiveconf hex.agg.sp.randomize.array="${SUPPLIER_PROP_STR_FINAL}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.seed="1000" -hiveconf hex.agg.separator="###" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
-  ERROR_CODE=$?
-  if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT: Aggregation load FAILED. [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
-    _END_PROCESS $RUN_ID $ERROR_CODE
-    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-    _FREE_LOCK $HWW_LOCK_NAME
-    exit 1
-  fi
-  _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "ENDED"
+# SUPPLIER_PROP_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ supplier_property_id from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by supplier_property_id having count(*)>${KEYS_COUNT_LIMIT};"`
+# ERROR_CODE=$?
+# if [[ $ERROR_CODE -ne 0 ]]; then
+#   _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching supplier_property_id keys. [ERROR_CODE=$ERROR_CODE]."
+#   _END_PROCESS $RUN_ID $ERROR_CODE
+#   _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+#   _FREE_LOCK $HWW_LOCK_NAME
+#   exit 1
+# fi
+# SUPPLIER_PROP_ARR=( $SUPPLIER_PROP_STR );
+# delimiter="','";
+# SUPPLIER_PROP_STR_FINAL=$(printf "${delimiter}%s" "${SUPPLIER_PROP_ARR[@]}");
+# SUPPLIER_PROP_STR_FINAL=${SUPPLIER_PROP_STR_FINAL:${#delimiter}};
+# SUPPLIER_PROP_STR_FINAL="array('"${SUPPLIER_PROP_STR_FINAL}"')";
+# 
+# DATE=$(date +"%Y%m%d%H%M");
+# LOG_FILE_NAME="agg_"$DATE".log";
+# hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf agg.num.reduce.tasks="${AGG_NUM_REDUCERS}" -hiveconf hex.fact.table="${FACT_TABLE}" -hiveconf hex.db="${AGG_DB}" -hiveconf stage.db="${STAGE_DB}" -hiveconf hex.agg.pd.randomize.array="${PROP_DEST_STR_FINAL}" -hiveconf hex.agg.mktg.randomize.array="${MKTG_SEO_STR_FINAL}" -hiveconf hex.agg.mktg.direct.randomize.array="${MKTG_SEO_DIRECT_STR_FINAL}" -hiveconf hex.agg.sp.randomize.array="${SUPPLIER_PROP_STR_FINAL}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.seed="1000" -hiveconf hex.agg.separator="###" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+# ERROR_CODE=$?
+# if [[ $ERROR_CODE -ne 0 ]]; then
+#   _LOG "HEX_FACT: Aggregation load FAILED. [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+#   _END_PROCESS $RUN_ID $ERROR_CODE
+#   _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+#   _FREE_LOCK $HWW_LOCK_NAME
+#   exit 1
+# fi
+# _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "ENDED"
 fi
 
 _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "SUCCESS"

@@ -59,10 +59,8 @@ public final class R4AggregationJob extends Configured implements Tool {
         String sourceDbName = mainConf.get("sourceDbName", "etldata");
         String targetDbName = mainConf.get("targetDbName", "hwwdev");
         String sourceTableName = mainConf.get("sourceTableName", "etl_hcom_hex_fact_staging");
-        String targetTableName = mainConf.get("targetTableName",
-                "etl_hcom_hex_fact_non_partitioned");
-        String reportTableName = mainConf.get("reportTableName",
-                "hex_reporting_requirements");
+        String targetTableName = mainConf.get("targetTableName", "etl_hcom_hex_fact_non_partitioned");
+        String reportTableName = mainConf.get("reportTableName", "hex_reporting_requirements");
 
         JobConfigurator configurator = new JobConfigurator();
         Job job = configurator.initJob(mainConf, jobName, queueName);
@@ -87,44 +85,40 @@ public final class R4AggregationJob extends Configured implements Tool {
         }
         configurator.lhsFields(lhsfields).rhsFields(rhsfields).numReduceTasks(numReduceTasks);
         configurator.configureJob(job);
-        job.getConfiguration().set(
-                "data",
-                getReportDataAsString(reportTableName, targetDbName, configurator,
-                        job, cl));
+        job.getConfiguration().set("data", getReportDataAsString(reportTableName, targetDbName, configurator, job, cl));
         // job.getConfiguration().set
         // Set JVM reuse to speed up reducer
         // conf.setNumTasksToExecutePerJvm(-1);
-        Table table = cl.getTable(sourceDbName, targetTableName);
+        Table table = cl.getTable(targetDbName, targetTableName);
         StorageDescriptor tableSd = table.getSd();
         Path outputPath = new Path(tableSd.getLocation());
+        
         FileSystem fileSystem = null;
         boolean success = false;
         try {
             fileSystem = outputPath.getFileSystem(job.getConfiguration());
-            if (success = fileSystem.delete(outputPath, true)) {
+            success = fileSystem.delete(outputPath, true);
+            if (success) {
                 // MultipleOutputs.setCountersEnabled(job, true);
-                job.getConfiguration().setBoolean("mapred.compress.map.output",
-                        true);
-                job.getConfiguration().set(
-                        "mapred.map.output.compression.codec",
-                        "org.apache.hadoop.io.compress.SnappyCodec");
-                //MultipleOutputs.addNamedOutput(job, "outroot",
-                  //      SequenceFileOutputFormat.class, BytesWritable.class,
-                    //    Text.class);
+                job.getConfiguration().setBoolean("mapred.compress.map.output", true);
+                job.getConfiguration().set("mapred.map.output.compression.codec", "org.apache.hadoop.io.compress.SnappyCodec");
+                // MultipleOutputs.addNamedOutput(job, "outroot",
+                // SequenceFileOutputFormat.class, BytesWritable.class,
+                // Text.class);
                 FileOutputFormat.setOutputPath(job, outputPath);
 
-                FileOutputFormat.setCompressOutput(job, true);
-                FileOutputFormat.setOutputCompressorClass(job,
-                        org.apache.hadoop.io.compress.SnappyCodec.class);
+                //FileOutputFormat.setCompressOutput(job, true);
+                //FileOutputFormat.setOutputCompressorClass(job, org.apache.hadoop.io.compress.SnappyCodec.class);
 
                 success = job.waitForCompletion(true);
                 log.info("output written to: " + outputPath.toString());
             } else {
-                log.info("Not able to delete output path: " + outputPath
-                        + ". Exiting!!!");
+                log.info("Not able to delete output path: " + outputPath + ". Exiting!!!");
             }
         } finally {
-            fileSystem.close();
+            if (fileSystem != null) {
+                fileSystem.close();
+            }
         }
         return success ? 0 : -1;
     }
@@ -160,26 +154,21 @@ public final class R4AggregationJob extends Configured implements Tool {
         CFInputFormat.setInputPaths(job, inputPathsBuilder.toString());
     }
 
-    private String getReportDataAsString(String reportTableName, String reportDbName,
-            JobConfigurator configurator, Job job, HiveMetaStoreClient cl)
-        throws IOException,
-            TException {
+    private String getReportDataAsString(String reportTableName, String reportDbName, JobConfigurator configurator, Job job,
+            HiveMetaStoreClient cl) throws IOException, TException {
         StringBuilder data = new StringBuilder();
         Table table = cl.getTable(reportDbName, reportTableName);
         Path tblPath = new Path(table.getSd().getLocation());
         FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
 
-        RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath,
-                true);
         BufferedReader br = null;
         try {
+            RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
             while (files.hasNext()) {
-                br = new BufferedReader(new InputStreamReader(
-                        fileSystem.open(files.next().getPath())));
+                br = new BufferedReader(new InputStreamReader(fileSystem.open(files.next().getPath())));
                 String line;
                 while ((line = br.readLine()) != null) {
-                    configurator.stripe(line, data,
-                            Constants.REPORT_TABLE_COL_DELIM);
+                    configurator.stripe(line, data, Constants.REPORT_TABLE_COL_DELIM);
                     data.append("\n");
                 }
             }
@@ -191,7 +180,7 @@ public final class R4AggregationJob extends Configured implements Tool {
                 fileSystem.close();
             }
         }
-        log.info("Reporting Data: " + data.toString());
+        // log.info("Reporting Data: " + data.toString());
         return data.toString();
     }
 }
