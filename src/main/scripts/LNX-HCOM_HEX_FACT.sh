@@ -389,7 +389,7 @@ else
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
   _LOG "Fact Partition Load Done"
 
-  
+  _LOG "Starting Fact Aggregation Load"
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "STARTED"
   
   MKTG_SEO_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ all_mktg_seo_30_day from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by all_mktg_seo_30_day having count(*)>${KEYS_COUNT_LIMIT};"`
@@ -459,6 +459,8 @@ else
   
   DATE=$(date +"%Y%m%d%H%M");
   LOG_FILE_NAME="agg_"$DATE".log";
+  _LOG "Starting Fact Aggregation Insert"
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION_INSERT" "STARTED"
   hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf agg.num.reduce.tasks="${AGG_NUM_REDUCERS}" -hiveconf hex.fact.table="${FACT_TABLE}" -hiveconf hex.db="${AGG_DB}" -hiveconf stage.db="${STAGE_DB}" -hiveconf hex.agg.pd.randomize.array="${PROP_DEST_STR_FINAL}" -hiveconf hex.agg.mktg.randomize.array="${MKTG_SEO_STR_FINAL}" -hiveconf hex.agg.mktg.direct.randomize.array="${MKTG_SEO_DIRECT_STR_FINAL}" -hiveconf hex.agg.sp.randomize.array="${SUPPLIER_PROP_STR_FINAL}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.seed="1000" -hiveconf hex.agg.separator="###" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
@@ -468,7 +470,10 @@ else
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION_INSERT" "ENDED"
+  _LOG "Fact Aggregation Insert Done"
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "ENDED"
+  _LOG "Fact Aggregation Load Done"
 fi
 
 _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "SUCCESS"
