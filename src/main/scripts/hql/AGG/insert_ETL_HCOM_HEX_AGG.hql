@@ -5,7 +5,7 @@ set hive.exec.dynamic.partition.mode=nonstrict;
 set hive.exec.dynamic.partition=true;
 set hive.exec.max.dynamic.partitions=2000;
 set hive.exec.max.dynamic.partitions.pernode=1024;
-set mapred.job.queue.name=edwdev;
+set mapred.job.queue.name=${hiveconf:job.queue};
 set mapred.max.split.size=256000000;
 set mapred.compress.map.output=true;
 set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
@@ -292,7 +292,7 @@ insert overwrite table ${hiveconf:hex.agg.table} PARTITION (experiment_code,vers
                                          from (select mktg_chnnl_name, 
                                                       mktg_sub_chnnl_name, 
                                                       randomize(mktg_code, ${hiveconf:hex.agg.seed}, "###", false, ${hiveconf:hex.agg.mktg.randomize.array}) mktg_code_arr
-                                                 from hwwdev.web_analytic_mktg_code_dim_non_expedia 
+                                                 from etldata.hcom_mktg_chnnl_dim 
                                                 where mktg_code<>'Unknown') web_analytic_mktg_code_dim_non_expedia_inner 
                                  LATERAL VIEW explode(mktg_code_arr) tt as mktg_code_random) mktg 
                          on (active_metrics.all_mktg_seo_random=mktg.mktg_code_random)
@@ -302,7 +302,7 @@ insert overwrite table ${hiveconf:hex.agg.table} PARTITION (experiment_code,vers
                                          from (select mktg_chnnl_name, 
                                                       mktg_sub_chnnl_name, 
                                                       randomize(mktg_code, ${hiveconf:hex.agg.seed}, "###", false, ${hiveconf:hex.agg.mktg.direct.randomize.array}) mktg_code_arr
-                                                 from hwwdev.web_analytic_mktg_code_dim_non_expedia 
+                                                 from etldata.hcom_mktg_chnnl_dim 
                                                 where mktg_code<>'Unknown') web_analytic_mktg_code_dim_non_expedia_inner
                                  LATERAL VIEW explode(mktg_code_arr) tt as mktg_code_random) mktg_dir 
                          on (active_metrics.all_mktg_seo_direct_random=mktg_dir.mktg_code_random)            
