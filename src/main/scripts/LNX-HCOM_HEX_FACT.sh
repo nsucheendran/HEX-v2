@@ -457,11 +457,29 @@ else
   SUPPLIER_PROP_STR_FINAL=${SUPPLIER_PROP_STR_FINAL:${#delimiter}};
   SUPPLIER_PROP_STR_FINAL="array('"${SUPPLIER_PROP_STR_FINAL}"')";
   
+  echo "$MKTG_SEO_STR_FINAL" > /tmp/mktg_seo.lst
+  echo "$MKTG_SEO_DIRECT_STR_FINAL" > /tmp/mktg_seo_direct.lst
+  echo "$PROP_DEST_STR_FINAL" > /tmp/prop_dest.lst
+  echo "$SUPPLIER_PROP_STR_FINAL" > /tmp/sup_prop.lst
+  perl -pe 'BEGIN{open F,"/tmp/mktg_seo.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.randomize.array}#@f#' $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql > /tmp/temp.hql
+  perl -pe 'BEGIN{open F,"/tmp/mktg_seo_direct.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.direct.randomize.array}#@f#' /tmp/temp.hql > /tmp/substitutedAggQuery.hql
+  perl -pe 'BEGIN{open F,"/tmp/prop_dest.lst";@f=<F>}s#\${hiveconf:hex.agg.pd.randomize.array}#@f#' /tmp/substitutedAggQuery.hql > /tmp/temp.hql
+  perl -pe 'BEGIN{open F,"/tmp/sup_prop.lst";@f=<F>}s#\${hiveconf:hex.agg.sp.randomize.array}#@f#' /tmp/temp.hql > /tmp/substitutedAggQuery.hql
+  
+  perl -p -i -e "s/\\\${hiveconf:job.queue}/$JOB_QUEUE/g" /tmp/substitutedAggQuery.hql
+  perl -p -i -e "s/\\\${hiveconf:agg.num.reduce.tasks}/$AGG_NUM_REDUCERS/g" /tmp/substitutedAggQuery.hql
+  perl -p -i -e "s/\\\${hiveconf:hex.fact.table}/$FACT_TABLE/g" /tmp/substitutedAggQuery.hql
+  perl -p -i -e "s/\\\${hiveconf:hex.db}/$AGG_DB/g" /tmp/substitutedAggQuery.hql
+  perl -p -i -e "s/\\\${hiveconf:stage.db}/$STAGE_DB/g" /tmp/substitutedAggQuery.hql
+  perl -p -i -e "s/\\\${hiveconf:hex.agg.table}/$AGG_TABLE/g" /tmp/substitutedAggQuery.hql
+  perl -p -i -e "s/\\\${hiveconf:hex.agg.seed}/$AGG_NUM_REDUCERS/g" /tmp/substitutedAggQuery.hql
+  perl -p -i -e "s/\\\${hiveconf:hex.report.table}/$REPORT_TABLE/g" /tmp/substitutedAggQuery.hql
+  
   DATE=$(date +"%Y%m%d%H%M");
   LOG_FILE_NAME="agg_"$DATE".log";
-  _LOG "Starting Fact Aggregation Insert"
+  _LOG "Starting Fact Aggregation Insert [log file: $HEX_LOGS/$LOG_FILE_NAME]"
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION_INSERT" "STARTED"
-  hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf agg.num.reduce.tasks="${AGG_NUM_REDUCERS}" -hiveconf hex.fact.table="${FACT_TABLE}" -hiveconf hex.db="${AGG_DB}" -hiveconf stage.db="${STAGE_DB}" -hiveconf hex.agg.pd.randomize.array="${PROP_DEST_STR_FINAL}" -hiveconf hex.agg.mktg.randomize.array="${MKTG_SEO_STR_FINAL}" -hiveconf hex.agg.mktg.direct.randomize.array="${MKTG_SEO_DIRECT_STR_FINAL}" -hiveconf hex.agg.sp.randomize.array="${SUPPLIER_PROP_STR_FINAL}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.seed="1000" -hiveconf hex.agg.separator="###" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+  hive -f /tmp/substitutedAggQuery.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT: Aggregation load FAILED. [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."

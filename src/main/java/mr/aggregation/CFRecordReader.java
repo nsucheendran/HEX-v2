@@ -29,7 +29,7 @@ public class CFRecordReader extends RecordReader<BytesWritable, Text> {
 
     @Override
     public void initialize(InputSplit split, TaskAttemptContext context)
-            throws IOException, InterruptedException {
+        throws IOException, InterruptedException {
         // Won't be called, use custom Constructor
         // `CFRecordReader(CombineFileSplit split, TaskAttemptContext context, Integer index)`
         // instead
