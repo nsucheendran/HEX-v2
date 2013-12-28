@@ -1,10 +1,11 @@
+
 CREATE TEMPORARY FUNCTION randomize as 'udf.GenericUDFRandomizeInput';
 
 set hive.auto.convert.join=true;
 set hive.exec.dynamic.partition.mode=nonstrict;
 set hive.exec.dynamic.partition=true;
-set hive.exec.max.dynamic.partitions=2000;
-set hive.exec.max.dynamic.partitions.pernode=1024;
+set hive.exec.max.dynamic.partitions=100000;
+set hive.exec.max.dynamic.partitions.pernode=100000;
 set mapred.job.queue.name=${hiveconf:job.queue};
 set mapred.max.split.size=256000000;
 set mapred.compress.map.output=true;
