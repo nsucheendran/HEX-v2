@@ -350,7 +350,7 @@ else
   
   _LOG "Updated Transactions source bookmark to to [$BKG_BOOKMARK_DATE]"
   
-  _LOG "Starting Fact MapReduce"
+  _LOG "Starting Fact MapReduce [Log file: $HEX_LOGS/$LOG_FILE_NAME]"
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_UNPARTED_STATUS" "STARTED"
   export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/usr/lib/hive/lib/*:/app/edw/hive/conf
   
@@ -407,8 +407,6 @@ else
   MKTG_SEO_STR_FINAL=${MKTG_SEO_STR_FINAL:${#delimiter}};
   MKTG_SEO_STR_FINAL="array('"${MKTG_SEO_STR_FINAL}"')";
 
-  _LOG "MKTG_SEO_STR_FINAL: " $MKTG_SEO_STR_FINAL
-
   MKTG_SEO_DIRECT_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ all_mktg_seo_30_day_direct from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by all_mktg_seo_30_day_direct having count(*)>${KEYS_COUNT_LIMIT};"`
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
@@ -422,8 +420,6 @@ else
   MKTG_SEO_DIRECT_STR_FINAL=$(printf "${delimiter}%s" "${MKTG_SEO_DIRECT_ARR[@]}");
   MKTG_SEO_DIRECT_STR_FINAL=${MKTG_SEO_DIRECT_STR_FINAL:${#delimiter}};
   MKTG_SEO_DIRECT_STR_FINAL="array('"${MKTG_SEO_DIRECT_STR_FINAL}"')";
-
-  _LOG "MKTG_SEO_DIRECT_STR_FINAL: " $MKTG_SEO_DIRECT_STR_FINAL  
 
   PROP_DEST_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ property_destination_id from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by property_destination_id having count(*)>${KEYS_COUNT_LIMIT};"`
   ERROR_CODE=$?
@@ -439,8 +435,6 @@ else
   PROP_DEST_STR_FINAL=$(printf "${delimiter}%s" "${PROP_DEST_ARR[@]}");
   PROP_DEST_STR_FINAL=${PROP_DEST_STR_FINAL:${#delimiter}};
   PROP_DEST_STR_FINAL="array('"${PROP_DEST_STR_FINAL}"')";
-
-  _LOG "PROP_DEST_STR_FINAL: " $PROP_DEST_STR_FINAL
 
   SUPPLIER_PROP_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ supplier_property_id from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by supplier_property_id having count(*)>${KEYS_COUNT_LIMIT};"`
   ERROR_CODE=$?
