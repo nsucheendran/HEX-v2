@@ -45,7 +45,7 @@ REPORT_TABLE='etl_hex_reporting_requirements'
 REPORT_FILE='/autofs/edwfileserver/sherlock_in/HEX/HEXV2UAT/HEX_REPORTING_INPUT.csv'
 KEYS_COUNT_LIMIT=100000;
 AGG_NUM_REDUCERS=800;
-REP_BATCH_SIZE=300;
+REP_BATCH_SIZE=200;
 FACT_LOAD_SPLIT_SIZE=1073741824;
 EMAIL_TO='agurumurthi@expedia.com,nsucheendran@expedia.com'
 EMAIL_CC='achadha@expedia.com,nsood@expedia.com'
@@ -477,6 +477,9 @@ if [ -z "$FACT_PROCESS_ID" ]; then
     $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
     exit 1
   fi
+else
+  _LOG "Process $FACT_PROCESS_NAME already exists"
+fi
   _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "PROCESSING_TYPE" "R"
   if [ $? -ne 0 ]; then
     _LOG "Error writing process context. Installation FAILED."
@@ -495,9 +498,6 @@ if [ -z "$FACT_PROCESS_ID" ]; then
     $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
     exit 1
   fi
-else
-  _LOG "Process $FACT_PROCESS_NAME already exists"
-fi
 
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "KEYS_COUNT_LIMIT" "$KEYS_COUNT_LIMIT"
 if [ $? -ne 0 ]; then
