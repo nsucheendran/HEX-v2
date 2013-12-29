@@ -440,10 +440,10 @@ else
   SUPPLIER_PROP_STR_FINAL=${SUPPLIER_PROP_STR_FINAL:${#delimiter}};
   SUPPLIER_PROP_STR_FINAL="array('"${SUPPLIER_PROP_STR_FINAL}"')";
   
-  echo "$MKTG_SEO_STR_FINAL" > /tmp/mktg_seo.lst
-  echo "$MKTG_SEO_DIRECT_STR_FINAL" > /tmp/mktg_seo_direct.lst
-  echo "$PROP_DEST_STR_FINAL" > /tmp/prop_dest.lst
-  echo "$SUPPLIER_PROP_STR_FINAL" > /tmp/sup_prop.lst
+  echo "$MKTG_SEO_STR_FINAL" > $HEX_LOGS/mktg_seo.lst
+  echo "$MKTG_SEO_DIRECT_STR_FINAL" > $HEX_LOGS/mktg_seo_direct.lst
+  echo "$PROP_DEST_STR_FINAL" > $HEX_LOGS/prop_dest.lst
+  echo "$SUPPLIER_PROP_STR_FINAL" > $HEX_LOGS/sup_prop.lst
   
   REQ_COUNT=`hive -hiveconf mapred.job.queue.name=${JOB_QUEUE} -e "select count(1) from ${STAGE_DB}.${REPORT_TABLE}"`
   ERROR_CODE=$?
@@ -496,20 +496,20 @@ else
     if [ $BATCH_COUNT -eq $REP_BATCH_SIZE ] || [ $BATCH_COUNT -eq $REQ_COUNT ] 
     then
       _LOG "Current Batch Size: $BATCH_COUNT. Remaining: $REQ_COUNT"
-      perl -pe 'BEGIN{open F,"/tmp/mktg_seo.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.randomize.array}#@f#' $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql > /tmp/temp.hql
-      perl -pe 'BEGIN{open F,"/tmp/mktg_seo_direct.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.direct.randomize.array}#@f#' /tmp/temp.hql > /tmp/substitutedAggQuery.hql
-      perl -pe 'BEGIN{open F,"/tmp/prop_dest.lst";@f=<F>}s#\${hiveconf:hex.agg.pd.randomize.array}#@f#' /tmp/substitutedAggQuery.hql > /tmp/temp.hql
-      perl -pe 'BEGIN{open F,"/tmp/sup_prop.lst";@f=<F>}s#\${hiveconf:hex.agg.sp.randomize.array}#@f#' /tmp/temp.hql > /tmp/substitutedAggQuery.hql
+      perl -pe 'BEGIN{open F,"$HEX_LOGS/mktg_seo.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.randomize.array}#@f#' $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql > $HEX_LOGS/temp.hql
+      perl -pe 'BEGIN{open F,"$HEX_LOGS/mktg_seo_direct.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.direct.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/substitutedAggQuery.hql
+      perl -pe 'BEGIN{open F,"$HEX_LOGS/prop_dest.lst";@f=<F>}s#\${hiveconf:hex.agg.pd.randomize.array}#@f#' $HEX_LOGS/substitutedAggQuery.hql > $HEX_LOGS/temp.hql
+      perl -pe 'BEGIN{open F,"$HEX_LOGS/sup_prop.lst";@f=<F>}s#\${hiveconf:hex.agg.sp.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/substitutedAggQuery.hql
   
-      perl -p -i -e "s/\\\${hiveconf:job.queue}/$JOB_QUEUE/g" /tmp/substitutedAggQuery.hql
-      perl -p -i -e "s/\\\${hiveconf:agg.num.reduce.tasks}/$AGG_NUM_REDUCERS/g" /tmp/substitutedAggQuery.hql
-      perl -p -i -e "s/\\\${hiveconf:hex.fact.table}/$FACT_TABLE/g" /tmp/substitutedAggQuery.hql
-      perl -p -i -e "s/\\\${hiveconf:hex.db}/$AGG_DB/g" /tmp/substitutedAggQuery.hql
-      perl -p -i -e "s/\\\${hiveconf:stage.db}/$STAGE_DB/g" /tmp/substitutedAggQuery.hql
-      perl -p -i -e "s/\\\${hiveconf:hex.agg.table}/$AGG_TABLE/g" /tmp/substitutedAggQuery.hql
-      perl -p -i -e "s/\\\${hiveconf:hex.agg.seed}/1000/g" /tmp/substitutedAggQuery.hql
-      perl -p -i -e "s/\\\${hiveconf:hex.report.table}/$REPORT_TABLE/g" /tmp/substitutedAggQuery.hql
-      perl -p -i -e "s/\\\${hiveconf:rep.where}/($BATCH_COND)/g" /tmp/substitutedAggQuery.hql
+      perl -p -i -e "s/\\\${hiveconf:job.queue}/$JOB_QUEUE/g" $HEX_LOGS/substitutedAggQuery.hql
+      perl -p -i -e "s/\\\${hiveconf:agg.num.reduce.tasks}/$AGG_NUM_REDUCERS/g" $HEX_LOGS/substitutedAggQuery.hql
+      perl -p -i -e "s/\\\${hiveconf:hex.fact.table}/$FACT_TABLE/g" $HEX_LOGS/substitutedAggQuery.hql
+      perl -p -i -e "s/\\\${hiveconf:hex.db}/$AGG_DB/g" $HEX_LOGS/substitutedAggQuery.hql
+      perl -p -i -e "s/\\\${hiveconf:stage.db}/$STAGE_DB/g" $HEX_LOGS/substitutedAggQuery.hql
+      perl -p -i -e "s/\\\${hiveconf:hex.agg.table}/$AGG_TABLE/g" $HEX_LOGS/substitutedAggQuery.hql
+      perl -p -i -e "s/\\\${hiveconf:hex.agg.seed}/1000/g" $HEX_LOGS/substitutedAggQuery.hql
+      perl -p -i -e "s/\\\${hiveconf:hex.report.table}/$REPORT_TABLE/g" $HEX_LOGS/substitutedAggQuery.hql
+      perl -p -i -e "s/\\\${hiveconf:rep.where}/($BATCH_COND)/g" $HEX_LOGS/substitutedAggQuery.hql
       BATCH_COND=""
       REQ_COUNT=$(( REQ_COUNT - BATCH_COUNT ))
       BATCH_COUNT=0
@@ -518,7 +518,7 @@ else
       LOG_FILE_NAME="agg_"$DATE".log";
       _LOG "Starting Fact Aggregation Insert [log file: $HEX_LOGS/$LOG_FILE_NAME]"
       _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION_INSERT" "STARTED"
-      hive -f /tmp/substitutedAggQuery.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
+      hive -f $HEX_LOGS/substitutedAggQuery.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
         _LOG "HEX_FACT: Aggregation load FAILED. [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
