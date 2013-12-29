@@ -457,9 +457,25 @@ else
   echo "$PROP_DEST_STR_FINAL" > /tmp/prop_dest.lst
   echo "$SUPPLIER_PROP_STR_FINAL" > /tmp/sup_prop.lst
   
-  REQ_COUNT=`hive -hiveconf mapred.job.queue.name=edwdev -hiveconf mapred.min.split.size=1073741824 -e "select count(1) from etldata.etl_hex_reporting_requirements"`
-
-  VALS=`hive -hiveconf mapred.job.queue.name=edwdev -e "select concat(experiment_code, ',', version_number, ',', variant_code) from etldata.etl_hex_reporting_requirements;"`
+  REQ_COUNT=`hive -hiveconf mapred.job.queue.name=${JOB_QUEUE} -e "select count(1) from ${STAGE_DB}.${REPORT_TABLE}"`
+  ERROR_CODE=$?
+  if [[ $ERROR_CODE -ne 0 ]]; then
+    _LOG "HEX_FACT: Aggregation load FAILED while counting reporting rows. [ERROR_CODE=$ERROR_CODE]."
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
+      
+  VALS=`hive -hiveconf mapred.job.queue.name=${JOB_QUEUE} -e "select concat(experiment_code, ',', version_number, ',', variant_code) from ${STAGE_DB}.${REPORT_TABLE};"`
+  ERROR_CODE=$?
+  if [[ $ERROR_CODE -ne 0 ]]; then
+    _LOG "HEX_FACT: Aggregation load FAILED while fetching reporting rows. [ERROR_CODE=$ERROR_CODE]."
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
 
   _LOG "Total Reporting Requirements: $REQ_COUNT, Batch Size: $REP_BATCH_SIZE"
   BATCH_COUNT=0
