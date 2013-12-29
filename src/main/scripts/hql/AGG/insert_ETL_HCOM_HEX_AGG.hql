@@ -11,7 +11,7 @@ set mapred.max.split.size=256000000;
 set mapred.compress.map.output=true;
 set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 set mapred.reduce.tasks=${hiveconf:agg.num.reduce.tasks};
-set mapred.job.reduce.total.mem.bytes=99061748;
+-- set mapred.job.reduce.total.mem.bytes=99061748;
 set hive.exec.max.created.files=10000000;
 
 use ${hiveconf:hex.db};
@@ -242,7 +242,9 @@ insert overwrite table ${hiveconf:hex.agg.table} PARTITION (experiment_code,vers
                                                       product_manager,
                                                       pod,
                                                       experiment_test_id 
-                                                 from ${hiveconf:stage.db}.${hiveconf:hex.report.table}) rep 
+                                                 from ${hiveconf:stage.db}.${hiveconf:hex.report.table}
+                                                where ${hiveconf:rep.where}
+                                              ) rep 
                                            on metrics.variant_code=rep.variant_code 
                                           and metrics.experiment_code=rep.experiment_code 
                                           and metrics.version_number=rep.version_number) active_metrics

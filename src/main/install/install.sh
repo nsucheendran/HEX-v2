@@ -43,8 +43,9 @@ FACT_TABLE='ETL_HCOM_HEX_FACT'
 FACT_AGG_TABLE='RPT_HEXDM_AGG'
 REPORT_TABLE='etl_hex_reporting_requirements'
 REPORT_FILE='/autofs/edwfileserver/sherlock_in/HEX/HEXV2UAT/HEX_REPORTING_INPUT.csv'
-KEYS_COUNT_LIMIT=1000000;
-AGG_NUM_REDUCERS=1000;
+KEYS_COUNT_LIMIT=100000;
+AGG_NUM_REDUCERS=800;
+REP_BATCH_SIZE=300;
 FACT_LOAD_SPLIT_SIZE=1073741824;
 EMAIL_TO='agurumurthi@expedia.com,nsucheendran@expedia.com'
 EMAIL_CC='achadha@expedia.com,nsood@expedia.com'
@@ -505,6 +506,12 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "AGG_NUM_REDUCERS" "$AGG_NUM_REDUCERS"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REP_BATCH_SIZE" "$REP_BATCH_SIZE"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
