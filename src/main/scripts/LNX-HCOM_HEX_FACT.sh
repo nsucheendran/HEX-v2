@@ -167,42 +167,30 @@ then
     hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "use ${STAGE_DB}; alter table ${STAGE_TABLE} drop if exists partition (year_month='${CURR_YEAR}-${CURR_MONTH}', source='omniture');" >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
-      _END_PROCESS $RUN_ID $ERROR_CODE
-      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-      _FREE_LOCK $HWW_LOCK_NAME
-      exit 1
+      _LOG "WARN while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "WARN: $ERROR_CODE"
     fi
     
     hdfs dfs -rm -f "/data/HWW/${STAGE_DB}/${STAGE_TABLE}/year_month=${CURR_YEAR}-${CURR_MONTH}/source=omniture/*"
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
-      _END_PROCESS $RUN_ID $ERROR_CODE
-      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-      _FREE_LOCK $HWW_LOCK_NAME
-      exit 1
+      _LOG "WARN while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "WARN: $ERROR_CODE"
     fi
     
     _LOG "Dropping partition [year_month='$CURR_YEAR-$CURR_MONTH', source='booking'] from target: $STAGE_DB.$STAGE_TABLE"
     hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "use ${STAGE_DB}; alter table ${STAGE_TABLE} drop if exists partition (year_month='${CURR_YEAR}-${CURR_MONTH}', source='booking');" >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
-      _END_PROCESS $RUN_ID $ERROR_CODE
-      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-      _FREE_LOCK $HWW_LOCK_NAME
-      exit 1
+      _LOG "WARN while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "WARN: $ERROR_CODE"
     fi
-
+    
     hdfs dfs -rm -f "/data/HWW/${STAGE_DB}/${STAGE_TABLE}/year_month=${CURR_YEAR}-${CURR_MONTH}/source=booking/*"
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
-      _END_PROCESS $RUN_ID $ERROR_CODE
-      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-      _FREE_LOCK $HWW_LOCK_NAME
-      exit 1
+      _LOG "WARN while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "WARN: $ERROR_CODE"
     fi
     
     NEW_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%Y'`
