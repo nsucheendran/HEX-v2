@@ -84,7 +84,8 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, BytesWritable
             if (userAggTransData.getValue().getNetTransactions() > 0) {
                 numActivePurchasers++;
             }
-            if (userAggTransData.getValue().isPurchaser() && userAggTransData.getValue().getNetTransactions() == 0) {
+            if ((userAggTransData.getValue().isPurchaser() || userAggTransData.getValue().isCanceller())
+                    && userAggTransData.getValue().getNetTransactions() <= 0) {
                 numNilNetOrdersPurchasers++;
             }
             numCancellations += userAggTransData.getValue().getNumCancellations();

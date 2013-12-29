@@ -47,7 +47,7 @@ insert overwrite table hwwdev.ETL_HCOM_HEX_FACT partition(experiment_code, versi
         case when max(max_trans_by_itin)>0 then 1 else 0 end as unique_purchaser, 
         case when min(min_trans_by_itin)<0 then 1 else 0 end as unique_canceller, 
         case when sum(num_trans_by_itin)>0 then 1 else 0 end as active_purchaser, 
-        case when (max(max_trans_by_itin)>0 and sum(num_trans_by_itin)==0) then 1 else 0 end as nil_net_order_purchaser, 
+        case when (sum(num_trans_by_itin)<=0) then 1 else 0 end as nil_net_order_purchaser, 
         sum(cancellation_by_itin) as num_cancellations, 
         sum(num_trans_by_itin) as net_orders, 
         sum(net_bkg_gbv_by_itin) as net_bkg_gbv, 
