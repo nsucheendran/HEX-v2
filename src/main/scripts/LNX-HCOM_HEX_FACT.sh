@@ -496,10 +496,10 @@ else
     if [ $BATCH_COUNT -eq $REP_BATCH_SIZE ] || [ $BATCH_COUNT -eq $REQ_COUNT ] 
     then
       _LOG "Current Batch Size: $BATCH_COUNT. Remaining: $REQ_COUNT"
-      perl -pe 'BEGIN{open F,"$HEX_LOGS/mktg_seo.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.randomize.array}#@f#' $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql > $HEX_LOGS/temp.hql
-      perl -pe 'BEGIN{open F,"$HEX_LOGS/mktg_seo_direct.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.direct.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/substitutedAggQuery.hql
-      perl -pe 'BEGIN{open F,"$HEX_LOGS/prop_dest.lst";@f=<F>}s#\${hiveconf:hex.agg.pd.randomize.array}#@f#' $HEX_LOGS/substitutedAggQuery.hql > $HEX_LOGS/temp.hql
-      perl -pe 'BEGIN{open F,"$HEX_LOGS/sup_prop.lst";@f=<F>}s#\${hiveconf:hex.agg.sp.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/substitutedAggQuery.hql
+      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.randomize.array}#@f#' $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql > $HEX_LOGS/temp.hql
+      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo_direct.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.direct.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/substitutedAggQuery.hql
+      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/prop_dest.lst";@f=<F>}s#\${hiveconf:hex.agg.pd.randomize.array}#@f#' $HEX_LOGS/substitutedAggQuery.hql > $HEX_LOGS/temp.hql
+      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/sup_prop.lst";@f=<F>}s#\${hiveconf:hex.agg.sp.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/substitutedAggQuery.hql
   
       perl -p -i -e "s/\\\${hiveconf:job.queue}/$JOB_QUEUE/g" $HEX_LOGS/substitutedAggQuery.hql
       perl -p -i -e "s/\\\${hiveconf:agg.num.reduce.tasks}/$AGG_NUM_REDUCERS/g" $HEX_LOGS/substitutedAggQuery.hql
