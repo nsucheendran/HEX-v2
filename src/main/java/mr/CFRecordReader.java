@@ -1,4 +1,4 @@
-package mr.aggregation;
+package mr;
 
 import java.io.IOException;
 

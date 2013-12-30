@@ -86,9 +86,18 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
                                case when (c44 = '' or c44 is null) then 'Unknown' else c44 end as guid
                           from etl.etl_hcom_hit_data LATERAL VIEW explode(matchAndApplyPattern(split(concat_ws(',',c154,c281),','), "([^\\.]*)([\\.])(.*)", "$1$2%", true)) tt as test_variant_code
                          where test_variant_code <> '' and test_variant_code NOT like '%.UID.%'
-                           and ((local_date = '${hiveconf:start.date}' and local_hour >= ${hiveconf:start.hour}) or
-                                (local_date = '${hiveconf:end.date}' and local_hour <= ${hiveconf:end.hour}) or
-                                (local_date > '${hiveconf:start.date}' and local_date < '${hiveconf:end.date}')
+                           and (   (    ${hiveconf:start.date} < local_date 
+                                 and local_date < ${hiveconf:end.date}) 
+                             or (    ${hiveconf:start.date} = ${hiveconf:end.date} 
+                                 and ${hiveconf:start.date} = local_date 
+                                 and ${hiveconf:start.hour} <= local_hour
+                                 and local_hour <= ${hiveconf:end.hour})
+                             or (    ${hiveconf:start.date} = local_date 
+                                 and local_date < ${hiveconf:end.date} 
+                                 and local_hour >= ${hiveconf:start.hour})   
+                             or (    local_date = ${hiveconf:end.date} 
+                                 and ${hiveconf:start.date} < local_date 
+                                 and local_hour <= ${hiveconf:end.hour})
                                )
                            and is_ip_excluded = false AND is_user_agent_excluded = false and is_excluded_hit = false
                            and (length(trim(c154)) > 0 or length(trim(c281)) > 0) 

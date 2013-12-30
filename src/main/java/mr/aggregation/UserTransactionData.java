@@ -1,6 +1,7 @@
-package mr.dto;
+package mr.aggregation;
 
 import static mr.utils.Utils.coalesce;
+import mr.dto.TextMultiple;
 
 public class UserTransactionData {
     private String transDate;

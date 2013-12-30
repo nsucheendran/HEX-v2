@@ -1,7 +1,7 @@
 package mr.segmentation;
 
-import static mr.Constants.TAB_SEP_PATTERN;
-import static mr.utils.Utils.coalesce; 
+import static mr.Constants.TAB_SEP_PATTERN; 
+import static mr.utils.Utils.coalesce;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -18,14 +18,16 @@ public class DenormalizedSegmentationMapper extends Mapper<BytesWritable, Text, 
     private int[] lhsKeyPositions;
     private int[] lhsValPositions;
     private int[] rhsKeyPositions;
-    // private int[] rhsValPositions;
-    private final Map<Integer, Integer> eqJoin = new HashMap<Integer, Integer>();
-    private final Map<Integer, Integer> lteJoin = new HashMap<Integer, Integer>();
-    private final Map<Integer, Integer> gteJoin = new HashMap<Integer, Integer>();
+    private TextMultiple keysout;
+    private TextMultiple valsout;
+    private String[] rkeys;
+
     private String[][] rtable;
+    private FilterCondition eqJoiner, lteJoiner, gteJoiner;
 
     public DenormalizedSegmentationMapper() {
         super();
+
     }
 
     private final void parsePosMap(Map<Integer, Integer> output, String conf) {
@@ -45,6 +47,15 @@ public class DenormalizedSegmentationMapper extends Mapper<BytesWritable, Text, 
 
         rhsKeyPositions = getPositions(context, "rhsKeys");
 
+        keysout = new TextMultiple(new String[lhsKeyPositions.length + rhsKeyPositions.length]);
+        valsout = new TextMultiple(new String[lhsValPositions.length]);
+        rkeys = new String[rhsKeyPositions.length];
+        // lhs-rhs mapped positions of join-participant columns
+        // all join conditions are combined into a logical conjunction
+        // of match conditions
+        Map<Integer, Integer> eqJoin = new HashMap<Integer, Integer>();
+        Map<Integer, Integer> lteJoin = new HashMap<Integer, Integer>();
+        Map<Integer, Integer> gteJoin = new HashMap<Integer, Integer>();
         parsePosMap(eqJoin, context.getConfiguration().get("eqjoin"));
         parsePosMap(lteJoin, context.getConfiguration().get("ltejoin"));
         parsePosMap(gteJoin, context.getConfiguration().get("gtejoin"));
@@ -56,6 +67,29 @@ public class DenormalizedSegmentationMapper extends Mapper<BytesWritable, Text, 
             rtable[i++] = line.split("\t");
         }
 
+        // joiners encapsulate the join condition applications represented by the corresponding
+        // position maps
+        eqJoiner = new FilterCondition(eqJoin) {
+
+            @Override
+            protected boolean checkCondition(String lval, String rval) {
+                return lval.equals(rval);
+            }
+        };
+        lteJoiner = new FilterCondition(lteJoin) {
+
+            @Override
+            protected boolean checkCondition(String lval, String rval) {
+                return coalesce(lval, "0").compareTo(rval) <= 0;
+            }
+        };
+        gteJoiner = new FilterCondition(gteJoin) {
+
+            @Override
+            protected boolean checkCondition(String lval, String rval) {
+                return coalesce(lval, "9").compareTo(rval) >= 0;
+            }
+        };
     }
 
     private int[] getPositions(Context context, String attr) {
@@ -68,63 +102,61 @@ public class DenormalizedSegmentationMapper extends Mapper<BytesWritable, Text, 
         return positions;
     }
 
-    private final String[] filter(String[] lrow) {
+    /*
+     * helper class whose derivatives encapsulate join logic as specified by configuration of the context from the job
+     */
+    private static abstract class FilterCondition {
+        private final Map<Integer, Integer> joinMap;
 
-        for (String[] rrow : rtable) {
+        public FilterCondition(Map<Integer, Integer> joinMap) {
+            this.joinMap = joinMap;
+        }
+
+        protected abstract boolean checkCondition(String lval, String rval);
+
+        public final boolean satisfiedBy(String[] lrow, String[] rrow) {
             boolean res = true;
-            for (int lpos : eqJoin.keySet()) {
-                int rpos = eqJoin.get(lpos);
-                res = lrow[lpos].equals(rrow[rpos]);
+            for (int lpos : joinMap.keySet()) {
+                int rpos = joinMap.get(lpos);
+                res = checkCondition(lrow[lpos], rrow[rpos]);
                 if (!res) {
                     break;
                 }
             }
-            if (res) {
-                for (int lpos : lteJoin.keySet()) {
-                    int rpos = lteJoin.get(lpos);
-                    res = coalesce(lrow[lpos], "0").compareTo(rrow[rpos]) <= 0;
-                    if (!res) {
-                        break;
-                    }
-                }
-            }
-            if (res) {
-                for (int lpos : gteJoin.keySet()) {
-                    int rpos = gteJoin.get(lpos);
-                    res = coalesce(lrow[lpos], "9").compareTo(rrow[rpos]) >= 0;
-                    if (!res) {
-                        break;
-                    }
-                }
-            }
-            if (res) {
-                return stripe(rrow, rhsKeyPositions);
-            }
+            return res;
         }
-        return null;
+
     }
 
-    private String[] stripe(String[] rrow, int[] pos) {
-        String[] row = new String[pos.length];
+    /*
+     * apply rtable (smaller table) as a filter and emit non-null rtable rows iff the lrow passes the join criteria (technically not
+     * inner/right-outer join, but practically an inner join where the join key combinations are assumed to be unique in rtable)
+     */
+    private final boolean filter(String[] lrow, String[] row) {
+        for (String[] rrow : rtable) {
+            if (eqJoiner.satisfiedBy(lrow, rrow) && lteJoiner.satisfiedBy(lrow, rrow) && gteJoiner.satisfiedBy(lrow, rrow)) {
+                stripe(rrow, rhsKeyPositions, row);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void stripe(String[] rrow, int[] pos, String[] row) {
         int i = 0;
         for (int p : pos) {
             row[i++] = rrow[p];
         }
-        return row;
     }
-/*
+
     @Override
     public void map(BytesWritable ignored, Text value, Context context) throws IOException, InterruptedException {
         String[] columns = TAB_SEP_PATTERN.split(value.toString());
-        String[] rkeys = filter(columns);
-        if (rkeys != null) {
-            TextMultiple keys = new TextMultiple(columns, lhsKeyPositions);
-            TextMultiple vals = new TextMultiple(columns, lhsValPositions);
 
-            keys = new TextMultiple(keys, rkeys);
-
-            context.write(keys, vals);
+        if (filter(columns, rkeys)) {
+            keysout.stripeAppend(columns, lhsKeyPositions, rkeys);
+            valsout.stripeAppend(columns, lhsValPositions);
+            context.write(keysout, valsout);
         }
-    }*/
+    }
 }
-

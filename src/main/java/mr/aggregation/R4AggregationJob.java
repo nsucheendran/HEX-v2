@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import mr.CFInputFormat;
 import mr.Constants;
 
 import org.apache.commons.cli.Options;
@@ -32,7 +33,7 @@ import org.apache.thrift.TException;
 
 /*
  * MapReduce job that emulates the hiveql at
- * <link>github.com/ExpediaEDW/edw-HEXHadoopETL/src/main/scripts/hql/FACT/insertTable_ETL_HCOM_HEX_FACT.hql</link>
+ * <link>github.com/ExpediaEDW/edw-HEXHadoopETL/src/main/scripts/hql/FACT/insertTable_ETL_HCOM_HEX_FACT_ALT.hql</link>
  * (and runs faster trading MR steps for reducer memory)
  * 
  * @author nsood
@@ -41,7 +42,6 @@ import org.apache.thrift.TException;
 public final class R4AggregationJob extends Configured implements Tool {
     private static final Logger log = Logger.getLogger(R4AggregationJob.class);
     private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
-    private static final String logsDirName = "_logs";
 
     // private Pattern partitionDirPattern; // = Pattern.compile("(.*)(" + jobName + ")(\\/)(.*)(\\/)(^\\/)*");
     // private Pattern partitionBkupDirPattern; // = Pattern.compile("(.*)(" + jobName + "bkup)(\\/)(.*)(\\/)(^\\/)*");

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import mr.CFInputFormat;
 import mr.Constants;
 import mr.dto.TextMultiple;
 

@@ -1,4 +1,4 @@
-package mr.dto;
+package mr.aggregation;
 
 import java.util.HashMap;
 import java.util.Map;

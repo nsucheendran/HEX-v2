@@ -8,9 +8,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import mr.aggregation.UserTransactionData;
+import mr.aggregation.UserTransactionsAggregatedData;
 import mr.dto.TextMultiple;
-import mr.dto.UserTransactionData;
-import mr.dto.UserTransactionsAggregatedData;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;

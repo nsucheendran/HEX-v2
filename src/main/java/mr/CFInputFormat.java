@@ -1,4 +1,4 @@
-package mr.aggregation;
+package mr;
 
 import java.io.IOException;
 
@@ -22,7 +22,7 @@ public class CFInputFormat extends CombineFileInputFormat<BytesWritable, Text> {
     public RecordReader<BytesWritable, Text> createRecordReader(
             InputSplit split, TaskAttemptContext context) throws IOException {
         return new CombineFileRecordReader<BytesWritable, Text>(
-                (CombineFileSplit) split, context, (Class) CFRecordReader.class);
+                (CombineFileSplit) split, context, CFRecordReader.class);
     }
 
     @Override

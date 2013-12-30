@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import mr.dto.TextMultiple;
-import mr.dto.UserTransactionData;
-import mr.dto.UserTransactionsAggregatedData;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
