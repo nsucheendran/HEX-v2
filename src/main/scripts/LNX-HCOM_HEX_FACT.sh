@@ -381,6 +381,7 @@ else
   _LOG "Starting Fact Aggregation Load" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "STARTED"
   
+  _LOG "Fetching High Frequence Keys for Column all_mktg_seo_30_day" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   MKTG_SEO_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ all_mktg_seo_30_day from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by all_mktg_seo_30_day having count(*)>${KEYS_COUNT_LIMIT};"`
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
@@ -396,6 +397,7 @@ else
   MKTG_SEO_STR_FINAL=${MKTG_SEO_STR_FINAL:${#delimiter}};
   MKTG_SEO_STR_FINAL="array('"${MKTG_SEO_STR_FINAL}"')";
 
+  _LOG "Fetching High Frequence Keys for Column all_mktg_seo_30_day_direct" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   MKTG_SEO_DIRECT_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ all_mktg_seo_30_day_direct from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by all_mktg_seo_30_day_direct having count(*)>${KEYS_COUNT_LIMIT};"`
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
@@ -410,6 +412,7 @@ else
   MKTG_SEO_DIRECT_STR_FINAL=${MKTG_SEO_DIRECT_STR_FINAL:${#delimiter}};
   MKTG_SEO_DIRECT_STR_FINAL="array('"${MKTG_SEO_DIRECT_STR_FINAL}"')";
 
+  _LOG "Fetching High Frequence Keys for Column property_destination_id" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   PROP_DEST_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ property_destination_id from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by property_destination_id having count(*)>${KEYS_COUNT_LIMIT};"`
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
@@ -425,6 +428,7 @@ else
   PROP_DEST_STR_FINAL=${PROP_DEST_STR_FINAL:${#delimiter}};
   PROP_DEST_STR_FINAL="array('"${PROP_DEST_STR_FINAL}"')";
 
+  _LOG "Fetching High Frequence Keys for Column supplier_property_id" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   SUPPLIER_PROP_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ supplier_property_id from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by supplier_property_id having count(*)>${KEYS_COUNT_LIMIT};"`
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
@@ -445,16 +449,18 @@ else
   echo "$PROP_DEST_STR_FINAL" > $HEX_LOGS/prop_dest.lst
   echo "$SUPPLIER_PROP_STR_FINAL" > $HEX_LOGS/sup_prop.lst
   
-#  REQ_COUNT=`hive -hiveconf mapred.job.queue.name=${JOB_QUEUE} -e "select count(1) from ${STAGE_DB}.${REPORT_TABLE}"`
-#  ERROR_CODE=$?
-#  if [[ $ERROR_CODE -ne 0 ]]; then
-#    _LOG "HEX_FACT: Aggregation load FAILED while counting reporting rows. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-#    _END_PROCESS $RUN_ID $ERROR_CODE
-#    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-#    _FREE_LOCK $HWW_LOCK_NAME
-#    exit 1
-#  fi
+  _LOG "Fetching Reporting Requirements Count" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  REQ_COUNT=`hive -hiveconf mapred.job.queue.name=${JOB_QUEUE} -e "select count(1) from ${STAGE_DB}.${REPORT_TABLE}"`
+  ERROR_CODE=$?
+  if [[ $ERROR_CODE -ne 0 ]]; then
+    _LOG "HEX_FACT: Aggregation load FAILED while counting reporting rows. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
       
+  _LOG "Fetching Reporting Requirements for Batching" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   VALS=`hive -hiveconf mapred.job.queue.name=${JOB_QUEUE} -e "select concat(experiment_code, ',', version_number, ',', variant_code) from ${STAGE_DB}.${REPORT_TABLE};"`
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
@@ -468,12 +474,25 @@ else
   BATCH_COUNT=0
   BATCH_COND=""
   arr=$(echo $VALS | tr " " "\n")
-  REQ_COUNT=${#arr[@]}
   _LOG "Total Reporting Requirements: $REQ_COUNT, Batch Size: $REP_BATCH_SIZE" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   for x in $arr
   do
     inarr=$(echo $x | tr "," "\n")
-    CURR_FILTER="(experiment_code='${inarr[0]}' and version_number=${inarr[1]} and variant_code='${inarr[2]}')"
+    i=0
+    for y in $inarr
+    do
+      if [ 0 -eq $i ]
+      then
+        EXP=$y
+      elif [ 1 -eq $i ]
+      then
+        VER=$y
+      else
+        VAR=$y
+      fi
+      i=$(( i + 1 ))
+    done
+    CURR_FILTER="(experiment_code='$EXP' and version_number=$VER and variant_code='$VAR')"
     if [ -n "$BATCH_COND" ];
     then
       BATCH_COND="$BATCH_COND or "
@@ -483,12 +502,15 @@ else
     
     if [ $BATCH_COUNT -eq $REP_BATCH_SIZE ] || [ $BATCH_COUNT -eq $REQ_COUNT ] 
     then
+      echo "$BATCH_COND" > $HEX_LOGS/batch_cond.lst
+      BATCH_COND=""
       _LOG "Current Batch Size: $BATCH_COUNT. Remaining: $REQ_COUNT" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.randomize.array}#@f#' $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql > $HEX_LOGS/temp.hql
-      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo_direct.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.direct.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/substitutedAggQuery.hql
-      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/prop_dest.lst";@f=<F>}s#\${hiveconf:hex.agg.pd.randomize.array}#@f#' $HEX_LOGS/substitutedAggQuery.hql > $HEX_LOGS/temp.hql
-      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/sup_prop.lst";@f=<F>}s#\${hiveconf:hex.agg.sp.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/substitutedAggQuery.hql
-  
+      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo_direct.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.direct.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/temp2.hql
+      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/prop_dest.lst";@f=<F>}s#\${hiveconf:hex.agg.pd.randomize.array}#@f#' $HEX_LOGS/temp2.hql > $HEX_LOGS/temp.hql
+      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/sup_prop.lst";@f=<F>}s#\${hiveconf:hex.agg.sp.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/temp2.hql
+      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/batch_cond.lst";@f=<F>}s#\${hiveconf:rep.where}#@f#' $HEX_LOGS/temp2.hql > $HEX_LOGS/substitutedAggQuery.hql
+      
       perl -p -i -e "s/\\\${hiveconf:job.queue}/$JOB_QUEUE/g" $HEX_LOGS/substitutedAggQuery.hql
       perl -p -i -e "s/\\\${hiveconf:agg.num.reduce.tasks}/$AGG_NUM_REDUCERS/g" $HEX_LOGS/substitutedAggQuery.hql
       perl -p -i -e "s/\\\${hiveconf:hex.fact.table}/$FACT_TABLE/g" $HEX_LOGS/substitutedAggQuery.hql
@@ -497,8 +519,6 @@ else
       perl -p -i -e "s/\\\${hiveconf:hex.agg.table}/$AGG_TABLE/g" $HEX_LOGS/substitutedAggQuery.hql
       perl -p -i -e "s/\\\${hiveconf:hex.agg.seed}/1000/g" $HEX_LOGS/substitutedAggQuery.hql
       perl -p -i -e "s/\\\${hiveconf:hex.report.table}/$REPORT_TABLE/g" $HEX_LOGS/substitutedAggQuery.hql
-      perl -p -i -e "s/\\\${hiveconf:rep.where}/($BATCH_COND)/g" $HEX_LOGS/substitutedAggQuery.hql
-      BATCH_COND=""
       REQ_COUNT=$(( REQ_COUNT - BATCH_COUNT ))
       BATCH_COUNT=0
     

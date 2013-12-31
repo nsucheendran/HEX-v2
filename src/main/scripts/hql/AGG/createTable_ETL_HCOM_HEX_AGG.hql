@@ -91,9 +91,8 @@ num_repeat_purchasers bigint
 experiment_code string,
 version_number smallint,
 variant_code string
-) 
-ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t' 
-stored as textfile
+)
+stored as sequencefile
 LOCATION "/data/HWW/${hiveconf:hex.db}/${hiveconf:hex.table}";
 
 ALTER TABLE ${hiveconf:hex.table} ENABLE NO_DROP;
