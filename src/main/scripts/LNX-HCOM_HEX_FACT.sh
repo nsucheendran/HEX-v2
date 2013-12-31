@@ -448,7 +448,16 @@ else
   echo "$MKTG_SEO_DIRECT_STR_FINAL" > $HEX_LOGS/mktg_seo_direct.lst
   echo "$PROP_DEST_STR_FINAL" > $HEX_LOGS/prop_dest.lst
   echo "$SUPPLIER_PROP_STR_FINAL" > $HEX_LOGS/sup_prop.lst
+  MKTG_SEO_STR_FINAL=""
+  MKTG_SEO_DIRECT_STR_FINAL=""
+  PROP_DEST_STR_FINAL=""
+  SUPPLIER_PROP_STR_FINAL=""
   
+  perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.randomize.array}#@f#' $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql > $HEX_LOGS/temp.hql
+  perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo_direct.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.direct.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/temp2.hql
+  perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/prop_dest.lst";@f=<F>}s#\${hiveconf:hex.agg.pd.randomize.array}#@f#' $HEX_LOGS/temp2.hql > $HEX_LOGS/temp.hql
+  perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/sup_prop.lst";@f=<F>}s#\${hiveconf:hex.agg.sp.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/temp2.hql
+      
   _LOG "Fetching Reporting Requirements Count" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   REQ_COUNT=`hive -hiveconf mapred.job.queue.name=${JOB_QUEUE} -e "select count(1) from ${STAGE_DB}.${REPORT_TABLE}"`
   ERROR_CODE=$?
@@ -505,10 +514,6 @@ else
       echo "$BATCH_COND" > $HEX_LOGS/batch_cond.lst
       BATCH_COND=""
       _LOG "Current Batch Size: $BATCH_COUNT. Remaining: $REQ_COUNT" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.randomize.array}#@f#' $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql > $HEX_LOGS/temp.hql
-      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo_direct.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.direct.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/temp2.hql
-      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/prop_dest.lst";@f=<F>}s#\${hiveconf:hex.agg.pd.randomize.array}#@f#' $HEX_LOGS/temp2.hql > $HEX_LOGS/temp.hql
-      perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/sup_prop.lst";@f=<F>}s#\${hiveconf:hex.agg.sp.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/temp2.hql
       perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/batch_cond.lst";@f=<F>}s#\${hiveconf:rep.where}#@f#' $HEX_LOGS/temp2.hql > $HEX_LOGS/substitutedAggQuery.hql
       
       perl -p -i -e "s/\\\${hiveconf:job.queue}/$JOB_QUEUE/g" $HEX_LOGS/substitutedAggQuery.hql
