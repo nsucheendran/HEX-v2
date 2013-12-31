@@ -36,7 +36,7 @@ STAGE_NAME="OMNI_HIT: HEX First Assignment Hit"
 _LOG_START_STAGE "$STAGE_NAME"
 
 PROCESS_NAME="ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS"
-_LOG "PROCESS_NAME=[$PROCESS_NAME]"
+_LOG "PROCESS_NAME=[$PROCESS_NAME]" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
 
 ERROR_CODE=0
 
@@ -44,14 +44,14 @@ PROCESS_ID=$(_GET_PROCESS_ID "$PROCESS_NAME");
 RETURN_CODE="$?"
 
 if [ "$PROCESS_ID" == "" ] || (( $RETURN_CODE != 0 )); then
-  _LOG "ERROR: Process [$PROCESS_NAME] does not exist in HEMS"
+  _LOG "ERROR: Process [$PROCESS_NAME] does not exist in HEMS" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
   ERROR_CODE=1
   _FREE_LOCK $HWW_FAH_LOCK_NAME
   exit 1;
 else
   RUN_ID=$(_RUN_PROCESS $PROCESS_ID "$PROCESS_NAME")
-  _LOG "PROCESS_ID=[$PROCESS_ID]"
-  _LOG "RUN_ID=[$RUN_ID]"
+  _LOG "PROCESS_ID=[$PROCESS_ID]" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
+  _LOG "RUN_ID=[$RUN_ID]" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
   _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "STARTED"
 fi
 
@@ -71,8 +71,8 @@ then
   EMAIL_RECIPIENTS="-c $EMAIL_CC $EMAIL_RECIPIENTS"
 fi
 
-_LOG "PROCESSING_TYPE=$PROCESSING_TYPE"
-_LOG "BOOKMARK=$LAST_DT"
+_LOG "PROCESSING_TYPE=$PROCESSING_TYPE" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
+_LOG "BOOKMARK=$LAST_DT" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
 
 _LOG_PROCESS_DETAIL $RUN_ID "BEFORE_BOOKMARK" "$LAST_DT"
 _LOG_PROCESS_DETAIL $RUN_ID "PROCESSING_TYPE" "$PROCESSING_TYPE"
@@ -86,7 +86,7 @@ then
   END_MONTH=`date --date="${LAST_DT}" '+%m'`
 
   REPROCESS_SCOPE=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPROCESS_SCOPE"`
-  _LOG "Starting Reprocessing [REPROCESS_SCOPE=$REPROCESS_SCOPE] for period: $START_YEAR-$START_MONTH to $END_YEAR-$END_MONTH (BOOKMARK=[$LAST_DT])"
+  _LOG "Starting Reprocessing [REPROCESS_SCOPE=$REPROCESS_SCOPE] for period: $START_YEAR-$START_MONTH to $END_YEAR-$END_MONTH (BOOKMARK=[$LAST_DT])" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
 
   # drop monthly partitions that need to be reprocessed. reprocessing can only be specified at a year-month grain.
   if [ $REPROCESS_SCOPE = "OMNI_HIT" -o $REPROCESS_SCOPE = "OMNI_HIT_TRANS" ];
@@ -97,11 +97,11 @@ then
     do
       LOG_FILE_NAME="hdp_first_assignment_hit_drop_partition_${CURR_YEAR}-${CURR_MONTH}.log"
 
-      _LOG "Dropping partition [$CURR_YEAR-$CURR_MONTH] from target: $FAH_DB.$FAH_TABLE"
+      _LOG "Dropping partition [$CURR_YEAR-$CURR_MONTH] from target: $FAH_DB.$FAH_TABLE" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
       hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_OMNI_HIT/delete_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
-        _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]"
+        _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
       fi
 
       NEW_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%Y'`
@@ -118,11 +118,11 @@ then
     do
       LOG_FILE_NAME="hdp_transactions_omni_drop_partition_${CURR_YEAR}-${CURR_MONTH}.log"
 
-      _LOG "Dropping partition [$CURR_YEAR-$CURR_MONTH] from target: $FAH_DB.$TRANS_TABLE"
+      _LOG "Dropping partition [$CURR_YEAR-$CURR_MONTH] from target: $FAH_DB.$TRANS_TABLE" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
       hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf part.source="omniture" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_TRANS/delete_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
-        _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]"
+        _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
       fi
 
       NEW_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%Y'`
@@ -152,13 +152,13 @@ then
     END_HOUR=`echo "$END_DT"|cut -f2 -d":"`
     LOG_FILE_NAME="hdp_first_assignment_hit_reprocess_${START_DATE}:${START_HOUR}-${END_DATE}:${END_HOUR}.log"
 
-    _LOG "Reprocessing First Assignment Hit data between [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] in target: $FAH_DB.$FAH_TABLE"
+    _LOG "Reprocessing First Assignment Hit data between [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] in target: $FAH_DB.$FAH_TABLE" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
 
     if [ $REPROCESS_SCOPE = "OMNI_HIT" -o $REPROCESS_SCOPE = "OMNI_HIT_TRANS" ]; then
       hive -hiveconf into.overwrite="overwrite" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_OMNI_HIT/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 & 
     fi
 
-    _LOG "Reprocessing Omniture Transactions data between [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] in target: $FAH_DB.$TRANS_TABLE"
+    _LOG "Reprocessing Omniture Transactions data between [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] in target: $FAH_DB.$TRANS_TABLE" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
 
     if [ $REPROCESS_SCOPE = "OMNI_TRANS" -o $REPROCESS_SCOPE = "OMNI_HIT_TRANS" ]; then
       hive -hiveconf into.overwrite="overwrite" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_OMNI_TRANS/insert_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 & 
@@ -168,7 +168,7 @@ then
       fg
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
-        _LOG "OMNI_TRANS: Omniture Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
+        _LOG "OMNI_TRANS: Omniture Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
         _END_PROCESS $RUN_ID $ERROR_CODE
         _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
         _FREE_LOCK $HWW_FAH_LOCK_NAME
@@ -180,7 +180,7 @@ then
       fg
       ERROR_CODE=$?
       if [[ $ERROR_CODE -ne 0 ]]; then
-        _LOG "OMNI_HIT: First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
+        _LOG "OMNI_HIT: First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
         _END_PROCESS $RUN_ID $ERROR_CODE
         _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
         _FREE_LOCK $HWW_FAH_LOCK_NAME
@@ -192,20 +192,20 @@ then
     CURR_MONTH=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%m'`
     CURR_YEAR=$NEW_YEAR
   done
-  _LOG "Done Reprocessing"
+  _LOG "Done Reprocessing" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
 
   if [ -z "$LAST_DT" ]; then
-    _LOG "Updating BOOKMARK (since none existed) as $END_DATE $END_HOUR"
+    _LOG "Updating BOOKMARK (since none existed) as $END_DATE $END_HOUR" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
     `_WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DATE $END_HOUR"`
   fi
   _LOG_PROCESS_DETAIL $RUN_ID "AFTER_BOOKMARK" "$END_DATE $END_HOUR"
-  _LOG "Setting PROCESSING_TYPE to [D] for next run"
+  _LOG "Setting PROCESSING_TYPE to [D] for next run" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
   `_WRITE_PROCESS_CONTEXT "$PROCESS_ID" "PROCESSING_TYPE" "D"`
   
 else
   # daily incremental load: uses list files to determine max contiguous delta upto 24 hrs available at source from the bookmark date
 
-  _LOG "Incremental First Assignment Hit data load (BOOKMARK=[$LAST_DT])"
+  _LOG "Incremental First Assignment Hit data load (BOOKMARK=[$LAST_DT])" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
   START_DT=`date -u --date="${LAST_DT} +1 hours" '+%Y-%m-%d:%H'`
   FILTER_YM=`date --date="${LAST_DT} -1 years" '+%Y-%m'`
   CURR_DATE=$LAST_DT
@@ -222,7 +222,7 @@ else
   done
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE] while trying to derive delta range"
+    _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE] while trying to derive delta range" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
     _END_PROCESS $RUN_ID $ERROR_CODE
     _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
     _FREE_LOCK $HWW_FAH_LOCK_NAME
@@ -234,46 +234,46 @@ else
     END_DATE=`echo "$END_DT"|cut -f1 -d":"`
     END_HOUR=`echo "$END_DT"|cut -f2 -d":"`
     LOG_FILE_NAME="hdp_hcom_hex_first_assignment_hit_${START_DATE}:${START_HOUR}-${END_DATE}:${END_HOUR}.log"
-    _LOG "Running First Assignment Hit incremental load for period: [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] (BOOKMARK=[$LAST_DT])"
+    _LOG "Running First Assignment Hit incremental load for period: [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] (BOOKMARK=[$LAST_DT])" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
     hive -hiveconf into.overwrite="into" -hiveconf start.ym="${FILTER_YM}" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_OMNI_HIT/insert_ETL_HEX_ASSIGNMENT_HIT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 & 
     
-    _LOG "Running Omniture Transactions incremental load for period: [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] (BOOKMARK=[$LAST_DT])"
+    _LOG "Running Omniture Transactions incremental load for period: [$START_DATE:$START_HOUR to $END_DATE:$END_HOUR] (BOOKMARK=[$LAST_DT])" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
     hive -hiveconf into.overwrite="into" -hiveconf start.date="${START_DATE}" -hiveconf start.hour="${START_HOUR}" -hiveconf end.date="${END_DATE}" -hiveconf end.hour="${END_HOUR}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.trans.table="${TRANS_TABLE}" -f $SCRIPT_PATH_OMNI_TRANS/insert_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "Omniture Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
+      _LOG "Omniture Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
       _FREE_LOCK $HWW_FAH_LOCK_NAME
       exit 1
     fi
-    _LOG "Omniture Transactions incremental load done."
+    _LOG "Omniture Transactions incremental load done." $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
 
     fg
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information."
+      _LOG "First Assignment Hit load FAILED [ERROR_CODE=$ERROR_CODE]. [see $HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
       _FREE_LOCK $HWW_FAH_LOCK_NAME
       exit 1
     fi
-    _LOG "First Assignment Hit incremental load done."
+    _LOG "First Assignment Hit incremental load done." $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
 
     _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DATE $END_HOUR"
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!"
+      _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
       _FREE_LOCK $HWW_FAH_LOCK_NAME
       exit 1
     fi
     _LOG_PROCESS_DETAIL $RUN_ID "AFTER_BOOKMARK" "$END_DATE $END_HOUR"
-    _LOG "Updated Bookmark to [$END_DATE $END_HOUR]"
+    _LOG "Updated Bookmark to [$END_DATE $END_HOUR]" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
   else
     _LOG_PROCESS_DETAIL $RUN_ID "AFTER_BOOKMARK" "$LAST_DT"
     echo -e "====================================================================================================================================================================\nContiguous delta not found from BOOKMARK=[$LAST_DT] in source.\nCheck source data availability & list files (Refer to documentation : https://confluence/pages/viewpage.action?pageId=420855780)\n\nScript name: $0\n====================================================================================================================================================================\n" | mailx -s "HWW HEX Alert (ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS) : No incremental data in source to process (Last Bookmark Date - ${LAST_DT})" $EMAIL_RECIPIENTS
-    _LOG "Contiguous delta not found from BOOKMARK=[$LAST_DT]. Nothing to do."
+    _LOG "Contiguous delta not found from BOOKMARK=[$LAST_DT]. Nothing to do." $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
   fi
 fi
 
@@ -281,5 +281,5 @@ _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "SUCCESS"
 _END_PROCESS $RUN_ID $ERROR_CODE
 _FREE_LOCK $HWW_FAH_LOCK_NAME
 
-_LOG "Job completed successfully"
+_LOG "Job completed successfully" $HEX_LOGS/LNX-HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS.log
 
