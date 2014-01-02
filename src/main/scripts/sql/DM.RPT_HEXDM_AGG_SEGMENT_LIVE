@@ -1,4 +1,3 @@
-
    ------------------------------------------------------------------------
    -- Copyright 2013 Expedia, Inc
    --
@@ -15,6 +14,9 @@
 CALL DBADM.SP_DROP_TABLE('DM','RPT_HEXDM_AGG_SEGMENT_LIVE');
 
 CREATE TABLE DM.RPT_HEXDM_AGG_SEGMENT_LIVE (
+  RPT_HEX_AGG_KEY    BIGINT,
+  SEGMENT_NUMBER    SMALLINT,
+  SEGMENT_NAME       VARCHAR(100),
   LOCAL_DATE	VARCHAR(100),
   NEW_VISITOR_IND	VARCHAR(100),
   PAGE_ASSIGNED_ENTRY_PAGE_NAME	VARCHAR(300),
