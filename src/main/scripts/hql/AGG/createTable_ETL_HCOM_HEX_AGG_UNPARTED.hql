@@ -2,7 +2,7 @@ use ${hiveconf:hex.db};
 
 DROP TABLE IF EXISTS ${hiveconf:hex.agg.unparted.table};
 
-CREATE EXTERNAL TABLE IF NOT EXISTS ${hex.agg.unparted.table} (
+CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.agg.unparted.table} (
 local_date string,
 new_visitor_ind string, 
 page_assigned_entry_page_name string,
