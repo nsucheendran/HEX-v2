@@ -327,7 +327,7 @@ if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$AGG_DB/$FACT_AGG_UNPARTED_T
     exit 1
   fi
 fi 
-sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.table="${FACT_AGG_UNPARTED_TABLE}" -f $SCRIPT_PATH_FACT/createTable_ETL_HCOM_HEX_AGG_UNPARTED.hql
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.table="${FACT_AGG_UNPARTED_TABLE}" -f $SCRIPT_PATH_AGG/createTable_ETL_HCOM_HEX_AGG_UNPARTED.hql
 if [ $? -ne 0 ]; then
   _LOG "Error creating table. Installation FAILED."
   exit 1

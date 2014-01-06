@@ -547,7 +547,7 @@ else
   _LOG "Starting Agg Partition Load" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
   
-  hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.unparted.table="${FACT_AGG_UNPARTED_TABLE}" -hiveconf agg.num.reduce.tasks="${hiveconf:AGG_NUM_REDUCERS}" -f $SCRIPT_PATH/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.unparted.table="${FACT_AGG_UNPARTED_TABLE}" -hiveconf agg.num.reduce.tasks="${hiveconf:AGG_NUM_REDUCERS}" -f $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT_AGG: Fact Agg load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
