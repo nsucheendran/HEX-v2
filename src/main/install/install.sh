@@ -41,6 +41,7 @@ FACT_STAGE_TABLE='ETL_HCOM_HEX_FACT_STAGING'
 FACT_UNPARTED_TABLE='ETL_HCOM_HEX_FACT_UNPARTED'
 FACT_TABLE='ETL_HCOM_HEX_FACT'
 FACT_AGG_TABLE='RPT_HEXDM_AGG'
+FACT_AGG_UNPARTED_TABLE='RPT_HEXDM_AGG_UNPARTED'
 REPORT_TABLE='etl_hex_reporting_requirements'
 REPORT_FILE='/autofs/edwfileserver/sherlock_in/HEX/HEXV2UAT/HEX_REPORTING_INPUT.csv'
 KEYS_COUNT_LIMIT=100000;
@@ -312,6 +313,27 @@ fi
 _LOG "(re-)creating table $FACT_AGG_TABLE Done." 	
 	
 
+_LOG "(re-)creating table $FACT_AGG_UNPARTED_TABLE ..." 
+_LOG "disable nodrop - OK if errors here." 
+set +o errexit 
+sudo -E -u $ETL_USER hive -e "use $AGG_DB; alter table $FACT_AGG_UNPARTED_TABLE disable NO_DROP;" 
+set -o errexit 
+_LOG "disable nodrop ended." 
+if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$AGG_DB/$FACT_AGG_UNPARTED_TABLE; then 
+  _LOG "removing existing table files ... " 
+  sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$AGG_DB/$FACT_AGG_UNPARTED_TABLE 
+  if [ $? -ne 0 ]; then
+    _LOG "Error deleting table files. Installation FAILED."
+    exit 1
+  fi
+fi 
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.table="${FACT_AGG_UNPARTED_TABLE}" -f $SCRIPT_PATH_FACT/createTable_ETL_HCOM_HEX_AGG_UNPARTED.hql
+if [ $? -ne 0 ]; then
+  _LOG "Error creating table. Installation FAILED."
+  exit 1
+fi
+_LOG "(re-)creating table $FACT_AGG_UNPARTED_TABLE Done." 	
+
 
 FACT_PROCESS_ID=$(_GET_PROCESS_ID "$FACT_PROCESS_NAME")
 if [ -z "$FACT_PROCESS_ID" ]; then
@@ -518,6 +540,12 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "AGG_TABLE" "$FACT_AGG_TABLE"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "FACT_AGG_UNPARTED_TABLE" "$FACT_AGG_UNPARTED_TABLE"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"

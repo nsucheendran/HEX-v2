@@ -68,6 +68,7 @@ FACT_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "FACT_TABLE"`
 FACT_TABLE_UNPARTED=`_READ_PROCESS_CONTEXT $PROCESS_ID "FACT_TABLE_UNPARTED"`
 JAR_PATH=`_READ_PROCESS_CONTEXT $PROCESS_ID "JAR_PATH"`
 AGG_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "AGG_TABLE"`
+FACT_AGG_UNPARTED_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "FACT_AGG_UNPARTED_TABLE"`
 KEYS_COUNT_LIMIT=`_READ_PROCESS_CONTEXT $PROCESS_ID "KEYS_COUNT_LIMIT"`
 AGG_NUM_REDUCERS=`_READ_PROCESS_CONTEXT $PROCESS_ID "AGG_NUM_REDUCERS"`
 REP_BATCH_SIZE=`_READ_PROCESS_CONTEXT $PROCESS_ID "REP_BATCH_SIZE"`
@@ -453,7 +454,7 @@ else
   PROP_DEST_STR_FINAL=""
   SUPPLIER_PROP_STR_FINAL=""
   
-  perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.randomize.array}#@f#' $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql > $HEX_LOGS/temp.hql
+  perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.randomize.array}#@f#' $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG_UNPARTED.hql > $HEX_LOGS/temp.hql
   perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo_direct.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.direct.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/temp2.hql
   perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/prop_dest.lst";@f=<F>}s#\${hiveconf:hex.agg.pd.randomize.array}#@f#' $HEX_LOGS/temp2.hql > $HEX_LOGS/temp.hql
   perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/sup_prop.lst";@f=<F>}s#\${hiveconf:hex.agg.sp.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/temp2.hql
@@ -521,7 +522,7 @@ else
       perl -p -i -e "s/\\\${hiveconf:hex.fact.table}/$FACT_TABLE/g" $HEX_LOGS/substitutedAggQuery.hql
       perl -p -i -e "s/\\\${hiveconf:hex.db}/$AGG_DB/g" $HEX_LOGS/substitutedAggQuery.hql
       perl -p -i -e "s/\\\${hiveconf:stage.db}/$STAGE_DB/g" $HEX_LOGS/substitutedAggQuery.hql
-      perl -p -i -e "s/\\\${hiveconf:hex.agg.table}/$AGG_TABLE/g" $HEX_LOGS/substitutedAggQuery.hql
+      perl -p -i -e "s/\\\${hiveconf:hex.agg.unparted.table}/$FACT_AGG_UNPARTED_TABLE/g" $HEX_LOGS/substitutedAggQuery.hql
       perl -p -i -e "s/\\\${hiveconf:hex.agg.seed}/1000/g" $HEX_LOGS/substitutedAggQuery.hql
       perl -p -i -e "s/\\\${hiveconf:hex.report.table}/$REPORT_TABLE/g" $HEX_LOGS/substitutedAggQuery.hql
       REQ_COUNT=$(( REQ_COUNT - BATCH_COUNT ))
@@ -542,6 +543,23 @@ else
       fi
     fi
   done
+  
+  _LOG "Starting Agg Partition Load" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
+  
+  hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.unparted.table="${FACT_AGG_UNPARTED_TABLE}" -hiveconf agg.num.reduce.tasks="${hiveconf:AGG_NUM_REDUCERS}" -f $SCRIPT_PATH/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  ERROR_CODE=$?
+  if [[ $ERROR_CODE -ne 0 ]]; then
+    _LOG "HEX_FACT_AGG: Fact Agg load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
+  
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
+  _LOG "Agg Partition Load Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION_INSERT" "ENDED"
   _LOG "Fact Aggregation Insert Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "ENDED"
