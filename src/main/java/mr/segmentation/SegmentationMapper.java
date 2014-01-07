@@ -184,7 +184,7 @@ public class SegmentationMapper extends Mapper<BytesWritable, Text, TextMultiple
         if (filter(columns, rkeys)) {
             valsout.stripeAppend(columns, lhsValPositions);
             for (SegmentationSpec segpos : segmentations) {
-                keysout.stripeFlank(columns, segpos, rkeys);
+                keysout.stripeFlank(columns, segpos);
                 context.write(keysout, valsout);
             }
         }

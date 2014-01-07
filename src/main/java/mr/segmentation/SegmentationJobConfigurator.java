@@ -9,15 +9,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import mr.CFInputFormat;
 import mr.Constants;
 import mr.dto.TextMultiple;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 public final class SegmentationJobConfigurator {
@@ -119,8 +119,8 @@ public final class SegmentationJobConfigurator {
             put("property_cntrct_model_name", "Unknown");
 
             put("posa_super_region", "Unknown");
-            put("posa_Region", "Unknown");
-            put("posa_Country", "Unknown");
+            put("posa_region", "Unknown");
+            put("posa_country", "Unknown");
 
             put("mktg_chnnl_name", "Unknown");
             put("mktg_sub_chnnl_name", "Unknown");
@@ -207,12 +207,12 @@ public final class SegmentationJobConfigurator {
 
         job.setMapperClass(SegmentationMapper.class);
         job.setReducerClass(SegmentationReducer.class);
-        // job.setCombinerClass(SegmentationCombiner.class);
-        // job.setInputFormatClass(SequenceFileInputFormat.class);
-        job.setInputFormatClass(CFInputFormat.class);
+        job.setCombinerClass(SegmentationCombiner.class);
+        job.setInputFormatClass(SequenceFileInputFormat.class);
+        //job.setInputFormatClass(CFInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
-        job.setOutputKeyClass(BytesWritable.class);
-        job.setOutputValueClass(Text.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(NullWritable.class);
         job.setMapOutputKeyClass(TextMultiple.class);
         job.setMapOutputValueClass(TextMultiple.class);
         job.getConfiguration().setBoolean("mapreduce.map.output.compress", true);

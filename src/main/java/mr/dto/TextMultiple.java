@@ -27,16 +27,19 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
             this.texts[i] = new Text(coalesce(texts[i], ""));
         }
     }
-    
+
     public int size() {
         return texts.length;
     }
+
     public void stripeFlank(String[] texts, SegmentationSpec spec, String... appendables) {
         int i = 0;
         i = spec.setSpec(i, this.texts);
         i = spec.setVals(i, texts, this.texts);
-        for (String val : appendables) {
-            this.texts[i++].set(val);
+        if (appendables != null) {
+            for (String val : appendables) {
+                this.texts[i++].set(val);
+            }
         }
     }
 
@@ -134,6 +137,20 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
             if (!containsArrayInt(excludePos, i)) {
                 if (appended) {
                     sb.append(SEP);
+                }
+                sb.append(texts[i]);
+                appended = true;
+            }
+        }
+
+    }
+
+    public void toStringBuilder(StringBuilder sb, char sep, int... excludePos) {
+        boolean appended = false;
+        for (int i = 0; i < texts.length; i++) {
+            if (!containsArrayInt(excludePos, i)) {
+                if (appended) {
+                    sb.append(sep);
                 }
                 sb.append(texts[i]);
                 appended = true;
