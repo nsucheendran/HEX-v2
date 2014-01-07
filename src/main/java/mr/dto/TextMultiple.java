@@ -145,7 +145,7 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
 
     }
 
-    public void toStringBuilder(StringBuilder sb, char sep, int... excludePos) {
+    public void toStringBuilderSep(StringBuilder sb, char sep, int... excludePos) {
         boolean appended = false;
         for (int i = 0; i < texts.length; i++) {
             if (!containsArrayInt(excludePos, i)) {

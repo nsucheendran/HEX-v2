@@ -64,7 +64,7 @@ public class SegmentationReducer extends Reducer<TextMultiple, TextMultiple, Tex
         }
         outStr.setLength(0);
         outStr.append(UUID.randomUUID().toString()).append(SEP);
-        key.toStringBuilder(outStr, SEP, key.size() - 3, key.size() - 2, key.size() - 1);
+        key.toStringBuilderSep(outStr, SEP, key.size() - 3, key.size() - 2, key.size() - 1);
         outStr.append(SEP).append(numUniqueViewers).append(SEP).append(numUniquePurchasers).append(SEP).append(numUniqueCancellers)
                 .append(SEP).append(numActivePurchasers).append(SEP).append(numNilNetOrdersPurchasers).append(SEP).append(numCancellations)
                 .append(SEP).append(netOrders).append(SEP).append(netBkgGBV).append(SEP).append(netBkgRoomNights).append(SEP)
