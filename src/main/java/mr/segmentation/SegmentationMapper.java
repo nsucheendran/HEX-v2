@@ -1,6 +1,6 @@
 package mr.segmentation;
 
-import static mr.Constants.TAB_SEP_PATTERN; 
+import static mr.Constants.TAB_SEP_PATTERN;
 import static mr.utils.Utils.coalesce;
 
 import java.io.IOException;
@@ -9,13 +9,13 @@ import java.util.Map;
 
 import mr.dto.TextMultiple;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
-public class DenormalizedSegmentationMapper extends Mapper<BytesWritable, Text, TextMultiple, TextMultiple> {
+public class SegmentationMapper extends Mapper<BytesWritable, Text, TextMultiple, TextMultiple> {
 
-    private int[] lhsKeyPositions;
     private int[] lhsValPositions;
     private int[] rhsKeyPositions;
     private TextMultiple keysout;
@@ -24,13 +24,14 @@ public class DenormalizedSegmentationMapper extends Mapper<BytesWritable, Text, 
 
     private String[][] rtable;
     private FilterCondition eqJoiner, lteJoiner, gteJoiner;
+    private SegmentationSpec[] segmentations;
 
-    public DenormalizedSegmentationMapper() {
+    public SegmentationMapper() {
         super();
 
     }
 
-    private final void parsePosMap(Map<Integer, Integer> output, String conf) {
+    private final void getJoinMap(Map<Integer, Integer> output, String conf) {
         if (!"".equals(conf)) {
             String[] joins = conf.split(",");
             for (String j : joins) {
@@ -42,12 +43,14 @@ public class DenormalizedSegmentationMapper extends Mapper<BytesWritable, Text, 
 
     @Override
     public void setup(Context context) {
-        lhsKeyPositions = getPositions(context, "lhsKeys");
-        lhsValPositions = getPositions(context, "lhsVals");
+        Configuration conf = context.getConfiguration();
+        ColumnMapping[] colMap = getColMap(conf.get("colMap"));
+        segmentations = getSegSpecs(conf.get("segSpecs"), colMap);
 
-        rhsKeyPositions = getPositions(context, "rhsKeys");
+        lhsValPositions = getPositions(conf.get("lhsVals"));
+        rhsKeyPositions = getPositions(conf.get("rhsKeys"));
 
-        keysout = new TextMultiple(new String[lhsKeyPositions.length + rhsKeyPositions.length]);
+        keysout = new TextMultiple(new String[2 + colMap.length + rhsKeyPositions.length]);
         valsout = new TextMultiple(new String[lhsValPositions.length]);
         rkeys = new String[rhsKeyPositions.length];
         // lhs-rhs mapped positions of join-participant columns
@@ -56,16 +59,9 @@ public class DenormalizedSegmentationMapper extends Mapper<BytesWritable, Text, 
         Map<Integer, Integer> eqJoin = new HashMap<Integer, Integer>();
         Map<Integer, Integer> lteJoin = new HashMap<Integer, Integer>();
         Map<Integer, Integer> gteJoin = new HashMap<Integer, Integer>();
-        parsePosMap(eqJoin, context.getConfiguration().get("eqjoin"));
-        parsePosMap(lteJoin, context.getConfiguration().get("ltejoin"));
-        parsePosMap(gteJoin, context.getConfiguration().get("gtejoin"));
-
-        String[] lines = context.getConfiguration().get("data").split("\n");
-        rtable = new String[lines.length][];
-        int i = 0;
-        for (String line : lines) {
-            rtable[i++] = line.split("\t");
-        }
+        getJoinMap(eqJoin, conf.get("eqjoin"));
+        getJoinMap(lteJoin, conf.get("ltejoin"));
+        getJoinMap(gteJoin, conf.get("gtejoin"));
 
         // joiners encapsulate the join condition applications represented by the corresponding
         // position maps
@@ -90,10 +86,42 @@ public class DenormalizedSegmentationMapper extends Mapper<BytesWritable, Text, 
                 return coalesce(lval, "9").compareTo(rval) >= 0;
             }
         };
+
+        String[] lines = conf.get("data").split("\n");
+        rtable = new String[lines.length][];
+        int i = 0;
+        for (String line : lines) {
+            rtable[i++] = line.split("\t");
+        }
+
     }
 
-    private int[] getPositions(Context context, String attr) {
-        String[] posStrs = context.getConfiguration().get(attr).split(",");
+    private SegmentationSpec[] getSegSpecs(String input, ColumnMapping[] colMap) {
+        String[] lines = input.split("\n");
+        SegmentationSpec[] ret = new SegmentationSpec[lines.length];
+        int i = 0;
+        for (String line : lines) {
+            ret[i++] = new SegmentationSpec(line, colMap);
+        }
+        return ret;
+    }
+
+    private ColumnMapping[] getColMap(String input) {
+        String[] lines = input.split("\n");
+        ColumnMapping[] ret = new ColumnMapping[lines.length];
+        int i = 0;
+        for (String line : lines) {
+            String[] vals = line.split("\t");
+            ret[i++] = new ColumnMapping(Integer.parseInt(vals[0]), vals[1]);
+        }
+        return ret;
+    }
+
+    private int[] getPositions(String input) {
+        if (input == null) {
+            return new int[0];
+        }
+        String[] posStrs = input.split(",");
         int[] positions = new int[posStrs.length];
         int i = 0;
         for (String posStr : posStrs) {
@@ -154,9 +182,11 @@ public class DenormalizedSegmentationMapper extends Mapper<BytesWritable, Text, 
         String[] columns = TAB_SEP_PATTERN.split(value.toString());
 
         if (filter(columns, rkeys)) {
-            keysout.stripeAppend(columns, lhsKeyPositions, rkeys);
             valsout.stripeAppend(columns, lhsValPositions);
-            context.write(keysout, valsout);
+            for (SegmentationSpec segpos : segmentations) {
+                keysout.stripeFlank(columns, segpos, rkeys);
+                context.write(keysout, valsout);
+            }
         }
     }
 }

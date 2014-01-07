@@ -15,7 +15,7 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, BytesWritable
     private final Text outText = new Text();
     private final StringBuilder outStr = new StringBuilder();
 
-    //private MultipleOutputs<BytesWritable, Text> mos;
+    // private MultipleOutputs<BytesWritable, Text> mos;
 
     // exclude values for columns in the following positions from the output
     private final int[] excludes = new int[] { 2, 3, 4 };
@@ -95,25 +95,22 @@ public class R4Reducer extends Reducer<TextMultiple, TextMultiple, BytesWritable
             netGrossProfit += userAggTransData.getValue().getNetGrossProfit();
         }
         outStr.setLength(0);
-        key.toStringBuilder(excludes,
+        key.toStringBuilder(
                 outStr.append(numUniqueViewers).append(SEP).append(numUniquePurchasers).append(SEP).append(numUniqueCancellers).append(SEP)
                         .append(numActivePurchasers).append(SEP).append(numNilNetOrdersPurchasers).append(SEP).append(numCancellations)
                         .append(SEP).append(netOrders).append(SEP).append(netBkgGBV).append(SEP).append(netBkgRoomNights).append(SEP)
                         .append(netOmnitureGBV).append(SEP).append(netOmnitureRoomNights).append(SEP).append(netGrossProfit).append(SEP)
-                        .append(numRepeatPurchasers).append(SEP));
-        outStr.append(SEP).append(key.getTextElementAt(3).toString()).append(SEP).append(key.getTextElementAt(4).toString())
-                .append(SEP).append(key.getTextElementAt(2).toString());
+                        .append(numRepeatPurchasers).append(SEP), excludes);
+        outStr.append(SEP).append(key.getTextElementAt(3).toString()).append(SEP).append(key.getTextElementAt(4).toString()).append(SEP)
+                .append(key.getTextElementAt(2).toString());
         outText.set(outStr.toString());
         context.write(bw, outText);
-        //mos.write("outroot", bw, outText, generateFileName(key.getTextElementAt(2), key.getTextElementAt(3), key.getTextElementAt(4)));
+        // mos.write("outroot", bw, outText, generateFileName(key.getTextElementAt(2), key.getTextElementAt(3), key.getTextElementAt(4)));
 
     }
 
     private static final char SEP = (char) 1;
-/*
-    @Override
-    public final void cleanup(final Context context) throws IOException, InterruptedException {
-        // mos.close();
-    }
-    */
+    /*
+     * @Override public final void cleanup(final Context context) throws IOException, InterruptedException { // mos.close(); }
+     */
 }

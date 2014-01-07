@@ -8,6 +8,8 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 
+import mr.segmentation.SegmentationSpec;
+
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
@@ -25,11 +27,27 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
             this.texts[i] = new Text(coalesce(texts[i], ""));
         }
     }
+    
+    public int size() {
+        return texts.length;
+    }
+    public void stripeFlank(String[] texts, SegmentationSpec spec, String... appendables) {
+        int i = 0;
+        i = spec.setSpec(i, this.texts);
+        i = spec.setVals(i, texts, this.texts);
+        for (String val : appendables) {
+            this.texts[i++].set(val);
+        }
+    }
 
     public void stripeAppend(String[] texts, int[] pos, String... appendables) {
         int i = 0;
         for (int p : pos) {
-            this.texts[i++].set(texts[p]);
+            if (p < 0) {
+                this.texts[i++].set("");
+            } else {
+                this.texts[i++].set(texts[p]);
+            }
         }
         for (String val : appendables) {
             this.texts[i++].set(val);
@@ -110,7 +128,7 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
 
     private static final char SEP = (char) 1;
 
-    public void toStringBuilder(int[] excludePos, StringBuilder sb) {
+    public void toStringBuilder(StringBuilder sb, int... excludePos) {
         boolean appended = false;
         for (int i = 0; i < texts.length; i++) {
             if (!containsArrayInt(excludePos, i)) {

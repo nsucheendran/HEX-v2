@@ -3,8 +3,21 @@ use ${hiveconf:hex.db};
 DROP TABLE IF EXISTS ${hiveconf:hex.table};
 
 CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.table} (
+rpt_hex_seg_uuid string,
 segment_number smallint,
 segment_name string,
+
+experiment_name string,
+variant_name string,
+report_start_date string,
+report_end_date string,
+status string,
+report_transaction_end_date string,
+test_manager string,
+product_manager string,
+pod string,
+experiment_test_id string,
+
 local_date string,
 new_visitor_ind string, 
 page_assigned_entry_page_name string,
@@ -20,17 +33,6 @@ number_of_rooms int,
 number_of_adults_children string, 
 children_in_search_flag string,
 entry_page_name string,
-
-experiment_name string,
-variant_name string,
-report_start_date string,
-report_end_date string,
-status string,
-report_transaction_end_date string,
-test_manager string,
-product_manager string,
-pod string,
-experiment_test_id string,
 
 operating_system_name string,
 
