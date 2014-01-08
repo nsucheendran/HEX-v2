@@ -383,7 +383,7 @@ else
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "STARTED"
   
   _LOG "Fetching High Frequence Keys for Column all_mktg_seo_30_day" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-  MKTG_SEO_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ all_mktg_seo_30_day from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by all_mktg_seo_30_day having count(*)>${KEYS_COUNT_LIMIT};"`
+  MKTG_SEO_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select all_mktg_seo_30_day from ${STAGE_DB}.${FACT_TABLE_UNPARTED} group by all_mktg_seo_30_day having count(*)>${KEYS_COUNT_LIMIT};"`
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching all_mktg_seo_30_day keys. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
@@ -399,7 +399,7 @@ else
   MKTG_SEO_STR_FINAL="array('"${MKTG_SEO_STR_FINAL}"')";
 
   _LOG "Fetching High Frequence Keys for Column all_mktg_seo_30_day_direct" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-  MKTG_SEO_DIRECT_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ all_mktg_seo_30_day_direct from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by all_mktg_seo_30_day_direct having count(*)>${KEYS_COUNT_LIMIT};"`
+  MKTG_SEO_DIRECT_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select all_mktg_seo_30_day_direct from ${STAGE_DB}.${FACT_TABLE_UNPARTED} group by all_mktg_seo_30_day_direct having count(*)>${KEYS_COUNT_LIMIT};"`
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching all_mktg_seo_30_day_direct keys. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
@@ -414,7 +414,7 @@ else
   MKTG_SEO_DIRECT_STR_FINAL="array('"${MKTG_SEO_DIRECT_STR_FINAL}"')";
 
   _LOG "Fetching High Frequence Keys for Column property_destination_id" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-  PROP_DEST_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ property_destination_id from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by property_destination_id having count(*)>${KEYS_COUNT_LIMIT};"`
+  PROP_DEST_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select property_destination_id from ${STAGE_DB}.${FACT_TABLE_UNPARTED} group by property_destination_id having count(*)>${KEYS_COUNT_LIMIT};"`
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching property_destination_id keys. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
@@ -430,7 +430,7 @@ else
   PROP_DEST_STR_FINAL="array('"${PROP_DEST_STR_FINAL}"')";
 
   _LOG "Fetching High Frequence Keys for Column supplier_property_id" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-  SUPPLIER_PROP_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select /*+ MAPJOIN(rep) */ supplier_property_id from ${STAGE_DB}.${FACT_TABLE} fact join ${STAGE_DB}.${REPORT_TABLE} rep on (fact.variant_code=rep.variant_code and fact.experiment_code=rep.experiment_code and fact.version_number=rep.version_number) group by supplier_property_id having count(*)>${KEYS_COUNT_LIMIT};"`
+  SUPPLIER_PROP_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select supplier_property_id from ${STAGE_DB}.${FACT_TABLE_UNPARTED} group by supplier_property_id having count(*)>${KEYS_COUNT_LIMIT};"`
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching supplier_property_id keys. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
@@ -519,7 +519,7 @@ else
       
       perl -p -i -e "s/\\\${hiveconf:job.queue}/$JOB_QUEUE/g" $HEX_LOGS/substitutedAggQuery.hql
       perl -p -i -e "s/\\\${hiveconf:agg.num.reduce.tasks}/$AGG_NUM_REDUCERS/g" $HEX_LOGS/substitutedAggQuery.hql
-      perl -p -i -e "s/\\\${hiveconf:hex.fact.table}/$FACT_TABLE/g" $HEX_LOGS/substitutedAggQuery.hql
+      perl -p -i -e "s/\\\${hiveconf:hex.fact.table}/$FACT_TABLE_UNPARTED/g" $HEX_LOGS/substitutedAggQuery.hql
       perl -p -i -e "s/\\\${hiveconf:hex.db}/$AGG_DB/g" $HEX_LOGS/substitutedAggQuery.hql
       perl -p -i -e "s/\\\${hiveconf:stage.db}/$STAGE_DB/g" $HEX_LOGS/substitutedAggQuery.hql
       perl -p -i -e "s/\\\${hiveconf:hex.agg.unparted.table}/$FACT_AGG_UNPARTED_TABLE/g" $HEX_LOGS/substitutedAggQuery.hql
