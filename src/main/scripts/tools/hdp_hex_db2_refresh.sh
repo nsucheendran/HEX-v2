@@ -81,7 +81,7 @@ trap "_LOG 'SIGINT | SIGTERM | SIGKILL detected.  Aborting, but MapRed job may n
 #Connect to DB2 and create the table
 _LOG "Create the table in DB2"
 _DBCONNECT $DB2LOGIN
-db2 -tvf $SCRIPTPATH/sql/$TGTTBL.sql
+db2 -tvf $SCRIPTPATH/../sql/$TGTTBL.sql
 if [ $? -ge 4 ] ; then
   _LOG "Error: SQL merge step failure, rolling back."
   exit 1
