@@ -168,30 +168,20 @@ public class R4MapReduceTest {
 
         Job job = jobConfigurator.numReduceTasks(100).initJob(mapDriver.getConfiguration(), "reduceTest", "edwdev");
         jobConfigurator.rhsKeys(new HashSet<String>() {
-            /**
-             * 
-             */
             private static final long serialVersionUID = 1L;
 
             {
                 add("rf1");
             }
         }).lhsFields(Arrays.asList("lf1")).rhsFields(Arrays.asList("rf1"));
-        // job.setOutputFormatClass(SequenceFileOutputFormat.class);
         jobConfigurator.configureJob(job);
 
         Path outPath = new Path(new File(".").getAbsolutePath() + "/target/output");
         FileSystem fs = outPath.getFileSystem(job.getConfiguration());
         fs.delete(outPath, true);
         FileOutputFormat.setOutputPath(job, outPath);
-        // FileOutputFormat.setCompressOutput(job, true);
-        // FileOutputFormat.setOutputCompressorClass(job, org.apache.hadoop.io.compress.SnappyCodec.class);
         reduceDriver.setConfiguration(job.getConfiguration());
 
-        /*
-         * guid => 0 itin_number => 1 trans_date => 2 num_transactions => 3 bkg_gbv => 4 bkg_room_nights => 5 omniture_gbv => 6
-         * omniture_room_nights => 7 gross_profit => 8
-         */
         reduceDriver.withInput(
                 new TextMultiple("key1", "key2", "key3", "key4", "key5"),
                 Arrays.asList(new TextMultiple("guid1", "itin1", "2013-01-01", "1", "240", "2", "242", "2", "30"),
