@@ -382,18 +382,18 @@ public final class SegmentationJobConfigurator {
 
     private StringBuilder configString(Map<String, Integer> equiLhsPosMap, Map<String, String> joinKeys) {
         int rk = 0;
-        StringBuilder equiJoinPosMap = new StringBuilder();
+        StringBuilder posMapSB = new StringBuilder();
         for (Map.Entry<String, String> entry : joinKeys.entrySet()) {
             String fieldName = entry.getKey();
             if (equiLhsPosMap.containsKey(fieldName)) {
                 if (rk++ > 0) {
-                    equiJoinPosMap.append(",");
+                    posMapSB.append(",");
                 }
                 String rField = entry.getValue();
-                equiJoinPosMap.append(equiLhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).two);
+                posMapSB.append(equiLhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).two);
             }
         }
-        return equiJoinPosMap;
+        return posMapSB;
     }
 
 }

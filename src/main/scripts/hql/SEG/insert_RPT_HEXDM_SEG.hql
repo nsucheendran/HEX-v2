@@ -10,28 +10,17 @@ set mapred.compress.map.output=true;
 set mapred.map.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
 set mapred.output.compression.type=BLOCK;
 set mapred.output.compression.codec=org.apache.hadoop.io.compress.SnappyCodec;
-set mapred.reduce.tasks=${hiveconf:agg.num.reduce.tasks};
+set mapred.reduce.tasks=${hiveconf:seg.num.reduce.tasks};
 -- set mapred.job.reduce.total.mem.bytes=99061748;
 set hive.exec.max.created.files=10000000;
 
 use ${hiveconf:hex.db};
 
-insert overwrite table ${hiveconf:hex.agg.table} partition(experiment_code, version_number, variant_code)
-select local_date,
-new_visitor_ind, 
-page_assigned_entry_page_name,
-site_sectn_name, 
-user_cntext_name, 
-browser_height, 
-browser_width, 
-mobile_ind, 
-platform_type, 
-days_until_stay, 
-length_of_stay, 
-number_of_rooms, 
-number_of_adults_children,
-children_in_search_flag,
-entry_page_name,                        
+insert overwrite table ${hiveconf:hex.seg.table} partition(experiment_code, version_number, variant_code)
+select 
+rpt_hex_seg_uuid,
+segment_number,
+segment_name,
 
 experiment_name,
 variant_name,
@@ -43,6 +32,22 @@ test_manager,
 product_manager,
 pod,
 experiment_test_id,
+
+local_date,
+new_visitor_ind, 
+page_assigned_entry_page_name,
+site_sectn_name, 
+user_cntext_name, 
+browser_height, 
+browser_width, 
+mobile_ind, 
+platform_type, 
+days_until_stay, 
+length_of_stay, 
+number_of_rooms, 
+number_of_adults_children, 
+children_in_search_flag,
+entry_page_name,
 
 operating_system_name,
 
@@ -103,6 +108,6 @@ net_gross_profit,
 num_repeat_purchasers,
 experiment_code,
 version_number,
-variant_code 
-from ${hiveconf:hex.agg.unparted.table} 
+variant_code
+from ${hiveconf:hex.seg.unparted.table} 
 distribute by experiment_code, version_number, variant_code;
