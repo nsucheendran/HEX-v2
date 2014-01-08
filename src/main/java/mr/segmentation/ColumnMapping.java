@@ -1,3 +1,7 @@
+/*
+ * @author achadha
+ */
+
 package mr.segmentation;
 
 public class ColumnMapping {

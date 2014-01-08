@@ -1,3 +1,7 @@
+/*
+ * @author achadha
+ */
+
 package mr.segmentation;
 
 import static mr.Constants.TAB_SEP_PATTERN;
