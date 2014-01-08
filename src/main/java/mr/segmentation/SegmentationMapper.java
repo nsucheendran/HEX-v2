@@ -49,8 +49,8 @@ public class SegmentationMapper extends Mapper<BytesWritable, Text, TextMultiple
 
         lhsValPositions = getPositions(conf.get("lhsVals"));
         rhsKeyPositions = getPositions(conf.get("rhsKeys"));
-
         keysout = new TextMultiple(new String[2 + colMap.length + rhsKeyPositions.length]);
+        
         valsout = new TextMultiple(new String[lhsValPositions.length]);
         rkeys = new String[rhsKeyPositions.length];
         // lhs-rhs mapped positions of join-participant columns
@@ -118,7 +118,7 @@ public class SegmentationMapper extends Mapper<BytesWritable, Text, TextMultiple
     }
 
     private int[] getPositions(String input) {
-        if (input == null) {
+        if (input == null||input.trim().equals("")) {
             return new int[0];
         }
         String[] posStrs = input.split(",");

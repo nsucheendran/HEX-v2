@@ -147,9 +147,6 @@ public final class SegmentationJobConfigurator {
     };
 
     private Set<String> metrics = new HashSet<String>() {
-        /**
-         * 
-         */
         private static final long serialVersionUID = 1L;
 
         {
@@ -209,7 +206,6 @@ public final class SegmentationJobConfigurator {
         job.setReducerClass(SegmentationReducer.class);
         job.setCombinerClass(SegmentationCombiner.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
-        //job.setInputFormatClass(CFInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(NullWritable.class);
@@ -240,6 +236,16 @@ public final class SegmentationJobConfigurator {
         return this;
     }
 
+    public SegmentationJobConfigurator groupKeys(Map<String, String> groupKeys) {
+        this.groupKeys = groupKeys;
+        return this;
+    }
+    
+    public SegmentationJobConfigurator metrics(Set<String> metrics) {
+        this.metrics = metrics;
+        return this;
+    }
+    
     public SegmentationJobConfigurator colMap(List<String> sourceFields, List<String> targetFields, BufferedReader segSpecReader,
             List<String> rhsFields) throws IOException {
         rhsFields(rhsFields);
@@ -249,8 +255,6 @@ public final class SegmentationJobConfigurator {
         Map<String, Integer> lteLhsPosMap = new HashMap<String, Integer>();
         Map<String, Integer> gteLhsPosMap = new HashMap<String, Integer>();
         int i = 0;
-        System.out.println("TARGET FIELDS: "+targetFields);
-        System.out.println("SOURCE FIELDS: "+sourceFields);
         
         for (String targetField : targetFields) {
             if (sourceFields.contains(targetField)) {
@@ -339,24 +343,15 @@ public final class SegmentationJobConfigurator {
         }
 
         job.getConfiguration().set("colMap", colMapStr);
-        System.out.println("segspec: :::::::::: " + segSpecStr);
         job.getConfiguration().set("segSpecs", segSpecStr);
 
         job.getConfiguration().set("lhsVals", metricsStr);
         job.getConfiguration().set("rhsKeys", rhsKeySb.toString());
         job.getConfiguration().set("rhsVals", "");
-        System.out.println("eqJOINS:::::::::::::: " + equiJoinPosMap);
-        System.out.println("lteJOINS:::::::::::::: " + lteJoinPosMap);
-        System.out.println("gteJOINS:::::::::::::: " + gteJoinPosMap);
-
+        
         job.getConfiguration().set("eqjoin", equiJoinPosMap.toString());
         job.getConfiguration().set("ltejoin", lteJoinPosMap.toString());
         job.getConfiguration().set("gtejoin", gteJoinPosMap.toString());
-
-        // System.out.println("eqjoin: " + equiJoinPosMap);
-        // System.out.println("ltejoin: " + lteJoinPosMap);
-        // System.out.println("gtejoin: " + gteJoinPosMap);
-
     }
 
     public void stripe(String row, StringBuilder data) {
@@ -380,17 +375,17 @@ public final class SegmentationJobConfigurator {
         }
     }
 
-    private StringBuilder configString(Map<String, Integer> equiLhsPosMap, Map<String, String> joinKeys) {
+    private StringBuilder configString(Map<String, Integer> posMap, Map<String, String> joinKeys) {
         int rk = 0;
         StringBuilder posMapSB = new StringBuilder();
         for (Map.Entry<String, String> entry : joinKeys.entrySet()) {
             String fieldName = entry.getKey();
-            if (equiLhsPosMap.containsKey(fieldName)) {
+            if (posMap.containsKey(fieldName)) {
                 if (rk++ > 0) {
                     posMapSB.append(",");
                 }
                 String rField = entry.getValue();
-                posMapSB.append(equiLhsPosMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).two);
+                posMapSB.append(posMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).two);
             }
         }
         return posMapSB;

@@ -210,7 +210,7 @@ else
   FILTER_YM=`date --date="${LAST_DT} -1 years" '+%Y-%m'`
   CURR_DATE=$LAST_DT
   END_DT=''
-  for line in `cat $HEX_LST_PATH/hww_hex_*.lst|sort|grep -A$DELTA_CAP $START_DT`;do
+  for line in `cat $HEX_LST_PATH/hww_hex_*.lst|sort -u|grep -A$DELTA_CAP $START_DT`;do
     CURR_DATE=`echo $CURR_DATE|sed -e "s/:/ /g"`
     CURR_DATE=`date -u --date="${CURR_DATE} +1 hours" '+%Y-%m-%d:%H'`
     if [ $line = $CURR_DATE ];
