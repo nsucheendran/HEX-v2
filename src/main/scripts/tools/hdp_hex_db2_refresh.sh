@@ -27,7 +27,7 @@ umask 0002
 
 # ENV parameters
 PLAT_HOME=/usr/local/edw/platform
-LOADERPATH=/usr/etl/HWW/common
+LOADERPATH=/usr/etl/HWW/hdp_hww_hex_etl
 DB2LOGIN="$HOME/dbconf"
 HDPENV="$HOME/hdpenv.conf"
 LOADERSCRIPT=$LOADERPATH/HWW_pipeloader_str.bash
