@@ -1,10 +1,14 @@
 package mr.dto;
 
+import static mr.utils.Utils.containsArrayInt;
+import static mr.utils.Utils.coalesce;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Set;
+
+import mr.segmentation.SegmentationSpec;
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
@@ -14,60 +18,42 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
     private Text[] texts;
 
     public TextMultiple() {
-        this.texts = new Text[] { new Text() };
+        texts = new Text[0];
     }
 
     public TextMultiple(String... texts) {
         this.texts = new Text[texts.length];
         for (int i = 0; i < texts.length; i++) {
-            this.texts[i] = new Text(texts[i]);
+            this.texts[i] = new Text(coalesce(texts[i], ""));
         }
     }
 
-    public TextMultiple(TextMultiple... others) {
-        int size = 0;
-        for (TextMultiple other : others) {
-            size += other.texts.length;
-        }
-        this.texts = new Text[size];
+    public int size() {
+        return texts.length;
+    }
+
+    public void stripeFlank(String[] texts, SegmentationSpec spec, String... appendables) {
         int i = 0;
-        for (TextMultiple other : others) {
-            for (Text ot : other.texts) {
-                this.texts[i++] = ot;
-            }
-        }
-
-    }
-
-    public TextMultiple(TextMultiple other, String... texts) {
-        this.texts = new Text[texts.length + other.texts.length];
-        int i;
-        for (i = 0; i < other.texts.length; i++) {
-            this.texts[i] = other.texts[i];
-        }
-        for (int j = 0; j < texts.length; j++) {
-            this.texts[i + j] = new Text(texts[j]);
-        }
-    }
-
-    public TextMultiple(TextMultiple other, Set<Integer> excludes, String... texts) {
-        this.texts = new Text[texts.length + other.texts.length - excludes.size()];
-        int j;
-        for (j = 0; j < texts.length; j++) {
-            this.texts[j] = new Text(texts[j]);
-        }
-        int it = 0;
-        for (int i = 0; i < other.texts.length; i++) {
-            if (!excludes.contains(i)) {
-                this.texts[j + it++] = other.texts[i];
+        i = spec.setSpec(i, this.texts);
+        i = spec.setVals(i, texts, this.texts);
+        if (appendables != null) {
+            for (String val : appendables) {
+                this.texts[i++].set(val);
             }
         }
     }
 
-    public TextMultiple(String[] texts, int[] pos) {
-        this.texts = new Text[pos.length];
-        for (int i = 0; i < pos.length; i++) {
-            this.texts[i] = new Text(texts[pos[i]]);
+    public void stripeAppend(String[] texts, int[] pos, String... appendables) {
+        int i = 0;
+        for (int p : pos) {
+            if (p < 0) {
+                this.texts[i++].set("");
+            } else {
+                this.texts[i++].set(texts[p]);
+            }
+        }
+        for (String val : appendables) {
+            this.texts[i++].set(val);
         }
     }
 
@@ -101,7 +87,8 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
 
     @Override
     public int compareTo(TextMultiple tm) {
-        for (int i = 0; i < texts.length && i < tm.texts.length; i++) {
+        int minLen = Math.min(texts.length, tm.texts.length);
+        for (int i = 0; i < minLen; i++) {
             int cmp = texts[i].compareTo(tm.texts[i]);
             if (cmp != 0) {
                 return cmp;
@@ -140,5 +127,35 @@ public class TextMultiple implements WritableComparable<TextMultiple> {
             }
         }
         return strBuff.toString();
+    }
+
+    private static final char SEP = (char) 1;
+
+    public void toStringBuilder(StringBuilder sb, int... excludePos) {
+        boolean appended = false;
+        for (int i = 0; i < texts.length; i++) {
+            if (!containsArrayInt(excludePos, i)) {
+                if (appended) {
+                    sb.append(SEP);
+                }
+                sb.append(texts[i]);
+                appended = true;
+            }
+        }
+
+    }
+
+    public void toStringBuilderSep(StringBuilder sb, char sep, int... excludePos) {
+        boolean appended = false;
+        for (int i = 0; i < texts.length; i++) {
+            if (!containsArrayInt(excludePos, i)) {
+                if (appended) {
+                    sb.append(sep);
+                }
+                sb.append(texts[i]);
+                appended = true;
+            }
+        }
+
     }
 }

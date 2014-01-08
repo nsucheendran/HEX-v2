@@ -17,4 +17,13 @@ public final class Utils {
         return curr;
     }
 
+    public static boolean containsArrayInt(int[] haystack, int needle) {
+        for (int hay : haystack) {
+            if (hay == needle) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

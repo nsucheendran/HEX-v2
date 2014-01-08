@@ -1,4 +1,4 @@
-package mr;
+package mr.aggregation;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -7,17 +7,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import mr.aggregation.R4AggregationJob;
-import mr.aggregation.R4Mapper;
-import mr.aggregation.R4Reducer;
+import mr.CFInputFormat;
+import mr.Constants;
 import mr.dto.TextMultiple;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
 public final class JobConfigurator {
     private Map<String, String> equiJoinKeys = new HashMap<String, String>() {
@@ -145,13 +144,14 @@ public final class JobConfigurator {
 
         job.setMapperClass(R4Mapper.class);
         job.setReducerClass(R4Reducer.class);
-
-        job.setInputFormatClass(SequenceFileInputFormat.class);
-        job.setOutputFormatClass(NullOutputFormat.class);
-        job.setOutputKeyClass(NullWritable.class);
-        job.setOutputValueClass(TextMultiple.class);
+        // job.setInputFormatClass(SequenceFileInputFormat.class);
+        job.setInputFormatClass(CFInputFormat.class);
+        job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        job.setOutputKeyClass(BytesWritable.class);
+        job.setOutputValueClass(Text.class);
         job.setMapOutputKeyClass(TextMultiple.class);
         job.setMapOutputValueClass(TextMultiple.class);
+        // job.getConfiguration().setLong("mapred.min.split.size", 536870912L);
         return job;
     }
 
@@ -272,8 +272,14 @@ public final class JobConfigurator {
     }
 
     public void stripe(String row, StringBuilder data) {
-        String[] values = row.split(Constants.COL_DELIM);
+        this.stripe(row, data, Constants.COL_DELIM);
+    }
+
+    // stripe-out the columns from the rhs table that are needed for the join or select clauses
+    public void stripe(String row, StringBuilder data, String colDelim) {
+        String[] values = row.split(colDelim);
         String[] vals = new String[rhsPosMap.size()];
+        // columns to be striped/collected may not be contiguously positioned in the table
         for (IntPair p : rhsPosMap.values()) {
             vals[p.two] = values[p.one];
         }

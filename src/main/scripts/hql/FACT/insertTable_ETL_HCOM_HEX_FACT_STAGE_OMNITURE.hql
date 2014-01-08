@@ -66,9 +66,15 @@ where (
            ) 
            and 
            (    
-               local_date>'${hiveconf:src_bookmark_omni}'
-               and 
-               local_hour>${hiveconf:src_bookmark_omni_hr}
+               (
+                  local_date='${hiveconf:src_bookmark_omni}'
+                       and 
+                  local_hour>${hiveconf:src_bookmark_omni_hr}
+               )
+               or
+               (
+                  local_date>'${hiveconf:src_bookmark_omni}'
+               )
            )
       );
 

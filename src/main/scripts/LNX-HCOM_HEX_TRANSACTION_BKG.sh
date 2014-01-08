@@ -32,7 +32,7 @@ STAGE_NAME="BKG_TRANS: HEX Booking Transactions"
 _LOG_START_STAGE "$STAGE_NAME"
 
 PROCESS_NAME="ETL_HCOM_HEX_TRANSACTIONS_BKG"
-_LOG "PROCESS_NAME=[$PROCESS_NAME]"
+_LOG "PROCESS_NAME=[$PROCESS_NAME]" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
 
 ERROR_CODE=0
 
@@ -40,14 +40,14 @@ PROCESS_ID=$(_GET_PROCESS_ID "$PROCESS_NAME");
 RETURN_CODE="$?"
 
 if [ "$PROCESS_ID" == "" ] || (( $RETURN_CODE != 0 )); then
-  _LOG "ERROR: Process [$PROCESS_NAME] does not exist in HEMS"
+  _LOG "ERROR: Process [$PROCESS_NAME] does not exist in HEMS" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
   ERROR_CODE=1
   _FREE_LOCK $HWW_TRANS_BKG_LOCK_NAME
   exit 1;
 else
   RUN_ID=$(_RUN_PROCESS $PROCESS_ID "$PROCESS_NAME")
-  _LOG "PROCESS_ID=[$PROCESS_ID]"
-  _LOG "RUN_ID=[$RUN_ID]"
+  _LOG "PROCESS_ID=[$PROCESS_ID]" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
+  _LOG "RUN_ID=[$RUN_ID]" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
   _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "STARTED"
 fi
 
@@ -65,8 +65,8 @@ then
   EMAIL_RECIPIENTS="-c $EMAIL_CC $EMAIL_RECIPIENTS"
 fi
 
-_LOG "PROCESSING_TYPE=$PROCESSING_TYPE"
-_LOG "BOOKMARK=$LAST_DT"
+_LOG "PROCESSING_TYPE=$PROCESSING_TYPE" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
+_LOG "BOOKMARK=$LAST_DT" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
 
 _LOG_PROCESS_DETAIL $RUN_ID "BEFORE_BOOKMARK" "$LAST_DT"
 _LOG_PROCESS_DETAIL $RUN_ID "PROCESSING_TYPE" "$PROCESSING_TYPE"
@@ -80,7 +80,7 @@ then
   END_YEAR=`date --date="${LAST_DT}" '+%Y'`
   END_MONTH=`date --date="${LAST_DT}" '+%m'`
 
-  _LOG "Starting Reprocessing for period: $START_YEAR-$START_MONTH to $END_YEAR-$END_MONTH (BOOKMARK=[$LAST_DT])"
+  _LOG "Starting Reprocessing for period: $START_YEAR-$START_MONTH to $END_YEAR-$END_MONTH (BOOKMARK=[$LAST_DT])" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
 
   CURR_YEAR=$START_YEAR
   CURR_MONTH=$START_MONTH
@@ -88,11 +88,11 @@ then
   do
 
     LOG_FILE_NAME="hdp_transactions_bkg_drop_partition_${CURR_YEAR}-${CURR_MONTH}.log"
-    _LOG "Dropping partition [$CURR_YEAR-$CURR_MONTH] from target: $TRANS_BKG_DB.$TRANS_BKG_TABLE"
+    _LOG "Dropping partition [$CURR_YEAR-$CURR_MONTH] from target: $TRANS_BKG_DB.$TRANS_BKG_TABLE" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
     hive -hiveconf part.year="${CURR_YEAR}" -hiveconf part.month="${CURR_MONTH}" -hiveconf part.source="booking" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${TRANS_BKG_DB}" -hiveconf hex.trans.table="${TRANS_BKG_TABLE}" -f $SCRIPT_PATH_TRANS/delete_ETL_HCOM_HEX_TRANSACTIONS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+      _LOG "ERROR while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
     fi
 
     NEW_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%Y'`
@@ -117,12 +117,12 @@ then
     MONTH=`date --date="${START_DT}" '+%Y-%m'`
     LOG_FILE_NAME="hdp_transactions_bkg_reprocess_${START_DT}-${END_DT}.log"
 
-    _LOG "Reprocessing Booking Transactions data between [$START_DT to $END_DT] in target: $TRANS_BKG_DB.$TRANS_BKG_TABLE"
+    _LOG "Reprocessing Booking Transactions data between [$START_DT to $END_DT] in target: $TRANS_BKG_DB.$TRANS_BKG_TABLE" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
 
     hive -hiveconf into.overwrite="overwrite" -hiveconf month="${MONTH}" -hiveconf start.date="${START_DT}" -hiveconf end.date="${END_DT}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${TRANS_BKG_DB}" -hiveconf hex.trans.table="${TRANS_BKG_TABLE}" -f $SCRIPT_PATH/insert_ETL_HCOM_HEX_TRANSACTIONS_BOOKING.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "BKG_TRANS: Booking Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+      _LOG "BKG_TRANS: Booking Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
       _FREE_LOCK $HWW_TRANS_BKG_LOCK_NAME
@@ -134,20 +134,20 @@ then
     CURR_YEAR=$NEW_YEAR
   done
   
-  _LOG "Done Reprocessing"
+  _LOG "Done Reprocessing" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
 
   if [ -z "$LAST_DT" ]; then
-    _LOG "Updating BOOKMARK (since none existed) as $END_DT"
+    _LOG "Updating BOOKMARK (since none existed) as $END_DT" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
     _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DT"
   fi
   _LOG_PROCESS_DETAIL $RUN_ID "AFTER_BOOKMARK" "$END_DT"
   
-  _LOG "Setting PROCESSING_TYPE to [D] for next run"
+  _LOG "Setting PROCESSING_TYPE to [D] for next run" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
   _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "PROCESSING_TYPE" "D"
 else
   # daily incremental load
 
-  _LOG "Incremental Booking Transactions data load (BOOKMARK=[$LAST_DT])"
+  _LOG "Incremental Booking Transactions data load (BOOKMARK=[$LAST_DT])" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
   START_DT=`date --date="${LAST_DT} +1 days" '+%Y-%m-%d'`
   END_DT=$START_DT
 
@@ -158,7 +158,7 @@ else
   hive -hiveconf into.overwrite="into" -hiveconf month="${MONTH}" -hiveconf start.date="${START_DT}" -hiveconf end.date="${END_DT}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${TRANS_BKG_DB}" -hiveconf hex.trans.table="${TRANS_BKG_TABLE}" -f $SCRIPT_PATH/insert_ETL_HCOM_HEX_TRANSACTIONS_BOOKING.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "BKG_TRANS: Booking Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information."
+    _LOG "BKG_TRANS: Booking Transactions load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
     _END_PROCESS $RUN_ID $ERROR_CODE
     _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
     _FREE_LOCK $HWW_TRANS_BKG_LOCK_NAME
@@ -167,19 +167,19 @@ else
 
   _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "BOOKMARK" "$END_DT"
   if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!"
+    _LOG "HEMS ERROR! Unable to update bookmark. [ERROR_CODE=$ERROR_CODE]. Manually Update Bookmark before next run or reprocess!" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
     _END_PROCESS $RUN_ID $ERROR_CODE
     _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
     _FREE_LOCK $HWW_TRANS_BKG_LOCK_NAME
     exit 1
   fi
   _LOG_PROCESS_DETAIL $RUN_ID "AFTER_BOOKMARK" "$END_DT"
-  _LOG "Updated Bookmark to [$END_DT]"
+  _LOG "Updated Bookmark to [$END_DT]" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
 fi
 
 _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "SUCCESS"
 _END_PROCESS $RUN_ID $ERROR_CODE
 _FREE_LOCK $HWW_TRANS_BKG_LOCK_NAME
 
-_LOG "Job completed successfully"
+_LOG "Job completed successfully" $HEX_LOGS/LNX-HCOM_HEX_TRANSACTIONS_BKG.log
 

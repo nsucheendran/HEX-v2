@@ -1,6 +1,7 @@
-package mr.aggregation;
+package mr.segmentation;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -32,23 +33,21 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
 /*
- * MapReduce job that emulates the hiveql at
- * <link>github.com/ExpediaEDW/edw-HEXHadoopETL/src/main/scripts/hql/FACT/insertTable_ETL_HCOM_HEX_FACT_ALT.hql</link>
- * (and runs faster trading MR steps for reducer memory)
+ * Multi-group-by Map-Reduce for segmenting AGG (denormalized star-schema table) into a multi-grain
+ * table that's like a pure-molap cube (sorta, not as flexible of course)
  * 
- * @author nsood
  * @author achadha
  */
-public final class R4AggregationJob extends Configured implements Tool {
-    private static final Logger log = Logger.getLogger(R4AggregationJob.class);
-    private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
+public final class SegmentationJob extends Configured implements Tool {
+    private static final Logger log = Logger.getLogger(SegmentationJob.class);
+    private static final String jobName = "hdp_hww_hex_etl_fact_segmentation";
 
     // private Pattern partitionDirPattern; // = Pattern.compile("(.*)(" + jobName + ")(\\/)(.*)(\\/)(^\\/)*");
     // private Pattern partitionBkupDirPattern; // = Pattern.compile("(.*)(" + jobName + "bkup)(\\/)(.*)(\\/)(^\\/)*");
 
     public static void main(final String[] args) throws Exception {
         GenericOptionsParser parser = new GenericOptionsParser(new Configuration(), new Options(), args);
-        int res = ToolRunner.run(parser.getConfiguration(), new R4AggregationJob(), args);
+        int res = ToolRunner.run(parser.getConfiguration(), new SegmentationJob(), args);
         System.exit(res);
     }
 
@@ -56,64 +55,65 @@ public final class R4AggregationJob extends Configured implements Tool {
         Configuration mainConf = super.getConf();
         int numReduceTasks = Integer.parseInt(mainConf.get("reducers", "100"));
         String queueName = mainConf.get("queueName", "edwdev");
-        String sourceDbName = mainConf.get("sourceDbName", "etldata");
+        String sourceDbName = mainConf.get("sourceDbName", "dm");
         String targetDbName = mainConf.get("targetDbName", "hwwdev");
-        String sourceTableName = mainConf.get("sourceTableName", "etl_hcom_hex_fact_staging");
-        String targetTableName = mainConf.get("targetTableName", "etl_hcom_hex_fact_non_partitioned");
-        String reportTableName = mainConf.get("reportTableName", "hex_reporting_requirements");
+        String reportDbName = mainConf.get("reportDbName", "etldata");
 
-        JobConfigurator configurator = new JobConfigurator();
+        String sourceTableName = mainConf.get("sourceTableName", "rpt_hexdm_agg_unparted");
+        String targetTableName = mainConf.get("targetTableName", "rpt_hexdm_seg_unparted");
+        String reportTableName = mainConf.get("reportTableName", "hex_reporting_requirements");
+        String segFilePath = mainConf.get("segFile", "/autofs/edwfileserver/sherlock_in/HEX/HEXV2UAT/segmentations.txt");
+
+        SegmentationJobConfigurator configurator = new SegmentationJobConfigurator();
         Job job = configurator.initJob(mainConf, jobName, queueName);
 
-        List<String> lhsfields, rhsfields;
+        List<String> sourceFields, targetFields, rhsFields;
         HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
+        Path outputPath = null;
         try {
+            Table targetTable = cl.getTable(targetDbName, targetTableName);
+            StorageDescriptor tableSd = targetTable.getSd();
+            outputPath = new Path(tableSd.getLocation());
+            
             setInputPathsFromTable(sourceDbName, sourceTableName, job, cl);
 
             List<FieldSchema> fieldschemas = cl.getFields(sourceDbName, sourceTableName);
-            lhsfields = new ArrayList<String>(fieldschemas.size());
+            sourceFields = new ArrayList<String>(fieldschemas.size());
             for (FieldSchema field : fieldschemas) {
-                lhsfields.add(field.getName());
+                sourceFields.add(field.getName());
             }
-            List<FieldSchema> rhsfieldschemas = cl.getFields(targetDbName, reportTableName);
-            rhsfields = new ArrayList<String>(rhsfieldschemas.size());
-            for (FieldSchema field : rhsfieldschemas) {
-                rhsfields.add(field.getName());
+            
+            fieldschemas = cl.getFields(targetDbName, targetTableName);
+            targetFields = new ArrayList<String>(fieldschemas.size());
+            for (FieldSchema field : fieldschemas) {
+                targetFields.add(field.getName());
+            }
+
+            fieldschemas = cl.getFields(reportDbName, reportTableName);
+            rhsFields = new ArrayList<String>(fieldschemas.size());
+            for (FieldSchema field : fieldschemas) {
+                rhsFields.add(field.getName());
             }
         } finally {
             cl.close();
         }
-        configurator.lhsFields(lhsfields).rhsFields(rhsfields).numReduceTasks(numReduceTasks);
+        BufferedReader segSpecReader = new BufferedReader(new InputStreamReader(new FileInputStream(segFilePath)));
+        configurator.colMap(sourceFields, targetFields, segSpecReader, rhsFields).numReduceTasks(numReduceTasks);
+
         configurator.configureJob(job);
-        job.getConfiguration().set("data", getReportDataAsString(reportTableName, targetDbName, configurator, job, cl));
-        // job.getConfiguration().set
-        // Set JVM reuse to speed up reducer
-        // conf.setNumTasksToExecutePerJvm(-1);
-        Table table = cl.getTable(targetDbName, targetTableName);
-        StorageDescriptor tableSd = table.getSd();
-        Path outputPath = new Path(tableSd.getLocation());
-        
+        job.getConfiguration().set("data", getReportDataAsString(reportTableName, reportDbName, configurator, job, cl));
+
         FileSystem fileSystem = null;
         boolean success = false;
         try {
             fileSystem = outputPath.getFileSystem(job.getConfiguration());
             success = fileSystem.delete(outputPath, true);
             if (success) {
-                // MultipleOutputs.setCountersEnabled(job, true);
-                job.getConfiguration().setBoolean("mapred.compress.map.output", true);
-                job.getConfiguration().set("mapred.map.output.compression.codec", "org.apache.hadoop.io.compress.SnappyCodec");
-                // MultipleOutputs.addNamedOutput(job, "outroot",
-                // SequenceFileOutputFormat.class, BytesWritable.class,
-                // Text.class);
                 FileOutputFormat.setOutputPath(job, outputPath);
-
-                //FileOutputFormat.setCompressOutput(job, true);
-                //FileOutputFormat.setOutputCompressorClass(job, org.apache.hadoop.io.compress.SnappyCodec.class);
-
                 success = job.waitForCompletion(true);
                 log.info("output written to: " + outputPath.toString());
             } else {
-                log.info("Not able to delete output path: " + outputPath + ". Exiting!!!");
+                log.info("Not able to delete output path: " + outputPath + ". Exiting!");
             }
         } finally {
             if (fileSystem != null) {
@@ -154,7 +154,7 @@ public final class R4AggregationJob extends Configured implements Tool {
         CFInputFormat.setInputPaths(job, inputPathsBuilder.toString());
     }
 
-    private String getReportDataAsString(String reportTableName, String reportDbName, JobConfigurator configurator, Job job,
+    private String getReportDataAsString(String reportTableName, String reportDbName, SegmentationJobConfigurator configurator, Job job,
             HiveMetaStoreClient cl) throws IOException, TException {
         StringBuilder data = new StringBuilder();
         Table table = cl.getTable(reportDbName, reportTableName);

@@ -1,0 +1,51 @@
+#!/bin/bash -e
+
+####################################################
+#
+# Script to initialise HEMS parameters for the process to refresh HEX DM in DB2
+#
+# user          date            comment
+# ############# ###########     ####################
+# nsucheendran  2013-11-12      Creation for jira - 94607
+####################################################
+
+set -o errexit
+set -o nounset
+
+export PLAT_HOME=/usr/local/edw/platform
+source $PLAT_HOME/common/sh_helpers.sh
+source $PLAT_HOME/common/sh_metadata_storage.sh
+
+PROCESS_NAME="HEX_DM_DB2_REFRESH_RPT"
+PROCESS_DESC="Process to refresh HEX DM in DB2 - RPT"
+PROCESS_ID=$(_GET_PROCESS_ID "$PROCESS_NAME")
+                if ! [[ $PROCESS_ID ]]; then
+                                $PLAT_HOME/tools/metadata/add_process.sh "$PROCESS_NAME" "$PROCESS_DESC"
+                                PROCESS_ID=$(_GET_PROCESS_ID "$PROCESS_NAME");
+                 echo "Process added: [$PROCESS_ID] - $PROCESS_NAME"
+                else
+                                echo "$PROCESS_NAME process already exists"
+                                PROCESS_ID=$PROCESS_ID
+                fi
+echo "END: Add main process."
+
+_WRITE_PROCESS_CONTEXT $PROCESS_ID "SRC_HDFS_PATH" "/user/hive/warehouse/etldata.db/etl_hex_reporting_requirements/00*"
+_WRITE_PROCESS_CONTEXT $PROCESS_ID "TGT_DB2_TABLE" "DM.HEX_REPORTING_REQUIREMENTS"
+_WRITE_PROCESS_CONTEXT $PROCESS_ID "INPUT_TYPE" "DIRECT"
+
+PROCESS_NAME="HEX_DM_DB2_REFRESH_AGG"
+PROCESS_DESC="Process to refresh HEX DM in DB2 - AGG"
+PROCESS_ID=$(_GET_PROCESS_ID "$PROCESS_NAME")
+                if ! [[ $PROCESS_ID ]]; then
+                                $PLAT_HOME/tools/metadata/add_process.sh "$PROCESS_NAME" "$PROCESS_DESC"
+                                PROCESS_ID=$(_GET_PROCESS_ID "$PROCESS_NAME");
+                 echo "Process added: [$PROCESS_ID] - $PROCESS_NAME"
+                else
+                                echo "$PROCESS_NAME process already exists"
+                                PROCESS_ID=$PROCESS_ID
+                fi
+echo "END: Add main process."
+
+_WRITE_PROCESS_CONTEXT $PROCESS_ID "SRC_HDFS_PATH" "/tmp/rpt_hexdm_seg_unparted/part*"
+_WRITE_PROCESS_CONTEXT $PROCESS_ID "TGT_DB2_TABLE" "DM.RPT_HEXDM_AGG_SEGMENT"
+_WRITE_PROCESS_CONTEXT $PROCESS_ID "INPUT_TYPE" "DIRECT"

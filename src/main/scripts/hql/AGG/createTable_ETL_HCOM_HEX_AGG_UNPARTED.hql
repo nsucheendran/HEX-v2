@@ -1,9 +1,8 @@
-use ${hiveconf:hex.dim.db};
+use ${hiveconf:hex.db};
 
-DROP TABLE IF EXISTS ${hiveconf:hex.dim.table};
+DROP TABLE IF EXISTS ${hiveconf:hex.agg.unparted.table};
 
--- TODO change the storage format based on the DB2 requirements
-create table ${hiveconf:hex.dim.table} (
+CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.agg.unparted.table} (
 local_date string,
 new_visitor_ind string, 
 page_assigned_entry_page_name string,
@@ -13,11 +12,10 @@ browser_height string,
 browser_width string, 
 mobile_ind string, 
 platform_type string, 
-days_until_stay int, 
-length_of_stay int, 
-number_of_rooms int, 
-number_of_adults int, 
-number_of_children int, 
+days_until_stay string, 
+length_of_stay string, 
+number_of_rooms string, 
+number_of_adults_children string,
 children_in_search_flag string,
 entry_page_name string,                        
 
@@ -88,11 +86,12 @@ net_bkg_room_nights bigint,
 net_omniture_gbv double,
 net_omniture_room_nights bigint,
 net_gross_profit double,
-num_repeat_purchasers bigint
-) partitioned by (
+num_repeat_purchasers bigint,
 experiment_code string,
 version_number smallint,
 variant_code string
-) 
-ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t' 
-stored as textfile;
+)
+stored as sequencefile
+LOCATION "/data/HWW/${hiveconf:hex.db}/${hiveconf:hex.agg.unparted.table}";
+
+ALTER TABLE ${hiveconf:hex.agg.unparted.table} ENABLE NO_DROP;

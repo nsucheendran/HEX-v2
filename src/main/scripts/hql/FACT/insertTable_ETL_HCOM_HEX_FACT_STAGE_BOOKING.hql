@@ -136,8 +136,14 @@ insert into table ${hiveconf:hex.db}.${hiveconf:hex.table} partition(year_month,
                                                              ) 
                                                              or 
                                                              (    trans.source='omniture' 
-                                                                     and trans.trans_date>'${hiveconf:src_bookmark_omni}'
-                                                                     and trans.trans_hour>${hiveconf:src_bookmark_omni_hr}
+                                                                     and (
+                                                                           trans.trans_date='${hiveconf:src_bookmark_omni}'
+                                                                                  and 
+                                                                           trans.trans_hour>${hiveconf:src_bookmark_omni_hr}
+                                                                         )
+                                                                     or (
+                                                                          trans.trans_date>'${hiveconf:src_bookmark_omni}' 
+                                                                        )  
                                                              )
                                                          )
                                                       )
