@@ -53,7 +53,7 @@ EMAIL_TO='agurumurthi@expedia.com,nsucheendran@expedia.com'
 EMAIL_CC='achadha@expedia.com,nsood@expedia.com'
 SEG_NUM_REDUCERS=800;
 SEG_UNPARTED_TABLE='RPT_HEXDM_SEG_UNPARTED'
-SEG_INPUT_FILE_PATH='/autofs/edwfileserver/sherlock_in/HEX/HEXV2UAT/segmentations.txt'
+SEG_INPUT_FILE_PATH='/autofs/edwfileserver/sherlock_in/HEX/segmentations.txt'
 SEG_TABLE='RPT_HEXDM_SEG'
 
 AGG_DB='DM'
