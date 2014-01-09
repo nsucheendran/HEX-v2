@@ -52,7 +52,7 @@ public class SegmentationMapReduceTest {
         mapReduceDriver.setReducer(reducer);
         jobConfigurator = new SegmentationJobConfigurator();
         new MockUp<UUID>() {
-            @Mock 
+            @Mock
             public String toString() {
                 return "mockuuid";
             }
@@ -62,9 +62,9 @@ public class SegmentationMapReduceTest {
     @Test
     public void mapperAllJoins() throws IOException {
         configureJob();
-        
+
         // rf1\trf2\trf3\trf4
-        
+
         Text text = new Text();
 
         StringBuilder sb = new StringBuilder();
@@ -156,12 +156,11 @@ public class SegmentationMapReduceTest {
                         new TextMultiple("1", "140", "3", "142", "3", "20","23","23","23","23","23","23","23"),
                         new TextMultiple("-1", "-140", "3", "-142", "3", "-20","23","23","23","23","23","23","23")))
                 .withOutput(
-                        text(text, sb, "\t", 
-                                "mockuuid", "key1", "key2", "4", "1320", "28", "1336", "28", "180", "230", "230.0", 
-                                "230", "230.0", "230", "230.0", "230", "key3", "key4", "key5"), NullWritable.get());
+                        text(text, sb, "\t", "mockuuid", "key1", "key2", "4", "1320", "28", "1336", "28", "180", "230", "230.0", "230",
+                                "230.0", "230", "230.0", "230", "key3", "key4", "key5"), NullWritable.get());
         reduceDriver.runTest();
-    }
 
+    }
 
     private Text text(Text text, StringBuilder sb, String sep, String... vals) {
 
