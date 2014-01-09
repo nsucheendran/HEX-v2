@@ -1,4 +1,22 @@
+/*
+ * @author achadha
+ */
+
 package mr.segmentation;
+
+import static mr.segmentation.MeasureFieldPositions.NET_BKG_GBV;
+import static mr.segmentation.MeasureFieldPositions.NET_BKG_ROOM_NIGHTS;
+import static mr.segmentation.MeasureFieldPositions.NET_GROSS_PROFIT;
+import static mr.segmentation.MeasureFieldPositions.NET_OMNITURE_GBV;
+import static mr.segmentation.MeasureFieldPositions.NET_OMNITURE_ROOM_NIGHTS;
+import static mr.segmentation.MeasureFieldPositions.NET_ORDERS;
+import static mr.segmentation.MeasureFieldPositions.NUM_ACTIVE_PURCHASERS;
+import static mr.segmentation.MeasureFieldPositions.NUM_CANCELLATIONS;
+import static mr.segmentation.MeasureFieldPositions.NUM_INACTIVE_PURCHASERS;
+import static mr.segmentation.MeasureFieldPositions.NUM_REPEAT_PURCHASERS;
+import static mr.segmentation.MeasureFieldPositions.NUM_UNIQUE_CANCELLERS;
+import static mr.segmentation.MeasureFieldPositions.NUM_UNIQUE_PURCHASERS;
+import static mr.segmentation.MeasureFieldPositions.NUM_UNIQUE_VIEWERS;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -15,51 +33,37 @@ public class SegmentationReducer extends Reducer<TextMultiple, TextMultiple, Tex
     private final StringBuilder outStr = new StringBuilder();
     private static final char SEP = (char) '\t';
 
-    private long numUniqueViewers = 0;
-    private long numUniquePurchasers = 0;
-    private long numUniqueCancellers = 0;
-    private long numActivePurchasers = 0;
-    private long numNilNetOrdersPurchasers = 0;
-    private long numCancellations = 0;
-    private long netOrders = 0;
-    private double netBkgGBV = 0;
-    private long netBkgRoomNights = 0;
-    private double netOmnitureGBV = 0;
-    private long netOmnitureRoomNights = 0;
-    private double netGrossProfit = 0;
-    private long numRepeatPurchasers = 0;
-
     @Override
     public final void reduce(final TextMultiple key, final Iterable<TextMultiple> values, final Context context) throws IOException,
             InterruptedException {
-        numUniqueViewers = 0;
-        numUniquePurchasers = 0;
-        numUniqueCancellers = 0;
-        numActivePurchasers = 0;
-        numNilNetOrdersPurchasers = 0;
-        numCancellations = 0;
-        netOrders = 0;
-        netBkgGBV = 0;
-        netBkgRoomNights = 0;
-        netOmnitureGBV = 0;
-        netOmnitureRoomNights = 0;
-        netGrossProfit = 0;
-        numRepeatPurchasers = 0;
+        long numUniqueViewers = 0;
+        long numUniquePurchasers = 0;
+        long numUniqueCancellers = 0;
+        long numActivePurchasers = 0;
+        long numNilNetOrdersPurchasers = 0;
+        long numCancellations = 0;
+        long netOrders = 0;
+        double netBkgGBV = 0;
+        long netBkgRoomNights = 0;
+        double netOmnitureGBV = 0;
+        long netOmnitureRoomNights = 0;
+        double netGrossProfit = 0;
+        long numRepeatPurchasers = 0;
 
         for (TextMultiple value : values) {
-            numUniqueViewers += Long.parseLong(value.getTextElementAt(0).toString());
-            numUniquePurchasers += Long.parseLong(value.getTextElementAt(1).toString());
-            numUniqueCancellers += Long.parseLong(value.getTextElementAt(2).toString());
-            numActivePurchasers += Long.parseLong(value.getTextElementAt(3).toString());
-            numNilNetOrdersPurchasers += Long.parseLong(value.getTextElementAt(4).toString());
-            numCancellations += Long.parseLong(value.getTextElementAt(5).toString());
-            netOrders += Long.parseLong(value.getTextElementAt(6).toString());
-            netBkgGBV += Double.parseDouble(value.getTextElementAt(7).toString());
-            netBkgRoomNights += Long.parseLong(value.getTextElementAt(8).toString());
-            netOmnitureGBV += Double.parseDouble(value.getTextElementAt(9).toString());
-            netOmnitureRoomNights += Long.parseLong(value.getTextElementAt(10).toString());
-            netGrossProfit += Double.parseDouble(value.getTextElementAt(11).toString());
-            numRepeatPurchasers += Long.parseLong(value.getTextElementAt(12).toString());
+            numUniqueViewers += Long.parseLong(value.getTextElementAt(NUM_UNIQUE_VIEWERS).toString());
+            numUniquePurchasers += Long.parseLong(value.getTextElementAt(NUM_UNIQUE_PURCHASERS).toString());
+            numUniqueCancellers += Long.parseLong(value.getTextElementAt(NUM_UNIQUE_CANCELLERS).toString());
+            numActivePurchasers += Long.parseLong(value.getTextElementAt(NUM_ACTIVE_PURCHASERS).toString());
+            numNilNetOrdersPurchasers += Long.parseLong(value.getTextElementAt(NUM_INACTIVE_PURCHASERS).toString());
+            numCancellations += Long.parseLong(value.getTextElementAt(NUM_CANCELLATIONS).toString());
+            netOrders += Long.parseLong(value.getTextElementAt(NET_ORDERS).toString());
+            netBkgGBV += Double.parseDouble(value.getTextElementAt(NET_BKG_GBV).toString());
+            netBkgRoomNights += Long.parseLong(value.getTextElementAt(NET_BKG_ROOM_NIGHTS).toString());
+            netOmnitureGBV += Double.parseDouble(value.getTextElementAt(NET_OMNITURE_GBV).toString());
+            netOmnitureRoomNights += Long.parseLong(value.getTextElementAt(NET_OMNITURE_ROOM_NIGHTS).toString());
+            netGrossProfit += Double.parseDouble(value.getTextElementAt(NET_GROSS_PROFIT).toString());
+            numRepeatPurchasers += Long.parseLong(value.getTextElementAt(NUM_REPEAT_PURCHASERS).toString());
 
         }
         outStr.setLength(0);
@@ -77,5 +81,5 @@ public class SegmentationReducer extends Reducer<TextMultiple, TextMultiple, Tex
         outText.set(outStr.toString());
         context.write(outText, bw);
     }
-    
+
 }

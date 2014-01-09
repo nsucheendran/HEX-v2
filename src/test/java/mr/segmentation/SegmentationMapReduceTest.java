@@ -1,3 +1,7 @@
+/*
+ * @author achadha
+ */
+
 package mr.segmentation;
 
 import java.io.BufferedReader;
@@ -30,6 +34,7 @@ import org.junit.Test;
 public class SegmentationMapReduceTest {
     private static final BytesWritable bw = new BytesWritable(new byte[0], 0);
     private MapDriver<BytesWritable, Text, TextMultiple, TextMultiple> mapDriver;
+    private ReduceDriver<TextMultiple, TextMultiple, TextMultiple, TextMultiple> combineDriver;
     private ReduceDriver<TextMultiple, TextMultiple, Text, NullWritable> reduceDriver;
     private MapReduceDriver<BytesWritable, Text, TextMultiple, TextMultiple, Text, NullWritable> mapReduceDriver;
     private SegmentationJobConfigurator jobConfigurator;
@@ -39,16 +44,21 @@ public class SegmentationMapReduceTest {
     public void setup() throws IOException {
         SegmentationMapper mapper = new SegmentationMapper();
         SegmentationReducer reducer = new SegmentationReducer();
+        SegmentationCombiner combiner = new SegmentationCombiner();
+        
         mapDriver = new MapDriver<BytesWritable, Text, TextMultiple, TextMultiple>();
         mapDriver.setMapper(mapper);
         reduceDriver = new ReduceDriver<TextMultiple, TextMultiple, Text, NullWritable>();
         reduceDriver.setReducer(reducer);
+        combineDriver = new ReduceDriver<TextMultiple, TextMultiple, TextMultiple, TextMultiple>();
+        combineDriver.setReducer(combiner);
+        
         mapReduceDriver = new MapReduceDriver<BytesWritable, Text, TextMultiple, TextMultiple, Text, NullWritable>();
         mapReduceDriver.setMapper(mapper);
         mapReduceDriver.setReducer(reducer);
         jobConfigurator = new SegmentationJobConfigurator();
         new MockUp<UUID>() {
-            @Mock 
+            @Mock
             public String toString() {
                 return "mockuuid";
             }
@@ -58,9 +68,9 @@ public class SegmentationMapReduceTest {
     @Test
     public void mapperAllJoins() throws IOException {
         configureJob();
-        
+
         // rf1\trf2\trf3\trf4
-        
+
         Text text = new Text();
 
         StringBuilder sb = new StringBuilder();
@@ -152,13 +162,41 @@ public class SegmentationMapReduceTest {
                         new TextMultiple("1", "140", "3", "142", "3", "20","23","23","23","23","23","23","23"),
                         new TextMultiple("-1", "-140", "3", "-142", "3", "-20","23","23","23","23","23","23","23")))
                 .withOutput(
-                        text(text, sb, "\t", 
-                                "mockuuid", "key1", "key2", "4", "1320", "28", "1336", "28", "180", "230", "230.0", 
-                                "230", "230.0", "230", "230.0", "230", "key3", "key4", "key5"), NullWritable.get());
+                        text(text, sb, "\t", "mockuuid", "key1", "key2", "4", "1320", "28", "1336", "28", "180", "230", "230.0", "230",
+                                "230.0", "230", "230.0", "230", "key3", "key4", "key5"), NullWritable.get());
         reduceDriver.runTest();
-        sb.setLength(0);
+
     }
 
+    @Test
+    @SuppressWarnings("deprecation")
+    public void combiner() throws IOException {
+
+        Job job = configureJob();
+
+        Path outPath = new Path(new File(".").getAbsolutePath() + "/target/output");
+        FileSystem fs = outPath.getFileSystem(job.getConfiguration());
+        fs.delete(outPath, true);
+        FileOutputFormat.setOutputPath(job, outPath);
+        combineDriver.setConfiguration(job.getConfiguration());
+        combineDriver.withInput(
+                new TextMultiple("key1", "key2", "key3", "key4", "key5"),
+                Arrays.asList(new TextMultiple("1", "240", "2", "242", "2", "30","23","23","23","23","23","23","23"),
+                        new TextMultiple("1", "240", "2", "242", "2", "30","23","23","23","23","23","23","23"), 
+                        new TextMultiple("1", "140", "3", "142", "3", "20","23","23","23","23","23","23","23"), 
+                        new TextMultiple("1", "140", "3", "142", "3", "20","23","23","23","23","23","23","23"), 
+                        new TextMultiple("-1", "140", "3", "142", "3", "20","23","23","23","23","23","23","23"), 
+                        new TextMultiple("1", "140", "3", "142", "3", "20","23","23","23","23","23","23","23"), 
+                        new TextMultiple("1", "140", "3", "142", "3", "20","23","23","23","23","23","23","23"), 
+                        new TextMultiple("-1", "140", "3", "142", "3", "20","23","23","23","23","23","23","23"), 
+                        new TextMultiple("1", "140", "3", "142", "3", "20","23","23","23","23","23","23","23"),
+                        new TextMultiple("-1", "-140", "3", "-142", "3", "-20","23","23","23","23","23","23","23")))
+                .withOutput(new TextMultiple("key1", "key2", "key3", "key4", "key5"),
+                        new TextMultiple("4", "1320", "28", "1336", "28", "180", "230", "230.0", "230",
+                                "230.0", "230", "230.0", "230"));
+        combineDriver.runTest();
+
+    }
 
     private Text text(Text text, StringBuilder sb, String sep, String... vals) {
 
