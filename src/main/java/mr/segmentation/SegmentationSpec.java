@@ -85,24 +85,6 @@ public final class SegmentationSpec {
         return pos;
     }
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        for (String specDatum : specData) {
-            sb.append(specDatum).append("\t");
-        }
-        int i = 0;
-        for (ValMapper mapper : valMappers) {
-            if (mapper instanceof PosValMapper) {
-                if (i++ > 0) {
-                    sb.append(",");
-                }
-                sb.append(((PosValMapper) mapper).pos);
-            }
-        }
-        return sb.toString();
-    }
-
     public SegmentationSpec(String specRow, ColumnMapping[] colMap) {
         this.specData = new String[2];
         String[] cols = specRow.split("\t");
