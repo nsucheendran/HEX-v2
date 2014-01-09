@@ -156,55 +156,34 @@ _LOG "Done loading reporting requirements table $STAGE_DB.$REPORT_TABLE" $HEX_LO
 
 if [ $PROCESSING_TYPE = "R" ];
 then
-  START_YEAR=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPROCESS_START_YEAR"`
-  START_MONTH=`_READ_PROCESS_CONTEXT $PROCESS_ID "REPROCESS_START_MONTH"`
-
-  END_YEAR=`date --date="${MAX_SRC_BOOKMARK}" '+%Y'`
-  END_MONTH=`date --date="${MAX_SRC_BOOKMARK}" '+%m'`
-
-  _LOG "Starting Reprocessing for period: $START_YEAR-$START_MONTH to $END_YEAR-$END_MONTH" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-
-  CURR_YEAR=$START_YEAR
-  CURR_MONTH=$START_MONTH
-  while [ "${CURR_YEAR}${CURR_MONTH}" \< "${END_YEAR}${END_MONTH}" -o "${CURR_YEAR}${CURR_MONTH}" = "${END_YEAR}${END_MONTH}" ]
-  do
-    LOG_FILE_NAME="hdp_hex_fact_drop_partition_${CURR_YEAR}-${CURR_MONTH}.log"
-    _LOG "Dropping partition [year_month='$CURR_YEAR-$CURR_MONTH', source='omniture'] from target: $STAGE_DB.$STAGE_TABLE" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "use ${STAGE_DB}; alter table ${STAGE_TABLE} drop if exists partition (year_month='${CURR_YEAR}-${CURR_MONTH}', source='omniture');" >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
-    ERROR_CODE=$?
-    if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "WARN while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "WARN: $ERROR_CODE"
+  _LOG "re-creating table $FACT_STAGE_TABLE for reprocessing..." 
+  _LOG "disable nodrop - OK if errors here." 
+  set +o errexit 
+  hive -e "use $STAGE_DB; alter table $STAGE_TABLE disable NO_DROP;" 
+  set -o errexit 
+  _LOG "disable nodrop ended." 
+  if hdfs dfs -test -e /data/HWW/$STAGE_DB/$STAGE_TABLE; then 
+    _LOG "removing existing table files ... " 
+    hdfs dfs -rm -R /data/HWW/$STAGE_DB/$STAGE_TABLE 
+    if [ $? -ne 0 ]; then
+    _LOG "Error deleting table files. Installation FAILED."
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+    _FREE_LOCK $HWW_LOCK_NAME
+      exit 1
     fi
-    
-    hdfs dfs -rm -f "/data/HWW/${STAGE_DB}/${STAGE_TABLE}/year_month=${CURR_YEAR}-${CURR_MONTH}/source=omniture/*"
-    ERROR_CODE=$?
-    if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "WARN while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "WARN: $ERROR_CODE"
-    fi
-    
-    _LOG "Dropping partition [year_month='$CURR_YEAR-$CURR_MONTH', source='booking'] from target: $STAGE_DB.$STAGE_TABLE" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "use ${STAGE_DB}; alter table ${STAGE_TABLE} drop if exists partition (year_month='${CURR_YEAR}-${CURR_MONTH}', source='booking');" >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
-    ERROR_CODE=$?
-    if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "WARN while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "WARN: $ERROR_CODE"
-    fi
-    
-    hdfs dfs -rm -f "/data/HWW/${STAGE_DB}/${STAGE_TABLE}/year_month=${CURR_YEAR}-${CURR_MONTH}/source=booking/*"
-    ERROR_CODE=$?
-    if [[ $ERROR_CODE -ne 0 ]]; then
-      _LOG "WARN while dropping partition [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "WARN: $ERROR_CODE"
-    fi
-    
-    NEW_YEAR=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%Y'`
-    CURR_MONTH=`date --date="${CURR_YEAR}-${CURR_MONTH}-01 00 +1 months" '+%m'`
-    CURR_YEAR=$NEW_YEAR
-  done
+  fi 
+  hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/createTable_ETL_HCOM_HEX_FACT_STAGE.hql
+  if [ $? -ne 0 ]; then
+    _LOG "Error re-creating table. Installation FAILED."
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
+  _LOG "re-creating table $FACT_STAGE_TABLE Done." 
   
-  NEW_BOOKMARK=`date --date="${START_YEAR}-${START_MONTH}-01 00 -1 days" '+%Y-%m-%d'`
+  NEW_BOOKMARK=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select min(report_start_date) from ${STAGE_DB}.${REPORT_TABLE};"`
   _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "SRC_BOOKMARK_OMNI" "$NEW_BOOKMARK"
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
@@ -214,7 +193,7 @@ then
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
-  _LOG "Updated Omniture source bookmark to to [$NEW_BOOKMARK]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG "Updated Omniture source bookmark to [$NEW_BOOKMARK]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   
    _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "SRC_BOOKMARK_BKG" "$NEW_BOOKMARK"
    ERROR_CODE=$?
@@ -225,7 +204,7 @@ then
     _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
-  _LOG "Updated Transactions source bookmark to to [$NEW_BOOKMARK]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG "Updated Transactions source bookmark to [$NEW_BOOKMARK]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   
   _LOG "Done Reprocessing" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
 
