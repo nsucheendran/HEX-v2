@@ -1,4 +1,3 @@
-
 #!/bin/bash
 ####################################################
 #
@@ -148,6 +147,11 @@ trap "_LOG 'SIGINT/SIGTERM/SIGKILL detected: issuing remote kills.'
 wait
 _LOG "DB2 LOAD logs at: [$DBHOST:$MSGFILE]"
 EXIT_CODE=$(cat $EXITCODEFILE)
+
+if [ $EXIT_CODE -eq 0 ] ; then
+        ssh $SSHUSERID@$DBHOST "rm -f $MSGFILE*"
+fi
+
 rm -f $EXITCODEFILE
 _LOG "============== Process completed, exiting with code [$EXIT_CODE] ============="
 exit $EXIT_CODE
