@@ -160,7 +160,6 @@ public class SegmentationMapReduceTest {
                                 "mockuuid", "key1", "key2", "4", "1320", "28", "1336", "28", "180", "230", "230.0", 
                                 "230", "230.0", "230", "230.0", "230", "key3", "key4", "key5"), NullWritable.get());
         reduceDriver.runTest();
-        sb.setLength(0);
     }
 
 

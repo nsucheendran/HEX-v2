@@ -46,9 +46,6 @@ public final class SegmentationJob extends Configured implements Tool {
     private static final Logger log = Logger.getLogger(SegmentationJob.class);
     private static final String jobName = "hdp_hww_hex_etl_fact_segmentation";
 
-    // private Pattern partitionDirPattern; // = Pattern.compile("(.*)(" + jobName + ")(\\/)(.*)(\\/)(^\\/)*");
-    // private Pattern partitionBkupDirPattern; // = Pattern.compile("(.*)(" + jobName + "bkup)(\\/)(.*)(\\/)(^\\/)*");
-
     public static void main(final String[] args) throws Exception {
         GenericOptionsParser parser = new GenericOptionsParser(new Configuration(), new Options(), args);
         int res = ToolRunner.run(parser.getConfiguration(), new SegmentationJob(), args);
@@ -78,32 +75,23 @@ public final class SegmentationJob extends Configured implements Tool {
             Table targetTable = cl.getTable(targetDbName, targetTableName);
             StorageDescriptor tableSd = targetTable.getSd();
             outputPath = new Path(tableSd.getLocation());
-            
+
             setInputPathsFromTable(sourceDbName, sourceTableName, job, cl);
 
-            List<FieldSchema> fieldschemas = cl.getFields(sourceDbName, sourceTableName);
-            sourceFields = new ArrayList<String>(fieldschemas.size());
-            for (FieldSchema field : fieldschemas) {
-                sourceFields.add(field.getName());
-            }
-            
-            fieldschemas = cl.getFields(targetDbName, targetTableName);
-            targetFields = new ArrayList<String>(fieldschemas.size());
-            for (FieldSchema field : fieldschemas) {
-                targetFields.add(field.getName());
-            }
-
-            fieldschemas = cl.getFields(reportDbName, reportTableName);
-            rhsFields = new ArrayList<String>(fieldschemas.size());
-            for (FieldSchema field : fieldschemas) {
-                rhsFields.add(field.getName());
-            }
+            sourceFields = getFieldNames(sourceDbName, sourceTableName, cl);
+            targetFields = getFieldNames(targetDbName, targetTableName, cl);
+            rhsFields = getFieldNames(reportDbName, reportTableName, cl);
         } finally {
             cl.close();
         }
+        
         BufferedReader segSpecReader = new BufferedReader(new InputStreamReader(new FileInputStream(segFilePath)));
-        configurator.colMap(sourceFields, targetFields, segSpecReader, rhsFields).numReduceTasks(numReduceTasks);
-
+        try {
+            configurator.colMap(sourceFields, targetFields, segSpecReader, rhsFields).numReduceTasks(numReduceTasks);
+        } finally {
+            segSpecReader.close();
+        }
+        
         configurator.configureJob(job);
         job.getConfiguration().set("data", getReportDataAsString(reportTableName, reportDbName, configurator, job, cl));
 
@@ -125,6 +113,15 @@ public final class SegmentationJob extends Configured implements Tool {
             }
         }
         return success ? 0 : -1;
+    }
+
+    private List<String> getFieldNames(String dbName, String tableName, HiveMetaStoreClient cl) throws TException {
+        List<FieldSchema> fieldschemas = cl.getFields(dbName, tableName);
+        List<String> fieldNames = new ArrayList<String>(fieldschemas.size());
+        for (FieldSchema field : fieldschemas) {
+            fieldNames.add(field.getName());
+        }
+        return fieldNames;
     }
 
     private void setInputPathsFromTable(String sourceDbName, String sourceTableName, Job job, HiveMetaStoreClient cl) throws TException,

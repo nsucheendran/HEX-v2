@@ -122,7 +122,7 @@ public class SegmentationMapper extends Mapper<BytesWritable, Text, TextMultiple
     }
 
     private int[] getPositions(String input) {
-        if (input == null||input.trim().equals("")) {
+        if (input == null||"".equals(input.trim())) {
             return new int[0];
         }
         String[] posStrs = input.split(",");
