@@ -622,6 +622,7 @@ else
   ########################
   if [ "$LOAD_DB2" == "Y" ] && [ "$TOGGLE_DB2" == "Y" ]
   then
+  source /home/hwwetl/.bash_profile
   #############
   # REP_REQ
   #############
