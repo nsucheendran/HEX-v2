@@ -663,20 +663,20 @@ else
     _LOG "Warning: ETL result is empty, no work to do; exiting." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_STATUS" "NO DATA"
   else
-    _LOG "Data found in source rows; continuing process."
-    _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_HDP_COUNT" "$HDPFILEROWCOUNT"
-    _LOG " Total Records in the Source File :  $HDPFILEROWCOUNT"
+    _LOG "Data found in source rows; continuing process." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_HDP_COUNT" "$HDPFILEROWCOUNT" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG " Total Records in the Source File :  $HDPFILEROWCOUNT" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
 
     #Invoke Pipeloader
-    _LOG "DB2 integration : bash $LOADERSCRIPT $DB2LOGIN $REP_REQ_SRC_HDFS_PATH $REP_REQ_TGT_DB2_TABLE $HDPNAMENODE $REP_REQ_INPUT_TYPE"
+    _LOG "DB2 integration : bash $LOADERSCRIPT $DB2LOGIN $REP_REQ_SRC_HDFS_PATH $REP_REQ_TGT_DB2_TABLE $HDPNAMENODE $REP_REQ_INPUT_TYPE" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     bash $LOADERSCRIPT $DB2LOGIN $REP_REQ_SRC_HDFS_PATH $REP_REQ_TGT_DB2_TABLE $HDPNAMENODE $REP_REQ_INPUT_TYPE
     #Connect to DB2 and check Count of records Loaded
-    _LOG "Update the count from DB2 to HEMS"
+    _LOG "Update the count from DB2 to HEMS" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _DBCONNECT $DB2LOGIN
     set +o errexit
     DCOUNT=`/home/db2clnt1/sqllib/bin/db2 -x "select count(*) from $REP_REQ_TGT_DB2_TABLE"`
     if [ $? -ge 4 ] ; then
-      _LOG "Error: SQL merge step failure, rolling back."
+      _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_STATUS" "FAILED"
       exit 1
     fi
@@ -687,19 +687,19 @@ else
 
     _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_DB2_COUNT" "$DCOUNT"
     _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_STATUS" "COMPLETED"
-    _LOG "============ Completed DB2 load for $REP_REQ_TGT_DB2_TABLE ==============="
+    _LOG "============ Completed DB2 load for $REP_REQ_TGT_DB2_TABLE ===============" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   fi;
 
   #############
   # SEG
   #############
   #Connect to DB2 and create the table
-  _LOG "Create the table [$SEG_TGT_DB2_TABLE] in DB2"
+  _LOG "Create the table [$SEG_TGT_DB2_TABLE] in DB2" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   _LOG_PROCESS_DETAIL $RUN_ID "SEG_DB2_STATUS" "STARTED"
   _DBCONNECT $DB2LOGIN
   /home/db2clnt1/sqllib/bin/db2 -tvf $SCRIPT_PATH_DB2/$SEG_TGT_DB2_TABLE.sql
   if [ $? -ge 4 ] ; then
-    _LOG "Error: SQL merge step failure, rolling back."
+    _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     exit 1
   fi
 
@@ -707,16 +707,16 @@ else
   _DBDISCONNECT
   
   #Start the job and logging
-  _LOG "============ Starting DB2 load for $SEG_TGT_DB2_TABLE ==============="
-  _LOG "PWD: [$PWD]"
-  _LOG "DB2LOGIN: [$DB2LOGIN]"
-  _LOG "HDPENV: [$HDPENV]"
-  _LOG "STRMJAR: [$STRMJAR]"
-  _LOG "HDPNAMENODE: [$HDPNAMENODE]"
-  _LOG "LOADERPATH: [$LOADERPATH]"
-  _LOG "LOADERSCRIPT: [$LOADERSCRIPT]"
-  _LOG "TGTTBL: [$SEG_TGT_DB2_TABLE]"
-  _LOG "HDFSETLPATH: [$SEG_SRC_HDFS_PATH]"
+  _LOG "============ Starting DB2 load for $SEG_TGT_DB2_TABLE ===============" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG "PWD: [$PWD]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG "DB2LOGIN: [$DB2LOGIN]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG "HDPENV: [$HDPENV]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG "STRMJAR: [$STRMJAR]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG "HDPNAMENODE: [$HDPNAMENODE]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG "LOADERPATH: [$LOADERPATH]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG "LOADERSCRIPT: [$LOADERSCRIPT]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG "TGTTBL: [$SEG_TGT_DB2_TABLE]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG "HDFSETLPATH: [$SEG_SRC_HDFS_PATH]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   
   #Check the count of records from HDFS
   if [ $REP_REQ_INPUT_TYPE = "LIST" ]; then
@@ -726,24 +726,24 @@ else
   fi;
 
   if [ $HDPFILEROWCOUNT -eq 0 ]; then
-    _LOG "Warning: ETL result is empty, no work to do; exiting."
+    _LOG "Warning: ETL result is empty, no work to do; exiting." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_STATUS" "NO DATA"
   else
-    _LOG "Data found in source rows; continuing process."
+    _LOG "Data found in source rows; continuing process." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_HDP_COUNT" "$HDPFILEROWCOUNT"
-    _LOG "Total Records in the Source File :  $HDPFILEROWCOUNT"
+    _LOG "Total Records in the Source File :  $HDPFILEROWCOUNT" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
 
     #Invoke Pipeloader
-    _LOG "DB2 integration : bash $LOADERSCRIPT $DB2LOGIN $SEG_SRC_HDFS_PATH $SEG_TGT_DB2_TABLE $HDPNAMENODE $SEG_INPUT_TYPE"
+    _LOG "DB2 integration : bash $LOADERSCRIPT $DB2LOGIN $SEG_SRC_HDFS_PATH $SEG_TGT_DB2_TABLE $HDPNAMENODE $SEG_INPUT_TYPE" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     bash $LOADERSCRIPT $DB2LOGIN $SEG_SRC_HDFS_PATH $SEG_TGT_DB2_TABLE $HDPNAMENODE $SEG_INPUT_TYPE
 
     #Connect to DB2 and check Count of records Loaded
-    _LOG "Update the count from DB2 to HEMS"
+    _LOG "Update the count from DB2 to HEMS" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _DBCONNECT $DB2LOGIN
     set +o errexit
     DCOUNT=`/home/db2clnt1/sqllib/bin/db2 -x "select count(*) from $SEG_TGT_DB2_TABLE"`
     if [ $? -ge 4 ] ; then
-      _LOG "Error: SQL merge step failure, rolling back."
+      _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_STATUS" "FAILED"
       exit 1
     fi
@@ -754,18 +754,18 @@ else
 
     _LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_DB2_COUNT" "$DCOUNT"
 	_LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_STATUS" "COMPLETED"
-	_LOG "============ Completed DB2 load for $SEG_TGT_DB2_TABLE ==============="
+	_LOG "============ Completed DB2 load for $SEG_TGT_DB2_TABLE ===============" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   
     #####################
     # DB2 post processing
     #####################
-    _LOG "Create partitions for DM.RPT_HEXDM_AGG_SEGMENT_COMP"
+    _LOG "Create partitions for DM.RPT_HEXDM_AGG_SEGMENT_COMP" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
 	_LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "STARTED"
     #Connect to DB2 and invoke the stored procedure to create partitions for DM.RPT_HEXDM_AGG_SEGMENT_COMP
     _DBCONNECT $DB2LOGIN
     /home/db2clnt1/sqllib/bin/db2 -x "call ETL.SP_HEX_COMPLETED_CREATE_PARTITION()"
     if [ $? -eq 8 ] ; then
-      _LOG "Error:Check etl.etl_sproc_error for more information"
+      _LOG "Error:Check etl.etl_sproc_error for more information" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "FAILED"
       exit 1
     fi
@@ -775,7 +775,7 @@ else
     #Invoke the procedure to insert data into Live and Completed Tables
     /home/db2clnt1/sqllib/bin/db2 -x "call ETL.SP_RPT_HEXDM_AGG_SEGMENT_LOAD()"
     if [ $? -eq 8 ] ; then
-      _LOG "Error:Check etl.etl_sproc_error for more information"
+      _LOG "Error:Check etl.etl_sproc_error for more information" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "FAILED"
       exit 1
     fi
@@ -785,7 +785,7 @@ else
     _DBDISCONNECT
 
     _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "COMPLETED"
-    _LOG "============ Completed DB2 post processing for $SEG_TGT_DB2_TABLE ==============="
+    _LOG "============ Completed DB2 post processing for $SEG_TGT_DB2_TABLE ===============" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     
   fi;
   fi
