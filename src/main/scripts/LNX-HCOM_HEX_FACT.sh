@@ -622,7 +622,8 @@ else
   ########################
   if [ "$LOAD_DB2" == "Y" ] && [ "$TOGGLE_DB2" == "Y" ]
   then
-  source /home/hwwetl/.bash_profile
+  source /home/hwwetl/.bashrc
+  source /home/db2clnt1/sqllib/db2profile
   #############
   # REP_REQ
   #############
@@ -790,9 +791,9 @@ else
   fi
   if [ "$TOGGLE_DB2" == "Y" ]
   then
-    _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "TOGGLE_DB2" "N"
+    _WRITE_PROCESS_CONTEXT $PROCESS_ID "TOGGLE_DB2" "N"
   else
-    _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "TOGGLE_DB2" "Y"
+    _WRITE_PROCESS_CONTEXT $PROCESS_ID "TOGGLE_DB2" "Y"
   fi
   
 fi
