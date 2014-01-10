@@ -295,6 +295,49 @@ FACT_PROCESS_NAME="ETL_HCOM_HEX_FACT"
 _LOG "Configuring process $FACT_PROCESS_NAME ..."
 
 FACT_PROCESS_DESCRIPTION="Loads HEX FACT Data"
+  
+_LOG "(re-)creating table $SEG_TABLE ..." 
+_LOG "disable nodrop - OK if errors here." 
+set +o errexit 
+sudo -E -u $ETL_USER hive -e "use $AGG_DB; alter table $SEG_TABLE disable NO_DROP;" 
+set -o errexit 
+_LOG "disable nodrop ended." 
+if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$AGG_DB/$SEG_TABLE; then 
+  _LOG "removing existing table files ... " 
+  sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$AGG_DB/$SEG_TABLE 
+  if [ $? -ne 0 ]; then
+    _LOG "Error deleting table files. Installation FAILED."
+    exit 1
+  fi
+fi 
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.table="${SEG_TABLE}" -f $SCRIPT_PATH_SEG/createTable_ETL_HCOM_HEX_SEG.hql
+if [ $? -ne 0 ]; then
+  _LOG "Error creating table. Installation FAILED."
+  exit 1
+fi
+_LOG "(re-)creating table $SEG_TABLE Done." 	
+
+
+_LOG "(re-)creating table $SEG_UNPARTED_TABLE ..." 
+_LOG "disable nodrop - OK if errors here." 
+set +o errexit 
+sudo -E -u $ETL_USER hive -e "use $AGG_DB; alter table $SEG_UNPARTED_TABLE disable NO_DROP;" 
+set -o errexit 
+_LOG "disable nodrop ended." 
+if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$AGG_DB/$SEG_UNPARTED_TABLE; then 
+  _LOG "removing existing table files ... " 
+  sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$AGG_DB/$SEG_UNPARTED_TABLE 
+  if [ $? -ne 0 ]; then
+    _LOG "Error deleting table files. Installation FAILED."
+    exit 1
+  fi
+fi 
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.table="${SEG_UNPARTED_TABLE}" -f $SCRIPT_PATH_SEG/createTable_RPT_HEXDM_SEG_UNPARTED.hql
+if [ $? -ne 0 ]; then
+  _LOG "Error creating table. Installation FAILED."
+  exit 1
+fi
+_LOG "(re-)creating table $SEG_UNPARTED_TABLE Done." 
 
 FACT_PROCESS_ID=$(_GET_PROCESS_ID "$FACT_PROCESS_NAME")
 if [ -z "$FACT_PROCESS_ID" ]; then
@@ -428,49 +471,6 @@ if [ -z "$FACT_PROCESS_ID" ]; then
     exit 1
   fi
   _LOG "(re-)creating table $FACT_AGG_UNPARTED_TABLE Done." 	
-  
-  _LOG "(re-)creating table $SEG_TABLE ..." 
-  _LOG "disable nodrop - OK if errors here." 
-  set +o errexit 
-  sudo -E -u $ETL_USER hive -e "use $AGG_DB; alter table $SEG_TABLE disable NO_DROP;" 
-  set -o errexit 
-  _LOG "disable nodrop ended." 
-  if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$AGG_DB/$SEG_TABLE; then 
-    _LOG "removing existing table files ... " 
-    sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$AGG_DB/$SEG_TABLE 
-    if [ $? -ne 0 ]; then
-      _LOG "Error deleting table files. Installation FAILED."
-      exit 1
-    fi
-  fi 
-  sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.table="${SEG_TABLE}" -f $SCRIPT_PATH_SEG/createTable_ETL_HCOM_HEX_SEG.hql
-  if [ $? -ne 0 ]; then
-    _LOG "Error creating table. Installation FAILED."
-    exit 1
-  fi
-  _LOG "(re-)creating table $SEG_TABLE Done." 	
-	
-
-  _LOG "(re-)creating table $SEG_UNPARTED_TABLE ..." 
-  _LOG "disable nodrop - OK if errors here." 
-  set +o errexit 
-  sudo -E -u $ETL_USER hive -e "use $AGG_DB; alter table $SEG_UNPARTED_TABLE disable NO_DROP;" 
-  set -o errexit 
-  _LOG "disable nodrop ended." 
-  if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$AGG_DB/$SEG_UNPARTED_TABLE; then 
-    _LOG "removing existing table files ... " 
-    sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$AGG_DB/$SEG_UNPARTED_TABLE 
-    if [ $? -ne 0 ]; then
-      _LOG "Error deleting table files. Installation FAILED."
-      exit 1
-    fi
-  fi 
-  sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.table="${SEG_UNPARTED_TABLE}" -f $SCRIPT_PATH_SEG/createTable_RPT_HEXDM_SEG_UNPARTED.hql
-  if [ $? -ne 0 ]; then
-    _LOG "Error creating table. Installation FAILED."
-    exit 1
-  fi
-  _LOG "(re-)creating table $SEG_UNPARTED_TABLE Done." 
   
   $PLAT_HOME/tools/metadata/add_process.sh "$FACT_PROCESS_NAME" "$FACT_PROCESS_DESCRIPTION"
   if [ $? -ne 0 ]; then
@@ -668,6 +668,20 @@ if [ $? -ne 0 ]; then
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
   exit 1
 fi
+
+###########################
+# DB2 Load configuration
+###########################
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REP_REQ_SRC_HDFS_PATH" "/user/hive/warehouse/etldata.db/etl_hex_reporting_requirements/00*"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REP_REQ_TGT_DB2_TABLE" "DM.HEX_REPORTING_REQUIREMENTS"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REP_REQ_INPUT_TYPE" "DIRECT"
+
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SEG_SRC_HDFS_PATH" "/data/HWW/$AGG_DB/$SEG_UNPARTED_TABLE/part*"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SEG_TGT_DB2_TABLE" "DM.RPT_HEXDM_AGG_SEGMENT"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SEG_INPUT_TYPE" "DIRECT"
+
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "LOAD_DB2" "Y"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "TOGGLE_DB2" "Y"
 
 _LOG "Process $FACT_PROCESS_NAME configured successfully"
 

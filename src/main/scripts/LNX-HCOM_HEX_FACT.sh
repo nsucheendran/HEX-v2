@@ -21,6 +21,7 @@ SCRIPT_PATH=$HWW_HOME/hdp_hww_hex_etl/hql/FACT
 SCRIPT_PATH_REP=$HWW_HOME/hdp_hww_hex_etl/hql/REP
 SCRIPT_PATH_AGG=$HWW_HOME/hdp_hww_hex_etl/hql/AGG
 SCRIPT_PATH_SEG=$HWW_HOME/hdp_hww_hex_etl/hql/SEG
+SCRIPT_PATH_DB2=$HWW_HOME/hdp_hww_hex_etl/sql
 HEX_LOGS=/usr/etl/HWW/log
 
 source $PLAT_HOME/common/sh_helpers.sh
@@ -97,6 +98,31 @@ BKG_BOOKMARK_DATE=`_READ_PROCESS_CONTEXT $BKG_PROCESS_ID "BOOKMARK"`
 
 SRC_BOOKMARK_OMNI=`date --date="${SRC_BOOKMARK_OMNI_FULL}" '+%Y-%m-%d'`
 SRC_BOOKMARK_OMNI_HOUR=`date --date="${SRC_BOOKMARK_OMNI_FULL}" '+%H'`
+
+#####################
+# DB2 Load Variables
+#####################
+LOAD_DB2=`_READ_PROCESS_CONTEXT $PROCESS_ID "LOAD_DB2"`
+TOGGLE_DB2=`_READ_PROCESS_CONTEXT $PROCESS_ID "TOGGLE_DB2"`
+
+REP_REQ_SRC_HDFS_PATH=`_READ_PROCESS_CONTEXT $PROCESS_ID "REP_REQ_SRC_HDFS_PATH"`
+REP_REQ_TGT_DB2_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "REP_REQ_TGT_DB2_TABLE"`
+REP_REQ_INPUT_TYPE=`_READ_PROCESS_CONTEXT $PROCESS_ID "REP_REQ_INPUT_TYPE"`
+
+SEG_SRC_HDFS_PATH=`_READ_PROCESS_CONTEXT $PROCESS_ID "SEG_SRC_HDFS_PATH"`
+SEG_TGT_DB2_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "SEG_TGT_DB2_TABLE"`
+SEG_INPUT_TYPE=`_READ_PROCESS_CONTEXT $PROCESS_ID "SEG_INPUT_TYPE"`
+
+LOADERPATH=/usr/etl/HWW/hdp_hww_hex_etl
+DB2LOGIN="$HOME/dbconf"
+HDPENV="$HOME/hdpenv.conf"
+LOADERSCRIPT=$LOADERPATH/HWW_pipeloader_str.bash
+
+source $HDPENV
+source $DB2LOGIN
+export DB_NAME=$DBNAME
+export DB_USER=$USERID
+export DB_PASS=$PASSWD
 
 if [ "$FAH_BOOKMARK_DATE_FULL" == "$SRC_BOOKMARK_OMNI_FULL" ] && [ "$BKG_BOOKMARK_DATE" == "$SRC_BOOKMARK_OMNI" ]
 then
@@ -590,6 +616,184 @@ else
   
   _LOG "Segmentation Partition Load Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
+  
+  ########################
+  # DB2 Load
+  ########################
+  if [ "$LOAD_DB2" == "Y" ] && [ "$TOGGLE_DB2" == "Y" ]
+  then
+  #############
+  # REP_REQ
+  #############
+  #Connect to DB2 and create the table
+  _LOG "Create the table [$REP_REQ_TGT_DB2_TABLE] in DB2"
+  _LOG_PROCESS_DETAIL $RUN_ID "REP_DB2_STATUS" "STARTED"
+  _DBCONNECT $DB2LOGIN
+  db2 -tvf $SCRIPT_PATH_DB2/$REP_REQ_TGT_DB2_TABLE.sql
+  if [ $? -ge 4 ] ; then
+    _LOG "Error: SQL merge step failure, rolling back."
+    exit 1
+  fi
+
+  #Disconnect from DB2 and log the count in HEMS.
+  _DBDISCONNECT
+  
+  #Start the job and logging
+  _LOG "============ Starting DB2 load for $REP_REQ_TGT_DB2_TABLE ==============="
+  _LOG "PWD: [$PWD]"
+  _LOG "DB2LOGIN: [$DB2LOGIN]"
+  _LOG "HDPENV: [$HDPENV]"
+  _LOG "STRMJAR: [$STRMJAR]"
+  _LOG "HDPNAMENODE: [$HDPNAMENODE]"
+  _LOG "LOADERPATH: [$LOADERPATH]"
+  _LOG "LOADERSCRIPT: [$LOADERSCRIPT]"
+  _LOG "TGTTBL: [$REP_REQ_TGT_DB2_TABLE]"
+  _LOG "HDFSETLPATH: [$REP_REQ_SRC_HDFS_PATH]"
+  
+  #Check the count of records from HDFS
+  if [ $REP_REQ_INPUT_TYPE = "LIST" ]; then
+    HDPFILEROWCOUNT=$(hadoop fs -cat `cat $REP_REQ_SRC_HDFS_PATH` | wc -l)
+  else
+    HDPFILEROWCOUNT=$(hadoop fs -cat $REP_REQ_SRC_HDFS_PATH | wc -l)
+  fi;
+
+  if [ $HDPFILEROWCOUNT -eq 0 ]; then
+    _LOG "Warning: ETL result is empty, no work to do; exiting."
+    _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_STATUS" "NO DATA"
+  else
+    _LOG "Data found in source rows; continuing process."
+    _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_HDP_COUNT" "$HDPFILEROWCOUNT"
+    _LOG " Total Records in the Source File :  $HDPFILEROWCOUNT"
+
+    #Invoke Pipeloader
+    _LOG "DB2 integration : $LOADERSCRIPT $DB2LOGIN $REP_REQ_SRC_HDFS_PATH $REP_REQ_TGT_DB2_TABLE $HDPNAMENODE $REP_REQ_INPUT_TYPE"
+    $LOADERSCRIPT $DB2LOGIN $REP_REQ_SRC_HDFS_PATH $REP_REQ_TGT_DB2_TABLE $HDPNAMENODE $REP_REQ_INPUT_TYPE
+
+    #Connect to DB2 and check Count of records Loaded
+    _LOG "Update the count from DB2 to HEMS"
+    _DBCONNECT $DB2LOGIN
+    set +o errexit
+    DCOUNT=`db2 -x "select count(*) from $REP_REQ_TGT_DB2_TABLE"`
+    if [ $? -ge 4 ] ; then
+      _LOG "Error: SQL merge step failure, rolling back."
+      _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_STATUS" "FAILED"
+      exit 1
+    fi
+
+    #Disconnect from DB2 and log the count in HEMS.
+    set -o errexit
+    _DBDISCONNECT
+
+    _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_DB2_COUNT" "$DCOUNT"
+    _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_STATUS" "COMPLETED"
+    _LOG "============ Completed DB2 load for $REP_REQ_TGT_DB2_TABLE ==============="
+  fi;
+
+  #############
+  # SEG
+  #############
+  #Connect to DB2 and create the table
+  _LOG "Create the table [$SEG_TGT_DB2_TABLE] in DB2"
+  _LOG_PROCESS_DETAIL $RUN_ID "SEG_DB2_STATUS" "STARTED"
+  _DBCONNECT $DB2LOGIN
+  db2 -tvf $SCRIPT_PATH_DB2/$SEG_TGT_DB2_TABLE.sql
+  if [ $? -ge 4 ] ; then
+    _LOG "Error: SQL merge step failure, rolling back."
+    exit 1
+  fi
+
+  #Disconnect from DB2 and log the count in HEMS.
+  _DBDISCONNECT
+  
+  #Start the job and logging
+  _LOG "============ Starting DB2 load for $SEG_TGT_DB2_TABLE ==============="
+  _LOG "PWD: [$PWD]"
+  _LOG "DB2LOGIN: [$DB2LOGIN]"
+  _LOG "HDPENV: [$HDPENV]"
+  _LOG "STRMJAR: [$STRMJAR]"
+  _LOG "HDPNAMENODE: [$HDPNAMENODE]"
+  _LOG "LOADERPATH: [$LOADERPATH]"
+  _LOG "LOADERSCRIPT: [$LOADERSCRIPT]"
+  _LOG "TGTTBL: [$SEG_TGT_DB2_TABLE]"
+  _LOG "HDFSETLPATH: [$SEG_SRC_HDFS_PATH]"
+  
+  #Check the count of records from HDFS
+  if [ $REP_REQ_INPUT_TYPE = "LIST" ]; then
+    HDPFILEROWCOUNT=$(hadoop fs -cat `cat $SEG_SRC_HDFS_PATH` | wc -l)
+  else
+    HDPFILEROWCOUNT=$(hadoop fs -cat $SEG_SRC_HDFS_PATH | wc -l)
+  fi;
+
+  if [ $HDPFILEROWCOUNT -eq 0 ]; then
+    _LOG "Warning: ETL result is empty, no work to do; exiting."
+    _LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_STATUS" "NO DATA"
+  else
+    _LOG "Data found in source rows; continuing process."
+    _LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_HDP_COUNT" "$HDPFILEROWCOUNT"
+    _LOG "Total Records in the Source File :  $HDPFILEROWCOUNT"
+
+    #Invoke Pipeloader
+    _LOG "DB2 integration : $LOADERSCRIPT $DB2LOGIN $SEG_SRC_HDFS_PATH $SEG_TGT_DB2_TABLE $HDPNAMENODE $SEG_INPUT_TYPE"
+    $LOADERSCRIPT $DB2LOGIN $SEG_SRC_HDFS_PATH $SEG_TGT_DB2_TABLE $HDPNAMENODE $SEG_INPUT_TYPE
+
+    #Connect to DB2 and check Count of records Loaded
+    _LOG "Update the count from DB2 to HEMS"
+    _DBCONNECT $DB2LOGIN
+    set +o errexit
+    DCOUNT=`db2 -x "select count(*) from $SEG_TGT_DB2_TABLE"`
+    if [ $? -ge 4 ] ; then
+      _LOG "Error: SQL merge step failure, rolling back."
+      _LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_STATUS" "FAILED"
+      exit 1
+    fi
+
+    #Disconnect from DB2 and log the count in HEMS.
+    set -o errexit
+    _DBDISCONNECT
+
+    _LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_DB2_COUNT" "$DCOUNT"
+	_LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_STATUS" "COMPLETED"
+	_LOG "============ Completed DB2 load for $SEG_TGT_DB2_TABLE ==============="
+  
+    #####################
+    # DB2 post processing
+    #####################
+    _LOG "Create partitions for DM.RPT_HEXDM_AGG_SEGMENT_COMP"
+	_LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "STARTED"
+    #Connect to DB2 and invoke the stored procedure to create partitions for DM.RPT_HEXDM_AGG_SEGMENT_COMP
+    _DBCONNECT $DB2LOGIN
+    db2 -x "call ETL.SP_HEX_COMPLETED_CREATE_PARTITION()"
+    if [ $? -eq 8 ] ; then
+      _LOG "Error:Check etl.etl_sproc_error for more information"
+      _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "FAILED"
+      exit 1
+    fi
+
+    _LOG "Load data into Live and Completed tables"
+
+    #Invoke the procedure to insert data into Live and Completed Tables
+    db2 -x "call ETL.SP_RPT_HEXDM_AGG_SEGMENT_LOAD()"
+    if [ $? -eq 8 ] ; then
+      _LOG "Error:Check etl.etl_sproc_error for more information"
+      _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "FAILED"
+      exit 1
+    fi
+
+
+    #Disconnect from DB2 
+    _DBDISCONNECT
+
+    _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "COMPLETED"
+    _LOG "============ Completed DB2 post processing for $SEG_TGT_DB2_TABLE ==============="
+    
+  fi;
+  fi
+  if [ "$TOGGLE_DB2" == "Y" ]
+  then
+    _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "TOGGLE_DB2" "N"
+  else
+    _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "TOGGLE_DB2" "Y"
+  fi
   
 fi
 
