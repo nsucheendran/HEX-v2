@@ -626,8 +626,6 @@ else
   source /home/db2clnt1/sqllib/db2profile
   _LOG "PLAT_HOME: [$PLAT_HOME]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   export PLAT_HOME=/usr/local/edw/platform
-  source $PLAT_HOME/common/sh_helpers.sh
-  source $PLAT_HOME/common/sh_metadata_storage.sh
   
   _LOG "ETLCOMMONSCR: [$ETLCOMMONSCR]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   _LOG "DB2INSTANCE: [$DB2INSTANCE]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
