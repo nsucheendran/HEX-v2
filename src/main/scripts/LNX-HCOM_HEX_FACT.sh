@@ -114,7 +114,7 @@ SEG_TGT_DB2_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "SEG_TGT_DB2_TABLE"`
 SEG_INPUT_TYPE=`_READ_PROCESS_CONTEXT $PROCESS_ID "SEG_INPUT_TYPE"`
 
 LOADERPATH=/usr/etl/HWW/hdp_hww_hex_etl
-DB2LOGIN="/home/hwwetl/dbconf"
+DB2LOGIN="/home/hwwetl/hexdbconf"
 HDPENV="/home/hwwetl/hdpenv.conf"
 LOADERSCRIPT=$LOADERPATH/HWW_pipeloader_str.bash
 
@@ -624,6 +624,14 @@ else
   then
   source /home/hwwetl/.bashrc
   source /home/db2clnt1/sqllib/db2profile
+  _LOG "PLAT_HOME: [$PLAT_HOME]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  export PLAT_HOME=/usr/local/edw/platform
+  source $PLAT_HOME/common/sh_helpers.sh
+  source $PLAT_HOME/common/sh_metadata_storage.sh
+  
+  _LOG "ETLCOMMONSCR: [$ETLCOMMONSCR]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG "DB2INSTANCE: [$DB2INSTANCE]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG "HEMS RUN_ID: [$RUN_ID]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   #############
   # REP_REQ
   #############
@@ -632,8 +640,12 @@ else
   _LOG_PROCESS_DETAIL $RUN_ID "REP_DB2_STATUS" "STARTED"
   _DBCONNECT $DB2LOGIN
   /home/db2clnt1/sqllib/bin/db2 -tvf $SCRIPT_PATH_DB2/$REP_REQ_TGT_DB2_TABLE.sql
-  if [ $? -ge 4 ] ; then
+  ERROR_CODE=$?
+  if [ $ERROR_CODE -ge 4 ] ; then
     _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+    _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
 
@@ -664,7 +676,7 @@ else
     _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_STATUS" "NO DATA"
   else
     _LOG "Data found in source rows; continuing process." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_HDP_COUNT" "$HDPFILEROWCOUNT" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_HDP_COUNT" "$HDPFILEROWCOUNT"
     _LOG " Total Records in the Source File :  $HDPFILEROWCOUNT" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
 
     #Invoke Pipeloader
@@ -675,9 +687,13 @@ else
     _DBCONNECT $DB2LOGIN
     set +o errexit
     DCOUNT=`/home/db2clnt1/sqllib/bin/db2 -x "select count(*) from $REP_REQ_TGT_DB2_TABLE"`
-    if [ $? -ge 4 ] ; then
+    ERROR_CODE=$?
+    if [ $ERROR_CODE -ge 4 ] ; then
       _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_STATUS" "FAILED"
+      _END_PROCESS $RUN_ID $ERROR_CODE
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+      _FREE_LOCK $HWW_LOCK_NAME
       exit 1
     fi
 
@@ -698,8 +714,12 @@ else
   _LOG_PROCESS_DETAIL $RUN_ID "SEG_DB2_STATUS" "STARTED"
   _DBCONNECT $DB2LOGIN
   /home/db2clnt1/sqllib/bin/db2 -tvf $SCRIPT_PATH_DB2/$SEG_TGT_DB2_TABLE.sql
-  if [ $? -ge 4 ] ; then
+  ERROR_CODE=$?
+  if [ $ERROR_CODE -ge 4 ] ; then
     _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+    _FREE_LOCK $HWW_LOCK_NAME
     exit 1
   fi
 
@@ -722,7 +742,7 @@ else
   if [ $REP_REQ_INPUT_TYPE = "LIST" ]; then
     HDPFILEROWCOUNT=$(hadoop fs -cat `cat $SEG_SRC_HDFS_PATH` | wc -l)
   else
-    HDPFILEROWCOUNT=$(hadoop fs -cat $SEG_SRC_HDFS_PATH | wc -l)
+    HDPFILEROWCOUNT=`hive -hiveconf mapred.job.queue.name=${JOB_QUEUE} -e "select count(1) from ${AGG_DB}.${SEG_UNPARTED_TABLE}"`
   fi;
 
   if [ $HDPFILEROWCOUNT -eq 0 ]; then
@@ -742,9 +762,13 @@ else
     _DBCONNECT $DB2LOGIN
     set +o errexit
     DCOUNT=`/home/db2clnt1/sqllib/bin/db2 -x "select count(*) from $SEG_TGT_DB2_TABLE"`
-    if [ $? -ge 4 ] ; then
+    ERROR_CODE=$?
+    if [ $ERROR_CODE -ge 4 ] ; then
       _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_STATUS" "FAILED"
+      _END_PROCESS $RUN_ID $ERROR_CODE
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+      _FREE_LOCK $HWW_LOCK_NAME
       exit 1
     fi
 
@@ -764,9 +788,13 @@ else
     #Connect to DB2 and invoke the stored procedure to create partitions for DM.RPT_HEXDM_AGG_SEGMENT_COMP
     _DBCONNECT $DB2LOGIN
     /home/db2clnt1/sqllib/bin/db2 -x "call ETL.SP_HEX_COMPLETED_CREATE_PARTITION()"
-    if [ $? -eq 8 ] ; then
+    ERROR_CODE=$?
+    if [ $ERROR_CODE -eq 8 ] ; then
       _LOG "Error:Check etl.etl_sproc_error for more information" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "FAILED"
+      _END_PROCESS $RUN_ID $ERROR_CODE
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+      _FREE_LOCK $HWW_LOCK_NAME
       exit 1
     fi
 
@@ -774,9 +802,13 @@ else
 
     #Invoke the procedure to insert data into Live and Completed Tables
     /home/db2clnt1/sqllib/bin/db2 -x "call ETL.SP_RPT_HEXDM_AGG_SEGMENT_LOAD()"
-    if [ $? -eq 8 ] ; then
+    ERROR_CODE=$?
+    if [ $ERROR_CODE -eq 8 ] ; then
       _LOG "Error:Check etl.etl_sproc_error for more information" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "FAILED"
+      _END_PROCESS $RUN_ID $ERROR_CODE
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+      _FREE_LOCK $HWW_LOCK_NAME
       exit 1
     fi
 

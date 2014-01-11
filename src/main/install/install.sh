@@ -492,12 +492,6 @@ if [ -z "$FACT_PROCESS_ID" ]; then
     $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
     exit 1
   fi
-  _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REPORT_FILE" "$REPORT_FILE"
-  if [ $? -ne 0 ]; then
-    _LOG "Error writing process context. Installation FAILED."
-    $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
-    exit 1
-  fi
   _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "FAH_PROCESS_ID" "$FAH_PROCESS_ID"
   if [ $? -ne 0 ]; then
     _LOG "Error writing process context. Installation FAILED."
@@ -570,6 +564,12 @@ else
   _LOG "Process $FACT_PROCESS_NAME already exists"
 fi
 
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REPORT_FILE" "$REPORT_FILE"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SEG_NUM_REDUCERS" "$SEG_NUM_REDUCERS"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
