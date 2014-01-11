@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import mr.Constants;
 import mr.dto.TextMultiple;
 
 import org.apache.hadoop.conf.Configuration;
@@ -25,36 +24,6 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 public final class SegmentationJobConfigurator {
-    private Map<String, String> equiJoinKeys = new HashMap<String, String>() {
-        private static final long serialVersionUID = 1L;
-
-        {
-            // lhs keys => rhs keys
-            put("variant_code", "variant_code");
-            put("experiment_code", "experiment_code");
-            put("version_number", "version_number");
-        }
-    };
-
-    private Map<String, String> lteJoinKeys = new HashMap<String, String>() {
-        private static final long serialVersionUID = 1L;
-
-        {
-            put("local_date", "report_end_date");
-            put("trans_date", "trans_date");
-        }
-    };
-
-    private Map<String, String> gteJoinKeys = new HashMap<String, String>() {
-        private static final long serialVersionUID = 1L;
-
-        {
-            put("local_date", "report_start_date");
-            put("trans_date", "report_start_date");
-        }
-    };
-
-    private Set<String> rhsKeys = new HashSet<String>();
 
     private Map<String, String> groupKeys = new HashMap<String, String>() {
         private static final long serialVersionUID = 1L;
@@ -158,26 +127,11 @@ public final class SegmentationJobConfigurator {
         }
     };
 
-    private static class IntPair {
-        private final int first;
-        private final int second;
-
-        IntPair(final int one, final int two) {
-            this.first = one;
-            this.second = two;
-        }
-    }
-
-    private Map<String, IntPair> rhsPosMap;
     private int numReduceTasks = 100;
     private String colMapStr;
     private String metricsStr;
     private String segSpecStr;
-    private String equiJoinPosMap;
-    private String lteJoinPosMap;
-    private String gteJoinPosMap;
 
-    
     public Job initJob(Configuration config, String jobName, String queueName) throws IOException {
         JobConf conf = new JobConf(config);
         conf.setQueueName(queueName);
@@ -198,47 +152,23 @@ public final class SegmentationJobConfigurator {
         return job;
     }
 
-    public SegmentationJobConfigurator equiJoinKeys(Map<String, String> equiJoinKeys) {
-        this.equiJoinKeys = equiJoinKeys;
-        return this;
-    }
-
-    public SegmentationJobConfigurator lteJoinKeys(Map<String, String> lteJoinKeys) {
-        this.lteJoinKeys = lteJoinKeys;
-        return this;
-    }
-
-    public SegmentationJobConfigurator gteJoinKeys(Map<String, String> gteJoinKeys) {
-        this.gteJoinKeys = gteJoinKeys;
-        return this;
-    }
-
-    public SegmentationJobConfigurator rhsKeys(Set<String> rhsKeys) {
-        this.rhsKeys = rhsKeys;
-        return this;
-    }
-
     public SegmentationJobConfigurator groupKeys(Map<String, String> groupKeys) {
         this.groupKeys = groupKeys;
         return this;
     }
-    
+
     public SegmentationJobConfigurator metrics(Set<String> metrics) {
         this.metrics = metrics;
         return this;
     }
-    
+
     // prepare source-target column mappings and segmentation specification for sending to mappers
-    public SegmentationJobConfigurator colMap(List<String> sourceFields, List<String> targetFields, BufferedReader segSpecReader,
-            List<String> rhsFields) throws IOException {
-        rhsFields(rhsFields);
+    public SegmentationJobConfigurator colMap(List<String> sourceFields, List<String> targetFields, BufferedReader segSpecReader)
+        throws IOException {
         List<ColumnMapping> mappings = new ArrayList<ColumnMapping>(groupKeys.size());
         StringBuilder metricsSB = new StringBuilder();
-        Map<String, Integer> equiLhsPosMap = new HashMap<String, Integer>();
-        Map<String, Integer> lteLhsPosMap = new HashMap<String, Integer>();
-        Map<String, Integer> gteLhsPosMap = new HashMap<String, Integer>();
         int i = 0;
-        
+
         for (String targetField : targetFields) {
             if (sourceFields.contains(targetField)) {
                 if (groupKeys.containsKey(targetField)) {
@@ -250,21 +180,8 @@ public final class SegmentationJobConfigurator {
                     metricsSB.append(sourceFields.indexOf(targetField));
                 }
 
-                if (equiJoinKeys.containsKey(targetField)) {
-                    equiLhsPosMap.put(targetField, sourceFields.indexOf(targetField));
-                }
-                if (lteJoinKeys.containsKey(targetField)) {
-                    lteLhsPosMap.put(targetField, sourceFields.indexOf(targetField));
-                }
-                if (gteJoinKeys.containsKey(targetField)) {
-                    gteLhsPosMap.put(targetField, sourceFields.indexOf(targetField));
-                }
             }
         }
-
-        this.equiJoinPosMap = configString(equiLhsPosMap, equiJoinKeys).toString();
-        this.lteJoinPosMap = configString(lteLhsPosMap, lteJoinKeys).toString();
-        this.gteJoinPosMap = configString(gteLhsPosMap, gteJoinKeys).toString();
 
         this.metricsStr = metricsSB.toString();
         StringBuilder colMapSB = new StringBuilder();
@@ -294,21 +211,6 @@ public final class SegmentationJobConfigurator {
         return this;
     }
 
-    private SegmentationJobConfigurator rhsFields(List<String> rhsFields) {
-        int i = 0;
-        int tableSize = 0;
-        rhsPosMap = new HashMap<String, IntPair>();
-        for (String field : rhsFields) {
-            if (equiJoinKeys.values().contains(field) || lteJoinKeys.values().contains(field) || gteJoinKeys.values().contains(field)
-                    || rhsKeys.contains(field)) {
-                rhsPosMap.put(field, new IntPair(i, tableSize++));
-            }
-            ++i;
-        }
-
-        return this;
-    }
-
     public SegmentationJobConfigurator numReduceTasks(int numReduceTasks) {
         this.numReduceTasks = numReduceTasks;
         return this;
@@ -317,63 +219,11 @@ public final class SegmentationJobConfigurator {
     public void configureJob(Job job) {
         job.setNumReduceTasks(numReduceTasks);
 
-        int rk = 0;
-        StringBuilder rhsKeySb = new StringBuilder();
-        for (String fieldName : rhsKeys) {
-            if (rk++ > 0) {
-                rhsKeySb.append(",");
-            }
-            rhsKeySb.append(rhsPosMap.get(fieldName).second);
-        }
-
         job.getConfiguration().set("colMap", colMapStr);
         job.getConfiguration().set("segSpecs", segSpecStr);
 
         job.getConfiguration().set("lhsVals", metricsStr);
-        job.getConfiguration().set("rhsKeys", rhsKeySb.toString());
-        job.getConfiguration().set("rhsVals", "");
-        
-        job.getConfiguration().set("eqjoin", equiJoinPosMap.toString());
-        job.getConfiguration().set("ltejoin", lteJoinPosMap.toString());
-        job.getConfiguration().set("gtejoin", gteJoinPosMap.toString());
-    }
 
-    public void stripe(String row, StringBuilder data) {
-        this.stripe(row, data, Constants.COL_DELIM);
-    }
-
-    // stripe-out the columns from the rhs table that are needed for the join or select clauses
-    public void stripe(String row, StringBuilder data, String colDelim) {
-        String[] values = row.split(colDelim);
-        String[] vals = new String[rhsPosMap.size()];
-        // columns to be striped/collected may not be contiguously positioned in the table
-        for (IntPair p : rhsPosMap.values()) {
-            vals[p.second] = values[p.first];
-        }
-        int x = 0;
-        for (String val : vals) {
-            if (x++ > 0) {
-                data.append("\t");
-            }
-            data.append(val);
-        }
-    }
-
-    // build string representation of join criteria
-    private StringBuilder configString(Map<String, Integer> posMap, Map<String, String> joinKeys) {
-        int rk = 0;
-        StringBuilder posMapSB = new StringBuilder();
-        for (Map.Entry<String, String> entry : joinKeys.entrySet()) {
-            String fieldName = entry.getKey();
-            if (posMap.containsKey(fieldName)) {
-                if (rk++ > 0) {
-                    posMapSB.append(",");
-                }
-                String rField = entry.getValue();
-                posMapSB.append(posMap.get(fieldName)).append("=").append(rhsPosMap.get(rField).second);
-            }
-        }
-        return posMapSB;
     }
 
 }

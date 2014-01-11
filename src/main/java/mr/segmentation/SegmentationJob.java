@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Set;
 
 import mr.CFInputFormat;
-import mr.Constants;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
@@ -58,17 +57,15 @@ public final class SegmentationJob extends Configured implements Tool {
         String queueName = mainConf.get("queueName", "edwdev");
         String sourceDbName = mainConf.get("sourceDbName", "dm");
         String targetDbName = mainConf.get("targetDbName", "hwwdev");
-        String reportDbName = mainConf.get("reportDbName", "etldata");
 
         String sourceTableName = mainConf.get("sourceTableName", "rpt_hexdm_agg_unparted");
         String targetTableName = mainConf.get("targetTableName", "rpt_hexdm_seg_unparted");
-        String reportTableName = mainConf.get("reportTableName", "hex_reporting_requirements");
         String segFilePath = mainConf.get("segFile", "/autofs/edwfileserver/sherlock_in/HEX/HEXV2UAT/segmentations.txt");
 
         SegmentationJobConfigurator configurator = new SegmentationJobConfigurator();
         Job job = configurator.initJob(mainConf, jobName, queueName);
 
-        List<String> sourceFields, targetFields, rhsFields;
+        List<String> sourceFields, targetFields;
         HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
         Path outputPath = null;
         try {
@@ -80,20 +77,19 @@ public final class SegmentationJob extends Configured implements Tool {
 
             sourceFields = getFieldNames(sourceDbName, sourceTableName, cl);
             targetFields = getFieldNames(targetDbName, targetTableName, cl);
-            rhsFields = getFieldNames(reportDbName, reportTableName, cl);
         } finally {
             cl.close();
         }
         
         BufferedReader segSpecReader = new BufferedReader(new InputStreamReader(new FileInputStream(segFilePath)));
         try {
-            configurator.colMap(sourceFields, targetFields, segSpecReader, rhsFields).numReduceTasks(numReduceTasks);
+            configurator.colMap(sourceFields, targetFields, segSpecReader).numReduceTasks(numReduceTasks);
         } finally {
             segSpecReader.close();
         }
         
         configurator.configureJob(job);
-        job.getConfiguration().set("data", getReportDataAsString(reportTableName, reportDbName, configurator, job, cl));
+//        job.getConfiguration().set("data", getReportDataAsString(reportTableName, reportDbName, configurator, job, cl));
 
         FileSystem fileSystem = null;
         boolean success = false;
@@ -153,35 +149,5 @@ public final class SegmentationJob extends Configured implements Tool {
         }
         fileSystem.close();
         CFInputFormat.setInputPaths(job, inputPathsBuilder.toString());
-    }
-
-    private String getReportDataAsString(String reportTableName, String reportDbName, SegmentationJobConfigurator configurator, Job job,
-            HiveMetaStoreClient cl) throws IOException, TException {
-        StringBuilder data = new StringBuilder();
-        Table table = cl.getTable(reportDbName, reportTableName);
-        Path tblPath = new Path(table.getSd().getLocation());
-        FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
-
-        BufferedReader br = null;
-        try {
-            RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
-            while (files.hasNext()) {
-                br = new BufferedReader(new InputStreamReader(fileSystem.open(files.next().getPath())));
-                String line;
-                while ((line = br.readLine()) != null) {
-                    configurator.stripe(line, data, Constants.REPORT_TABLE_COL_DELIM);
-                    data.append("\n");
-                }
-            }
-        } finally {
-            if (br != null) {
-                br.close();
-            }
-            if (fileSystem != null) {
-                fileSystem.close();
-            }
-        }
-        // log.info("Reporting Data: " + data.toString());
-        return data.toString();
     }
 }

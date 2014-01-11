@@ -66,7 +66,7 @@ public class SegmentationMapReduceTest {
     }
 
     @Test
-    public void mapperAllJoins() throws IOException {
+    public void mapper() throws IOException {
         configureJob();
 
         // rf1\trf2\trf3\trf4
@@ -84,31 +84,15 @@ public class SegmentationMapReduceTest {
         mapDriver.withOutput(new TextMultiple("2", "test2", "id1", "Unknown", "val1"), new TextMultiple("7"));
         mapDriver.withOutput(new TextMultiple("1", "test1", "id1", "val", "Unknown"), new TextMultiple("8"));
         mapDriver.withOutput(new TextMultiple("2", "test2", "id1", "Unknown", "val4"), new TextMultiple("8"));
+        mapDriver.withOutput(new TextMultiple("1", "test1", "id2", "val", "Unknown"), new TextMultiple("9"));
+        mapDriver.withOutput(new TextMultiple("2", "test2", "id2", "Unknown", "val1"), new TextMultiple("9"));
 
         mapDriver.runTest();
     }
 
     @SuppressWarnings("deprecation")
     private Job configureJob() throws IOException {
-        jobConfigurator.numReduceTasks(100).equiJoinKeys(new HashMap<String, String>() {
-            private static final long serialVersionUID = 1L;
-
-            {
-                put("lf1", "rf1");
-            }
-        }).lteJoinKeys(new HashMap<String, String>() {
-            private static final long serialVersionUID = 1L;
-
-            {
-                put("lf2", "rf2");
-            }
-        }).gteJoinKeys(new HashMap<String, String>() {
-            private static final long serialVersionUID = 1L;
-
-            {
-                put("lf3", "rf3");
-            }
-        }).rhsKeys(new HashSet<String>()).groupKeys(new HashMap<String, String>() {
+        jobConfigurator.numReduceTasks(100).groupKeys(new HashMap<String, String>() {
             private static final long serialVersionUID = 1L;
 
             {
@@ -125,13 +109,10 @@ public class SegmentationMapReduceTest {
         });
 
         jobConfigurator.colMap(Arrays.asList("lf1", "lf2", "lf3", "lf4"), Arrays.asList("lf1", "lf2", "lf3", "lf4"), new BufferedReader(
-                new StringReader(segFileContent)), Arrays.asList("rf1", "rf2", "rf3"));
+                new StringReader(segFileContent)));
 
         Job job = jobConfigurator.initJob(mapDriver.getConfiguration(), "mapTest", "edwdev");
         jobConfigurator.configureJob(job);
-        StringBuilder data = new StringBuilder();
-        jobConfigurator.stripe("id1" + Constants.COL_DELIM + "val" + Constants.COL_DELIM + "val1" + Constants.COL_DELIM + "val4", data);
-        job.getConfiguration().set("data", data.toString());
         mapDriver.setConfiguration(job.getConfiguration());
         return job;
     }
