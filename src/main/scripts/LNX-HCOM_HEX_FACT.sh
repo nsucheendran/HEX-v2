@@ -794,7 +794,7 @@ else
   fg
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT_SEG: `fg` on Segmentation load returned [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG "HEX_FACT_SEG: 'fg' on Segmentation load returned [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   fi
   
   _LOG "Segmentation Partition Load Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
@@ -803,7 +803,7 @@ else
   fg
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT_AGG: `fg` on Fact Agg load returned [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log    
+    _LOG "HEX_FACT_AGG: 'fg' on Fact Agg load returned [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log    
   fi
   
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
@@ -812,7 +812,7 @@ else
   fg
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT: `fg` on Fact load FAILED [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log    
+    _LOG "HEX_FACT: 'fg' on Fact load returned [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log    
   fi
   
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
