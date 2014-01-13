@@ -476,15 +476,15 @@ else
 
   BATCH_COUNT=0
   BATCH_COND=""
-  OIFS=$IFS
-  IFS='\n'
-  arr=$(cat $HEX_LOGS/rep_reqs/*)
+  
   _LOG "Total Reporting Requirements: $REQ_COUNT, Batch Size: $REP_BATCH_SIZE" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-  for x in $arr
+  
+  while read x
   do
-    inarr=$(echo $x | tr "," "\n")
     i=0
-    for y in $inarr
+    OIFS=$IFS
+    IFS=','
+    for y in $x
     do
       if [ 0 -eq $i ]
       then
@@ -497,6 +497,7 @@ else
       fi
       i=$(( i + 1 ))
     done
+    IFS=$OIFS
     CURR_FILTER="(experiment_code='$EXP' and version_number=$VER and variant_code='$VAR')"
     if [ -n "$BATCH_COND" ];
     then
@@ -537,8 +538,8 @@ else
         exit 1
       fi
     fi
-  done
-  IFS=$OIFS
+  done < $HEX_LOGS/rep_reqs/000000_0
+
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION_INSERT" "ENDED"
   _LOG "Fact Aggregation Insert Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "ENDED"
