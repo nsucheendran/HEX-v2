@@ -568,6 +568,22 @@ else
   _LOG_PROCESS_DETAIL $RUN_ID "SEG_UNPARTED_STATUS" "ENDED"
   _LOG "Segmentation MapReduce Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   
+  _LOG "Starting Fact Partition Load" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
+  
+  hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${FACT_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 &
+  
+  _LOG "Starting Agg Partition Load" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
+  
+  hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.unparted.table="${FACT_AGG_UNPARTED_TABLE}" -hiveconf agg.num.reduce.tasks="${AGG_NUM_REDUCERS}" -f $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 &
+  
+  _LOG "Starting Segmentation Partition Load" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
+  
+  hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.seg.table="${SEG_TABLE}" -hiveconf hex.seg.unparted.table="${SEG_UNPARTED_TABLE}" -hiveconf seg.num.reduce.tasks="${SEG_NUM_REDUCERS}" -f $SCRIPT_PATH_SEG/insert_RPT_HEXDM_SEG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 &
+
+  
   ########################
   # DB2 Load
   ########################
@@ -773,49 +789,16 @@ else
   if [ "$TOGGLE_DB2" == "Y" ]
   then
     _WRITE_PROCESS_CONTEXT $PROCESS_ID "TOGGLE_DB2" "N"
+    _LOG "DB2 Load Complete. TOGGLE_DB2=N (db2 load won't run next time)" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   else
     _WRITE_PROCESS_CONTEXT $PROCESS_ID "TOGGLE_DB2" "Y"
+    _LOG "DB2 Load Not Run. TOGGLE_DB2=Y (db2 load will run next time)" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   fi
   
-  _LOG "Starting Fact Partition Load" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
-  
-  hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${FACT_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+  fg
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT: Booking Fact load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _END_PROCESS $RUN_ID $ERROR_CODE
-    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-    _FREE_LOCK $HWW_LOCK_NAME
-    exit 1
-  fi
-  
-  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
-  _LOG "Fact Partition Load Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-
-  _LOG "Starting Agg Partition Load" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
-  
-  hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.unparted.table="${FACT_AGG_UNPARTED_TABLE}" -hiveconf agg.num.reduce.tasks="${AGG_NUM_REDUCERS}" -f $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
-  ERROR_CODE=$?
-  if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT_AGG: Fact Agg load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _END_PROCESS $RUN_ID $ERROR_CODE
-    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-    _FREE_LOCK $HWW_LOCK_NAME
-    exit 1
-  fi
-  
-  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
-  _LOG "Agg Partition Load Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-  
-  _LOG "Starting Segmentation Partition Load" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
-  
-  hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.seg.table="${SEG_TABLE}" -hiveconf hex.seg.unparted.table="${SEG_UNPARTED_TABLE}" -hiveconf seg.num.reduce.tasks="${SEG_NUM_REDUCERS}" -f $SCRIPT_PATH_SEG/insert_RPT_HEXDM_SEG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
-  ERROR_CODE=$?
-  if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT_SEG: Segmentation load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG "HEX_FACT_SEG: Segmentation load FAILED [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _END_PROCESS $RUN_ID $ERROR_CODE
     _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
     _FREE_LOCK $HWW_LOCK_NAME
@@ -825,6 +808,32 @@ else
   _LOG "Segmentation Partition Load Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
   
+  fg
+  ERROR_CODE=$?
+  if [[ $ERROR_CODE -ne 0 ]]; then
+    _LOG "HEX_FACT_AGG: Fact Agg load FAILED [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
+  
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
+  _LOG "Agg Partition Load Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  
+  fg
+  ERROR_CODE=$?
+  if [[ $ERROR_CODE -ne 0 ]]; then
+    _LOG "HEX_FACT: Booking Fact load FAILED [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _END_PROCESS $RUN_ID $ERROR_CODE
+    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+    _FREE_LOCK $HWW_LOCK_NAME
+    exit 1
+  fi
+  
+  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
+  _LOG "Fact Partition Load Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+
 fi
 
 _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "SUCCESS"
