@@ -184,7 +184,6 @@ if [ $PROCESSING_TYPE = "R" ];
 then
   _LOG "re-creating table $FACT_STAGE_TABLE for reprocessing..." 
   _LOG "disable nodrop - OK if errors here." 
-  set +o errexit 
   hive -e "use $STAGE_DB; alter table $STAGE_TABLE disable NO_DROP;" 
   set -o errexit 
   _LOG "disable nodrop ended." 
@@ -502,7 +501,7 @@ else
       BATCH_COND="$BATCH_COND or "
     fi
     BATCH_COND="${BATCH_COND}${CURR_FILTER}"
-	BATCH_COUNT=$(( BATCH_COUNT + 1 ))
+    BATCH_COUNT=$(( BATCH_COUNT + 1 ))
     
     if [ $BATCH_COUNT -eq $REP_BATCH_SIZE ] || [ $BATCH_COUNT -eq $REQ_COUNT ] 
     then
@@ -650,7 +649,6 @@ else
     #Connect to DB2 and check Count of records Loaded
     _LOG "Update the count from DB2 to HEMS" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _DBCONNECT $DB2LOGIN
-    set +o errexit
     DCOUNT=`/home/db2clnt1/sqllib/bin/db2 -x "select count(*) from $REP_REQ_TGT_DB2_TABLE"`
     ERROR_CODE=$?
     if [ $ERROR_CODE -ge 4 ] ; then
@@ -663,7 +661,6 @@ else
     fi
 
     #Disconnect from DB2 and log the count in HEMS.
-    set -o errexit
     _DBDISCONNECT
 
     _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_DB2_COUNT" "$DCOUNT"
@@ -725,7 +722,6 @@ else
     #Connect to DB2 and check Count of records Loaded
     _LOG "Update the count from DB2 to HEMS" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _DBCONNECT $DB2LOGIN
-    set +o errexit
     DCOUNT=`/home/db2clnt1/sqllib/bin/db2 -x "select count(*) from $SEG_TGT_DB2_TABLE"`
     ERROR_CODE=$?
     if [ $ERROR_CODE -ge 4 ] ; then
@@ -738,21 +734,21 @@ else
     fi
 
     #Disconnect from DB2 and log the count in HEMS.
-    set -o errexit
     _DBDISCONNECT
 
     _LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_DB2_COUNT" "$DCOUNT"
-	_LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_STATUS" "COMPLETED"
-	_LOG "============ Completed DB2 load for $SEG_TGT_DB2_TABLE ===============" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG_PROCESS_DETAIL $RUN_ID "DB2_SEG_STATUS" "COMPLETED"
+    _LOG "============ Completed DB2 load for $SEG_TGT_DB2_TABLE ===============" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   
     #####################
     # DB2 post processing
     #####################
     _LOG "Create partitions for DM.RPT_HEXDM_AGG_SEGMENT_COMP" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-	_LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "STARTED"
+    _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "STARTED"
     #Connect to DB2 and invoke the stored procedure to create partitions for DM.RPT_HEXDM_AGG_SEGMENT_COMP
     _DBCONNECT $DB2LOGIN
     /home/db2clnt1/sqllib/bin/db2 -x "call ETL.SP_HEX_COMPLETED_CREATE_PARTITION()"
+    
     ERROR_CODE=$?
     if [ $ERROR_CODE -eq 8 ] ; then
       _LOG "Error:Check etl.etl_sproc_error for more information" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
@@ -763,7 +759,7 @@ else
       exit 1
     fi
 
-    _LOG "Load data into Live and Completed tables"
+    _LOG "Load data into Live and Completed tables" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
 
     #Invoke the procedure to insert data into Live and Completed Tables
     /home/db2clnt1/sqllib/bin/db2 -x "call ETL.SP_RPT_HEXDM_AGG_SEGMENT_LOAD()"
@@ -798,11 +794,7 @@ else
   fg
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT_SEG: Segmentation load FAILED [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _END_PROCESS $RUN_ID $ERROR_CODE
-    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-    _FREE_LOCK $HWW_LOCK_NAME
-    exit 1
+    _LOG "HEX_FACT_SEG: `fg` on Segmentation load returned [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   fi
   
   _LOG "Segmentation Partition Load Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
@@ -811,11 +803,7 @@ else
   fg
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT_AGG: Fact Agg load FAILED [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _END_PROCESS $RUN_ID $ERROR_CODE
-    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-    _FREE_LOCK $HWW_LOCK_NAME
-    exit 1
+    _LOG "HEX_FACT_AGG: `fg` on Fact Agg load returned [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log    
   fi
   
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
@@ -824,11 +812,7 @@ else
   fg
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
-    _LOG "HEX_FACT: Booking Fact load FAILED [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _END_PROCESS $RUN_ID $ERROR_CODE
-    _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-    _FREE_LOCK $HWW_LOCK_NAME
-    exit 1
+    _LOG "HEX_FACT: `fg` on Fact load FAILED [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log    
   fi
   
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
