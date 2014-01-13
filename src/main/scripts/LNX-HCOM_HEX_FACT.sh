@@ -463,8 +463,8 @@ else
     exit 1
   fi
       
-  _LOG "Fetching Reporting Requirements for Batching" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-  VALS=`hive -hiveconf mapred.job.queue.name=${JOB_QUEUE} -e "select concat(experiment_code, ',', version_number, ',', variant_code) from ${STAGE_DB}.${REPORT_TABLE};"`
+  _LOG "Fetching Reporting Requirements for Batching into $HEX_LOGS/rep_reqs" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  hive -hiveconf mapred.job.queue.name=${JOB_QUEUE} -e "insert overwrite local directory '$HEX_LOGS/rep_reqs' select concat(experiment_code, ',', version_number, ',', variant_code) from ${STAGE_DB}.${REPORT_TABLE};"
   ERROR_CODE=$?
   if [[ $ERROR_CODE -ne 0 ]]; then
     _LOG "HEX_FACT: Aggregation load FAILED while fetching reporting rows. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
@@ -476,7 +476,9 @@ else
 
   BATCH_COUNT=0
   BATCH_COND=""
-  arr=$(echo $VALS | tr " " "\n")
+  OIFS=$IFS
+  IFS='\n'
+  arr=$(cat $HEX_LOGS/rep_reqs/*)
   _LOG "Total Reporting Requirements: $REQ_COUNT, Batch Size: $REP_BATCH_SIZE" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   for x in $arr
   do
@@ -536,7 +538,7 @@ else
       fi
     fi
   done
-  
+  IFS=$OIFS
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION_INSERT" "ENDED"
   _LOG "Fact Aggregation Insert Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "ENDED"
