@@ -762,7 +762,7 @@ else
     _LOG "Load data into Live and Completed tables" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
 
     #Invoke the procedure to insert data into Live and Completed Tables
-    /home/db2clnt1/sqllib/bin/db2 -x "call ETL.SP_RPT_HEXDM_AGG_SEGMENT_LOAD()"
+    /home/db2clnt1/sqllib/bin/db2 -x "call ETL.SP_RPT_HEXDM_AGG_SEGMENT_LOAD('$FAH_BOOKMARK_DATE_FULL', '$BKG_BOOKMARK_DATE')"
     ERROR_CODE=$?
     if [ $ERROR_CODE -eq 8 ] ; then
       _LOG "Error:Check etl.etl_sproc_error for more information" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
