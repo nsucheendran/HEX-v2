@@ -29,6 +29,7 @@ SCRIPT_PATH_TRANS=$CURR_PATH/../scripts/hql/TRANS
 SCRIPT_PATH_FACT=$CURR_PATH/../scripts/hql/FACT
 SCRIPT_PATH_AGG=$CURR_PATH/../scripts/hql/AGG
 SCRIPT_PATH_SEG=$CURR_PATH/../scripts/hql/SEG
+SCRIPT_PATH_REP=$CURR_PATH/../scripts/hql/REP
 JAR_PATH=$(ls $CURR_PATH/../jars/${MODULE_NAME}*.jar)
 JAR_DEST_PATH=/app/edw/hive/auxlib/$MODULE_NAME.jar
 
@@ -55,6 +56,7 @@ SEG_NUM_REDUCERS=800;
 SEG_UNPARTED_TABLE='RPT_HEXDM_SEG_UNPARTED'
 SEG_INPUT_FILE_PATH='/autofs/edwfileserver/sherlock_in/HEX/segmentations.txt'
 SEG_TABLE='RPT_HEXDM_SEG'
+SEG_EXP_LIST_TABLE='RPT_HEXDM_SEGMENT_EXP_LIST'
 
 AGG_DB='DM'
 
@@ -295,6 +297,28 @@ FACT_PROCESS_NAME="ETL_HCOM_HEX_FACT"
 _LOG "Configuring process $FACT_PROCESS_NAME ..."
 
 FACT_PROCESS_DESCRIPTION="Loads HEX FACT Data"
+
+  
+_LOG "(re-)creating table $SEG_EXP_LIST_TABLE ..." 
+_LOG "disable nodrop - OK if errors here." 
+set +o errexit 
+sudo -E -u $ETL_USER hive -e "use $AGG_DB; alter table $SEG_EXP_LIST_TABLE disable NO_DROP;" 
+set -o errexit 
+_LOG "disable nodrop ended." 
+if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$AGG_DB/$SEG_EXP_LIST_TABLE; then 
+  _LOG "removing existing table files ... " 
+  sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$AGG_DB/$SEG_EXP_LIST_TABLE 
+  if [ $? -ne 0 ]; then
+    _LOG "Error deleting table files. Installation FAILED."
+    exit 1
+  fi
+fi 
+sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.table="${SEG_EXP_LIST_TABLE}" -f $SCRIPT_PATH_REP/createTable_SEG_EXP_LIST_TABLE.hql
+if [ $? -ne 0 ]; then
+  _LOG "Error creating table. Installation FAILED."
+  exit 1
+fi
+_LOG "(re-)creating table $SEG_EXP_LIST_TABLE Done." 	
 
 FACT_PROCESS_ID=$(_GET_PROCESS_ID "$FACT_PROCESS_NAME")
 if [ -z "$FACT_PROCESS_ID" ]; then
@@ -563,6 +587,12 @@ else
   _LOG "Process $FACT_PROCESS_NAME already exists"
 fi
 
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SEG_EXP_LIST_TABLE" "$SEG_EXP_LIST_TABLE"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REPORT_FILE" "$REPORT_FILE"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
@@ -672,12 +702,16 @@ fi
 # DB2 Load configuration
 ###########################
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REP_REQ_SRC_HDFS_PATH" "/user/hive/warehouse/etldata.db/etl_hex_reporting_requirements/00*"
-_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REP_REQ_TGT_DB2_TABLE" "DM.HEX_REPORTING_REQUIREMENTS"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REP_REQ_TGT_DB2_TABLE" "STGLDR.HEX_REPORTING_REQUIREMENTS"
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "REP_REQ_INPUT_TYPE" "DIRECT"
 
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SEG_SRC_HDFS_PATH" "/data/HWW/$AGG_DB/$SEG_UNPARTED_TABLE/part*"
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SEG_TGT_DB2_TABLE" "DM.RPT_HEXDM_AGG_SEGMENT"
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SEG_INPUT_TYPE" "DIRECT"
+
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "EXP_SRC_HDFS_PATH" "/data/HWW/$AGG_DB/$SEG_EXP_LIST_TABLE/part*"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "EXP_TGT_DB2_TABLE" "STGLDR.RPT_HEXDM_SEGMENT_EXP_LIST"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "EXP_INPUT_TYPE" "DIRECT"
 
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "LOAD_DB2" "Y"
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "TOGGLE_DB2" "Y"
