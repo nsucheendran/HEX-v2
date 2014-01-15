@@ -89,7 +89,7 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                  case when pmd.property_mkt_super_regn_name is null then 'Unknown' else pmd.property_mkt_super_regn_name end as PSG_mkt_super_regn_name,
 
                  case when coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name) is null then 'Not Applicable'
-                      when coalesce(property_cntry_name,hcom_srch_dest_cntry_name) = site.site_cntry_name then 'Domestic'
+                      when lcase(coalesce(property_cntry_name,hcom_srch_dest_cntry_name)) = lcase(site.site_cntry_name) then 'Domestic'
                       else 'International'
                   end as dom_intl_flag,
 
@@ -394,6 +394,6 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                  pmd.property_mkt_regn_name, 
                  pmd.property_mkt_super_regn_name, 
                  case when coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name) is null then 'Not Applicable' 
-                      when coalesce(property_cntry_name,hcom_srch_dest_cntry_name) = site.site_cntry_name then 'Domestic' 
+                      when lcase(coalesce(property_cntry_name,hcom_srch_dest_cntry_name)) = lcase(site.site_cntry_name) then 'Domestic' 
                       else 'International' 
                   end;
