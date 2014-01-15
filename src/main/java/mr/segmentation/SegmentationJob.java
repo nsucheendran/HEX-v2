@@ -53,14 +53,13 @@ public final class SegmentationJob extends Configured implements Tool {
 
     public int run(final String[] arg0) throws IOException, TException, InterruptedException, ClassNotFoundException {
         Configuration mainConf = super.getConf();
-        int numReduceTasks = Integer.parseInt(mainConf.get("reducers", "100"));
-        String queueName = mainConf.get("queueName", "edwdev");
+        int numReduceTasks = Integer.parseInt(mainConf.get("reducers", "800"));
+        String queueName = mainConf.get("queueName", "hwwetl");
         String sourceDbName = mainConf.get("sourceDbName", "dm");
-        String targetDbName = mainConf.get("targetDbName", "hwwdev");
-
+        String targetDbName = mainConf.get("targetDbName", "dm");
         String sourceTableName = mainConf.get("sourceTableName", "rpt_hexdm_agg_unparted");
         String targetTableName = mainConf.get("targetTableName", "rpt_hexdm_seg_unparted");
-        String segFilePath = mainConf.get("segFile", "/autofs/edwfileserver/sherlock_in/HEX/HEXV2UAT/segmentations.txt");
+        String segFilePath = mainConf.get("segFile", "/autofs/edwfileserver/sherlock_in/HEX/segmentations.txt");
 
         SegmentationJobConfigurator configurator = new SegmentationJobConfigurator();
         Job job = configurator.initJob(mainConf, jobName, queueName);

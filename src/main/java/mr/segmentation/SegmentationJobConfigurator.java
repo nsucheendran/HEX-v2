@@ -197,6 +197,7 @@ public final class SegmentationJobConfigurator {
             String[] segFields = vals[2].split(",");
             int c = 0;
             for (String segField : segFields) {
+                segField = segField.trim().toLowerCase();
                 if (sourceFields.contains(segField) && groupKeys.containsKey(segField)) {
                     if (c++ > 0) {
                         segSpecSB.append(',');
