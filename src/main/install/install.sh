@@ -48,7 +48,7 @@ REPORT_TABLE='etl_hex_reporting_requirements'
 REPORT_FILE='/autofs/edwfileserver/sherlock_in/HEX/HEX2_REPORTING_INPUT.csv'
 KEYS_COUNT_LIMIT=100000;
 AGG_NUM_REDUCERS=800;
-REP_BATCH_SIZE=600;
+REP_BATCH_SIZE=500;
 FACT_LOAD_SPLIT_SIZE=1073741824;
 EMAIL_TO='agurumurthi@expedia.com,nsucheendran@expedia.com'
 EMAIL_CC='achadha@expedia.com,nsood@expedia.com'
@@ -72,6 +72,10 @@ STEP_LOAD_FACT_DATA=3
 STEP_LOAD_AGG_DATA=4
 STEP_LOAD_SEG_DATA=5
 STEP_LOAD_DB2_DATA=6
+STEP_LOAD_PARTITIONED_DATA=7
+PARTED_SEG_LOAD="true"
+PARTED_AGG_LOAD="true"
+PARTED_FACT_LOAD="true"
 STEP_TO_PROCESS_FROM=1
 
 FAH_PROCESS_NAME="ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS"
@@ -637,6 +641,30 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_DB2_DATA" "$STEP_LOAD_DB2_DATA"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_PARTITIONED_DATA" "$STEP_LOAD_PARTITIONED_DATA"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "PARTED_SEG_LOAD" "$PARTED_SEG_LOAD"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "PARTED_AGG_LOAD" "$PARTED_AGG_LOAD"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "PARTED_FACT_LOAD" "$PARTED_FACT_LOAD"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"

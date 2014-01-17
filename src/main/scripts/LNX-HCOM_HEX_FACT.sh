@@ -22,6 +22,7 @@ SCRIPT_PATH_REP=$HWW_HOME/hdp_hww_hex_etl/hql/REP
 SCRIPT_PATH_AGG=$HWW_HOME/hdp_hww_hex_etl/hql/AGG
 SCRIPT_PATH_SEG=$HWW_HOME/hdp_hww_hex_etl/hql/SEG
 SCRIPT_PATH_DB2=$HWW_HOME/hdp_hww_hex_etl/sql
+SCRIPT_PATH_PARTED=$HWW_HOME/hdp_hww_hex_etl/tools
 HEX_LOGS=/usr/etl/HWW/log
 
 source $PLAT_HOME/common/sh_helpers.sh
@@ -85,10 +86,13 @@ STEP_LOAD_FACT_DATA=`_READ_PROCESS_CONTEXT $PROCESS_ID "STEP_LOAD_FACT_DATA"`
 STEP_LOAD_AGG_DATA=`_READ_PROCESS_CONTEXT $PROCESS_ID "STEP_LOAD_AGG_DATA"`
 STEP_LOAD_SEG_DATA=`_READ_PROCESS_CONTEXT $PROCESS_ID "STEP_LOAD_SEG_DATA"`
 STEP_LOAD_DB2_DATA=`_READ_PROCESS_CONTEXT $PROCESS_ID "STEP_LOAD_DB2_DATA"`
+STEP_LOAD_PARTITIONED_DATA=`_READ_PROCESS_CONTEXT $PROCESS_ID "STEP_LOAD_PARTITIONED_DATA"`
 STEP_TO_PROCESS_FROM=`_READ_PROCESS_CONTEXT $PROCESS_ID "STEP_TO_PROCESS_FROM"`
 FAH_PROCESS_ID=`_READ_PROCESS_CONTEXT $PROCESS_ID "FAH_PROCESS_ID"`
 FAH_BOOKMARK_DATE_FULL=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK"`
-
+PARTED_SEG_LOAD=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "PARTED_SEG_LOAD"`
+PARTED_AGG_LOAD=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "PARTED_AGG_LOAD"`
+PARTED_FACT_LOAD=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "PARTED_FACT_LOAD"`
 EMAIL_TO=`_READ_PROCESS_CONTEXT $PROCESS_ID "EMAIL_TO"`
 EMAIL_CC=`_READ_PROCESS_CONTEXT $PROCESS_ID "EMAIL_CC"`
 
@@ -232,7 +236,6 @@ else
     hive -hiveconf hex.report.file="${REPORT_FILE}" -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf lz.db="LZ" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_REP/createTable_HEX_REPORTING_REQUIREMENTS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_REPORTING_REQUIREMENTS"
       _LOG "HEX_FACT_STAGE: Reporting table load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -245,7 +248,6 @@ else
     hive -hiveconf min_src_bookmark="${MIN_SRC_BOOKMARK}" -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -hiveconf lz.db="LZ" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.report.table="${REPORT_TABLE}" -f $SCRIPT_PATH_REP/insert_HEX_REPORTING_REQUIREMENTS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_REPORTING_REQUIREMENTS"
       _LOG "HEX_FACT_STAGE: Reporting table load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -253,7 +255,7 @@ else
       exit 1
     fi
     _LOG "Done loading reporting requirements table $STAGE_DB.$REPORT_TABLE" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    
+    _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_STAGING_DATA"
   fi
   
   if [[ "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_STAGING_DATA" ]]; then
@@ -283,7 +285,6 @@ else
     hive -hiveconf max_omniture_record_yr_month="${MAX_OMNI_HIT_DATE_YM}" -hiveconf max_omniture_record_date="${MAX_OMNI_HIT_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf hex.rep.table="${REPORT_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${ACTIVE_FAH_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HITS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_STAGING_DATA"
       _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -297,7 +298,6 @@ else
     hive -hiveconf src_bookmark_omni="${SRC_BOOKMARK_OMNI}" -hiveconf src_bookmark_omni_hr="${SRC_BOOKMARK_OMNI_HOUR}" -hiveconf hex.active.hits.table="${ACTIVE_FAH_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT_STAGE_OMNITURE.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_STAGING_DATA"
       _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -335,7 +335,6 @@ else
     hive -hiveconf max_trans_record_date_yr_month="${MAX_TRANS_DATE}" -hiveconf max_booking_record_date="${MAX_BKG_DATE}" -hiveconf max_omniture_record_date="${MAX_OMNI_TRANS_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf min_src_bookmark="${MIN_SRC_BOOKMARK}" -hiveconf src_bookmark_bkg="${SRC_BOOKMARK_BKG}" -hiveconf src_bookmark_omni_hr="${SRC_BOOKMARK_OMNI_HOUR}" -hiveconf src_bookmark_omni="${SRC_BOOKMARK_OMNI}" -hiveconf hex.active.hits.table="${ACTIVE_FAH_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${STAGE_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT_STAGE_BOOKING.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_STAGING_DATA"
       _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -371,9 +370,12 @@ else
     _LOG_PROCESS_DETAIL $RUN_ID "AFTER_SRC_BOOKMARK_BKG" "$BKG_BOOKMARK_DATE"
   
     _LOG "Updated Transactions source bookmark to [$BKG_BOOKMARK_DATE]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_FACT_DATA"
   fi
   
   if [[ "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_FACT_DATA" ]]; then
+    DATE=$(date +"%Y%m%d%H%M");
+    LOG_FILE_NAME="hdp_hex_fact_"$DATE".log";
     _LOG "Starting Fact MapReduce [Log file: $HEX_LOGS/$LOG_FILE_NAME]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _LOG_PROCESS_DETAIL $RUN_ID "FACT_UNPARTED_STATUS" "STARTED"
     export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/usr/lib/hive/lib/*:/app/edw/hive/conf
@@ -388,7 +390,6 @@ else
     -DreportTableName=${REPORT_TABLE} >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_FACT_DATA"
       _LOG "HEX_FACT: Booking Fact load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -397,6 +398,7 @@ else
     fi
     _LOG_PROCESS_DETAIL $RUN_ID "FACT_UNPARTED_STATUS" "ENDED"
     _LOG "Fact MapReduce Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_AGG_DATA"
   fi
   
   if [[ "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_AGG_DATA" ]]; then
@@ -407,7 +409,6 @@ else
     MKTG_SEO_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select all_mktg_seo_30_day from ${STAGE_DB}.${FACT_TABLE_UNPARTED} group by all_mktg_seo_30_day having count(*)>${KEYS_COUNT_LIMIT};"`
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_AGG_DATA"
       _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching all_mktg_seo_30_day keys. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -424,7 +425,6 @@ else
     MKTG_SEO_DIRECT_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select all_mktg_seo_30_day_direct from ${STAGE_DB}.${FACT_TABLE_UNPARTED} group by all_mktg_seo_30_day_direct having count(*)>${KEYS_COUNT_LIMIT};"`
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_AGG_DATA"    
       _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching all_mktg_seo_30_day_direct keys. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -439,8 +439,7 @@ else
     _LOG "Fetching High Frequency Keys for Column property_destination_id" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     PROP_DEST_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select property_destination_id from ${STAGE_DB}.${FACT_TABLE_UNPARTED} group by property_destination_id having count(*)>${KEYS_COUNT_LIMIT};"`
     ERROR_CODE=$?
-    if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_AGG_DATA"    
+    if [[ $ERROR_CODE -ne 0 ]]; then    
       _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching property_destination_id keys. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -456,8 +455,7 @@ else
     _LOG "Fetching High Frequence Keys for Column supplier_property_id" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     SUPPLIER_PROP_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select supplier_property_id from ${STAGE_DB}.${FACT_TABLE_UNPARTED} group by supplier_property_id having count(*)>${KEYS_COUNT_LIMIT};"`
     ERROR_CODE=$?
-    if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_AGG_DATA"    
+    if [[ $ERROR_CODE -ne 0 ]]; then   
       _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching supplier_property_id keys. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -488,7 +486,6 @@ else
     REQ_COUNT=`hive -hiveconf mapred.job.queue.name=${JOB_QUEUE} -e "select count(1) from ${STAGE_DB}.${REPORT_TABLE}"`
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_AGG_DATA"    
       _LOG "HEX_FACT: Aggregation load FAILED while counting reporting rows. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -500,7 +497,6 @@ else
     hive -hiveconf mapred.job.queue.name=${JOB_QUEUE} -e "insert overwrite local directory '$HEX_LOGS/rep_reqs' select concat(experiment_code, ',', version_number, ',', variant_code) from ${STAGE_DB}.${REPORT_TABLE};"
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_AGG_DATA"    
       _LOG "HEX_FACT: Aggregation load FAILED while fetching reporting rows. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -565,7 +561,6 @@ else
         hive -f $HEX_LOGS/substitutedAggQuery.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
         ERROR_CODE=$?
         if [[ $ERROR_CODE -ne 0 ]]; then
-          _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_AGG_DATA"        
           _LOG "HEX_FACT: Aggregation load FAILED. [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
           _END_PROCESS $RUN_ID $ERROR_CODE
           _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -579,6 +574,7 @@ else
     _LOG "Fact Aggregation Insert Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _LOG_PROCESS_DETAIL $RUN_ID "FACT_AGGREGATION" "ENDED"
     _LOG "Fact Aggregation Load Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_SEG_DATA"
   fi
   
   if [[ "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_SEG_DATA" ]]; then
@@ -586,7 +582,8 @@ else
     LOG_FILE_NAME="seg_"$DATE".log";
     _LOG "Starting Segmentation MapReduce [Log file: $HEX_LOGS/$LOG_FILE_NAME]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _LOG_PROCESS_DETAIL $RUN_ID "SEG_UNPARTED_STATUS" "STARTED"
-  
+    export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/usr/lib/hive/lib/*:/app/edw/hive/conf
+    
     hadoop jar ${JAR_PATH} mr.segmentation.SegmentationJob \
     -DqueueName=${JOB_QUEUE} \
     -Dreducers=${SEG_NUM_REDUCERS} \
@@ -598,7 +595,6 @@ else
   
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_SEG_DATA"      
       _LOG "HEX_SEG: Segmentation load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
@@ -613,35 +609,40 @@ else
   
     hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.table="${SEG_EXP_LIST_TABLE}" -f $SCRIPT_PATH_REP/insert_SEG_EXP_LIST_TABLE.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1
     ERROR_CODE=$?
-    if [[ $ERROR_CODE -ne 0 ]]; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_SEG_DATA"    
+    if [[ $ERROR_CODE -ne 0 ]]; then   
       _LOG "HEX_EXP: EXP_LIST load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
       _FREE_LOCK $HWW_LOCK_NAME
       exit 1
     fi
+    _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_DB2_DATA"
   fi
   
-  if [[ "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_FACT_DATA" ]]; then
-    _LOG "Starting Fact Partition Load" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  if [[ ( "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_PARTITIONED_DATA"  &&  "$STEP_TO_PROCESS_FROM"  -ne  "$STEP_LOAD_DB2_DATA" ) || ( "$PARTED_FACT_LOAD" == "false" )]];then
+    DATE=$(date +"%Y%m%d%H%M");
+    LOG_FILE_NAME="fact_partition_load_"$DATE".log";
+    _LOG "Starting Fact Partition Load [Log file: $HEX_LOGS/$LOG_FILE_NAME]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
-  
-    hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${FACT_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_FACT.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 &
+    
+    sh $SCRIPT_PATH_PARTED/HEX_FACT_PARTED_LOAD.sh $JOB_QUEUE $FACT_LOAD_SPLIT_SIZE $STAGE_DB $FACT_TABLE $HEX_LOGS $LOG_FILE_NAME $PROCESS_ID &
   fi
   
-  if [[ "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_AGG_DATA" ]]; then
-    _LOG "Starting Agg Partition Load" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  if [[ ( "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_PARTITIONED_DATA"  &&  "$STEP_TO_PROCESS_FROM"  -ne  "$STEP_LOAD_DB2_DATA" ) || ( "$PARTED_AGG_LOAD" == "false" )]];then
+    DATE=$(date +"%Y%m%d%H%M");
+    LOG_FILE_NAME="agg_partition_load_"$DATE".log";
+    _LOG "Starting Agg Partition Load [Log file: $HEX_LOGS/$LOG_FILE_NAME]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
-  
-    hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.agg.table="${AGG_TABLE}" -hiveconf hex.agg.unparted.table="${FACT_AGG_UNPARTED_TABLE}" -hiveconf agg.num.reduce.tasks="${AGG_NUM_REDUCERS}" -f $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 &
+    
+    sh $SCRIPT_PATH_PARTED/HEX_AGG_PARTED_LOAD.sh $JOB_QUEUE $FACT_LOAD_SPLIT_SIZE $AGG_DB $AGG_TABLE $FACT_AGG_UNPARTED_TABLE $AGG_NUM_REDUCERS $HEX_LOGS $LOG_FILE_NAME $PROCESS_ID &
   fi
   
-  if [[ "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_SEG_DATA" ]]; then
-    _LOG "Starting Segmentation Partition Load" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  if [[ ( "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_PARTITIONED_DATA"  &&  "$STEP_TO_PROCESS_FROM"  -ne  "$STEP_LOAD_DB2_DATA" ) || ( "$PARTED_SEG_LOAD" == "false" )]];then
+    DATE=$(date +"%Y%m%d%H%M");
+    LOG_FILE_NAME="seg_partition_load_"$DATE".log";
+    _LOG "Starting Segmentation Partition Load [Log file: $HEX_LOGS/$LOG_FILE_NAME]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "STARTED"
-  
-    hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf split.size="${FACT_LOAD_SPLIT_SIZE}" -hiveconf hex.db="${AGG_DB}" -hiveconf hex.seg.table="${SEG_TABLE}" -hiveconf hex.seg.unparted.table="${SEG_UNPARTED_TABLE}" -hiveconf seg.num.reduce.tasks="${SEG_NUM_REDUCERS}" -f $SCRIPT_PATH_SEG/insert_RPT_HEXDM_SEG.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 &
+    sh $SCRIPT_PATH_PARTED/HEX_SEG_PARTED_LOAD.sh  $JOB_QUEUE $FACT_LOAD_SPLIT_SIZE $AGG_DB $SEG_TABLE $SEG_UNPARTED_TABLE $SEG_NUM_REDUCERS $HEX_LOGS $LOG_FILE_NAME $PROCESS_ID &
   fi
   
   if [[ "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_DB2_DATA" ]]; then
@@ -927,43 +928,30 @@ else
   
 fi
   
-  PARTITION_LOAD_FAILED="false";
-  fg
-  ERROR_CODE=$?
-  if [[ $ERROR_CODE -ne 0 ]]; then
-    PARTITION_LOAD_FAILED="true";
-    _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_SEG_DATA"
-    _LOG "HEX_FACT_SEG: 'fg' on Segmentation load returned [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  PARTITION_LOAD_FAILED="N";
+  if [[ ( "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_PARTITIONED_DATA"  &&  "$STEP_TO_PROCESS_FROM"  -ne  "$STEP_LOAD_DB2_DATA" ) || ( "$PARTED_SEG_LOAD" == "false" )]];then
+    fg
   fi
   
-  _LOG "Segmentation Partition Load Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
-  
-  fg
-  ERROR_CODE=$?
-  if [[ $ERROR_CODE -ne 0 ]]; then
-    PARTITION_LOAD_FAILED="true";
-    _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_AGG_DATA"
-    _LOG "HEX_FACT_AGG: 'fg' on Fact Agg load returned [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log    
+  if [[ ( "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_PARTITIONED_DATA"  &&  "$STEP_TO_PROCESS_FROM"  -ne  "$STEP_LOAD_DB2_DATA" ) || ( "$PARTED_AGG_LOAD" == "false" )]];then
+    fg
   fi
   
-  _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
-  _LOG "Agg Partition Load Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-  
-  fg
-  ERROR_CODE=$?
-  if [[ $ERROR_CODE -ne 0 ]]; then
-    PARTITION_LOAD_FAILED="true";
-    _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_FACT_DATA"
-    _LOG "HEX_FACT: 'fg' on Fact load returned [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log    
+  if [[ ( "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_PARTITIONED_DATA"  &&  "$STEP_TO_PROCESS_FROM"  -ne  "$STEP_LOAD_DB2_DATA" ) || ( "$PARTED_FACT_LOAD" == "false" )]];then
+    fg
   fi
   
+  PARTED_SEG_LOAD=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "PARTED_SEG_LOAD"`
+  PARTED_AGG_LOAD=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "PARTED_AGG_LOAD"`
+  PARTED_FACT_LOAD=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "PARTED_FACT_LOAD"`
+  if [[ ( "$PARTED_FACT_LOAD" == "false" || "$PARTED_AGG_LOAD" == "false" || "$PARTED_SEG_LOAD" == "false" ) ]];then
+      PARTITION_LOAD_FAILED="Y";
+      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_PARTITIONED_DATA"
+  fi
   _LOG_PROCESS_DETAIL $RUN_ID "FACT_STATUS" "ENDED"
-  _LOG "Fact Partition Load Done" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
 
 fi
-
-if("$PARTITION_LOAD_FAILED" == "false") 
+if [ "$PARTITION_LOAD_FAILED" == "N" ]; then 
   _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_REPORTING_REQUIREMENTS"
 fi
 
