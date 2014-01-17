@@ -66,7 +66,13 @@ REPROCESS_START_YEAR='2012'
 REPROCESS_START_MONTH='11'
 
 FACT_REDUCERS='800'
-
+STEP_LOAD_REPORTING_REQUIREMENTS=1
+STEP_LOAD_STAGING_DATA=2
+STEP_LOAD_FACT_DATA=3
+STEP_LOAD_AGG_DATA=4
+STEP_LOAD_SEG_DATA=5
+STEP_LOAD_DB2_DATA=6
+STEP_TO_PROCESS_FROM=1
 
 FAH_PROCESS_NAME="ETL_HCOM_HEX_FIRST_ASSIGNMENT_HIT_TRANS"
 _LOG "Configuring process $FAH_PROCESS_NAME ..."
@@ -587,6 +593,7 @@ else
   _LOG "Process $FACT_PROCESS_NAME already exists"
 fi
 
+
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SEG_EXP_LIST_TABLE" "$SEG_EXP_LIST_TABLE"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
@@ -599,6 +606,49 @@ if [ $? -ne 0 ]; then
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
   exit 1
 fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_REPORTING_REQUIREMENTS" "$STEP_LOAD_REPORTING_REQUIREMENTS"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_STAGING_DATA" "$STEP_LOAD_STAGING_DATA"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_FACT_DATA" "$STEP_LOAD_FACT_DATA"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_AGG_DATA" "$STEP_LOAD_AGG_DATA"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_SEG_DATA" "$STEP_LOAD_SEG_DATA"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_DB2_DATA" "$STEP_LOAD_DB2_DATA"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_TO_PROCESS_FROM" "$STEP_TO_PROCESS_FROM"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
+
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SEG_NUM_REDUCERS" "$SEG_NUM_REDUCERS"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
