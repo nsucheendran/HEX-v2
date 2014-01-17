@@ -4,6 +4,10 @@
 export ETL_USER=platetl
 export PLAT_HOME=/usr/local/edw/platform
 export HWW_HOME=/usr/etl/HWW
+
+source $PLAT_HOME/common/sh_helpers.sh
+source $PLAT_HOME/common/sh_metadata_storage.sh
+
 SCRIPT_PATH=$HWW_HOME/hdp_hww_hex_etl
 PROCESS_NAME="ETL_HCOM_HEX_TRANSACTIONS_BKG"
 
