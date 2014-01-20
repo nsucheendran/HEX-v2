@@ -95,11 +95,19 @@ PARTED_AGG_LOAD=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "PARTED_AGG_LOAD"`
 PARTED_FACT_LOAD=`_READ_PROCESS_CONTEXT $FAH_PROCESS_ID "PARTED_FACT_LOAD"`
 EMAIL_TO=`_READ_PROCESS_CONTEXT $PROCESS_ID "EMAIL_TO"`
 EMAIL_CC=`_READ_PROCESS_CONTEXT $PROCESS_ID "EMAIL_CC"`
+EMAIL_SUCCESS_TO=`_READ_PROCESS_CONTEXT $PROCESS_ID "EMAIL_SUCCESS_TO"`
+EMAIL_SUCCESS_CC=`_READ_PROCESS_CONTEXT $PROCESS_ID "EMAIL_SUCCESS_CC"`
 
 EMAIL_RECIPIENTS=$EMAIL_TO
 if [ $EMAIL_CC ]
 then
   EMAIL_RECIPIENTS="-c $EMAIL_CC $EMAIL_RECIPIENTS"
+fi
+
+EMAIL_SUCCESS_RECIPIENTS=$EMAIL_SUCCESS_TO
+if [ $EMAIL_SUCCESS_CC ]
+then
+  EMAIL_SUCCESS_RECIPIENTS="-c $EMAIL_SUCCESS_CC $EMAIL_SUCCESS_RECIPIENTS"
 fi
 
 FAH_BOOKMARK_DATE=`date --date="$FAH_BOOKMARK_DATE_FULL" '+%Y-%m-%d'`
@@ -710,6 +718,17 @@ else
       #Invoke Pipeloader
       _LOG "DB2 integration : bash $LOADERSCRIPT $DB2LOGIN $REP_REQ_SRC_HDFS_PATH $REP_REQ_TGT_DB2_TABLE $HDPNAMENODE $REP_REQ_INPUT_TYPE" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       bash $LOADERSCRIPT $DB2LOGIN $REP_REQ_SRC_HDFS_PATH $REP_REQ_TGT_DB2_TABLE $HDPNAMENODE $REP_REQ_INPUT_TYPE
+      ERROR_CODE=$?
+      if [ $ERROR_CODE -ne 0 ] ; then
+        _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_DB2_DATA"
+        _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+        _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_STATUS" "FAILED"
+        _END_PROCESS $RUN_ID $ERROR_CODE
+        _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+        _FREE_LOCK $HWW_LOCK_NAME
+        exit 1
+      fi
+      
       #Connect to DB2 and check Count of records Loaded
       _LOG "Update the count from DB2 to HEMS" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _DBCONNECT $DB2LOGIN
@@ -733,6 +752,91 @@ else
       _LOG "============ Completed DB2 load for $REP_REQ_TGT_DB2_TABLE ===============" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     fi;
 
+    #############
+    # EXP
+    #############
+    #Connect to DB2 and create the table
+    _LOG "Create the table [$EXP_TGT_DB2_TABLE] in DB2" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG_PROCESS_DETAIL $RUN_ID "EXP_DB2_STATUS" "STARTED"
+    _DBCONNECT $DB2LOGIN
+    /home/db2clnt1/sqllib/bin/db2 -tvf $SCRIPT_PATH_DB2/$EXP_TGT_DB2_TABLE.sql
+    ERROR_CODE=$?
+    if [ $ERROR_CODE -ge 4 ] ; then
+      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_DB2_DATA"
+      _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+      _END_PROCESS $RUN_ID $ERROR_CODE
+      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+      _FREE_LOCK $HWW_LOCK_NAME
+      exit 1
+    fi
+
+    #Disconnect from DB2 and log the count in HEMS.
+    _DBDISCONNECT
+  
+    #Start the job and logging
+    _LOG "============ Starting DB2 load for $EXP_TGT_DB2_TABLE ===============" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG "PWD: [$PWD]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG "DB2LOGIN: [$DB2LOGIN]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG "HDPENV: [$HDPENV]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG "STRMJAR: [$STRMJAR]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG "HDPNAMENODE: [$HDPNAMENODE]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG "LOADERPATH: [$LOADERPATH]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG "LOADERSCRIPT: [$LOADERSCRIPT]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG "TGTTBL: [$EXP_TGT_DB2_TABLE]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    _LOG "HDFSETLPATH: [$EXP_SRC_HDFS_PATH]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  
+    #Check the count of records from HDFS
+    if [ $EXP_INPUT_TYPE = "LIST" ]; then
+      HDPFILEROWCOUNT=$(hadoop fs -cat `cat $EXP_SRC_HDFS_PATH` | wc -l)
+    else
+      HDPFILEROWCOUNT=$(hadoop fs -cat $EXP_SRC_HDFS_PATH | wc -l)
+    fi;
+
+    if [ $HDPFILEROWCOUNT -eq 0 ]; then
+      _LOG "Warning: ETL result is empty, no work to do; exiting." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+      _LOG_PROCESS_DETAIL $RUN_ID "DB2_EXP_STATUS" "NO DATA"
+    else
+      _LOG "Data found in source rows; continuing process." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+      _LOG_PROCESS_DETAIL $RUN_ID "DB2_EXP_HDP_COUNT" "$HDPFILEROWCOUNT"
+      _LOG " Total Records in the Source File :  $HDPFILEROWCOUNT" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+
+      #Invoke Pipeloader
+      _LOG "DB2 integration : bash $LOADERSCRIPT $DB2LOGIN $EXP_SRC_HDFS_PATH $EXP_TGT_DB2_TABLE $HDPNAMENODE $EXP_INPUT_TYPE" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+      bash $LOADERSCRIPT $DB2LOGIN $EXP_SRC_HDFS_PATH $EXP_TGT_DB2_TABLE $HDPNAMENODE $EXP_INPUT_TYPE
+      ERROR_CODE=$?
+      if [ $ERROR_CODE -ne 0 ] ; then
+        _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_DB2_DATA"
+        _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+        _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_STATUS" "FAILED"
+        _END_PROCESS $RUN_ID $ERROR_CODE
+        _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+        _FREE_LOCK $HWW_LOCK_NAME
+        exit 1
+      fi
+      
+      #Connect to DB2 and check Count of records Loaded
+      _LOG "Update the count from DB2 to HEMS" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+      _DBCONNECT $DB2LOGIN
+      DCOUNT=`/home/db2clnt1/sqllib/bin/db2 -x "select count(*) from $EXP_TGT_DB2_TABLE"`
+      ERROR_CODE=$?
+      if [ $ERROR_CODE -ge 4 ] ; then
+        _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_DB2_DATA"
+        _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+        _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_STATUS" "FAILED"
+        _END_PROCESS $RUN_ID $ERROR_CODE
+        _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+        _FREE_LOCK $HWW_LOCK_NAME
+        exit 1
+      fi
+
+      #Disconnect from DB2 and log the count in HEMS.
+      _DBDISCONNECT
+
+      _LOG_PROCESS_DETAIL $RUN_ID "DB2_EXP_DB2_COUNT" "$DCOUNT"
+      _LOG_PROCESS_DETAIL $RUN_ID "DB2_EXP_STATUS" "COMPLETED"
+      _LOG "============ Completed DB2 load for $EXP_TGT_DB2_TABLE ===============" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    fi;
+    
     #############
     # SEG
     #############
@@ -784,7 +888,17 @@ else
       #Invoke Pipeloader
       _LOG "DB2 integration : bash $LOADERSCRIPT $DB2LOGIN $SEG_SRC_HDFS_PATH $SEG_TGT_DB2_TABLE $HDPNAMENODE $SEG_INPUT_TYPE" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       bash $LOADERSCRIPT $DB2LOGIN $SEG_SRC_HDFS_PATH $SEG_TGT_DB2_TABLE $HDPNAMENODE $SEG_INPUT_TYPE
-
+      ERROR_CODE=$?
+      if [ $ERROR_CODE -ne 0 ] ; then
+        _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_DB2_DATA"
+        _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+        _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_STATUS" "FAILED"
+        _END_PROCESS $RUN_ID $ERROR_CODE
+        _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+        _FREE_LOCK $HWW_LOCK_NAME
+        exit 1
+      fi
+      
       #Connect to DB2 and check Count of records Loaded
       _LOG "Update the count from DB2 to HEMS" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _DBCONNECT $DB2LOGIN
@@ -851,82 +965,8 @@ else
     
     fi;
   
-    #############
-    # EXP
-    #############
-    #Connect to DB2 and create the table
-    _LOG "Create the table [$EXP_TGT_DB2_TABLE] in DB2" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _LOG_PROCESS_DETAIL $RUN_ID "EXP_DB2_STATUS" "STARTED"
-    _DBCONNECT $DB2LOGIN
-    /home/db2clnt1/sqllib/bin/db2 -tvf $SCRIPT_PATH_DB2/$EXP_TGT_DB2_TABLE.sql
-    ERROR_CODE=$?
-    if [ $ERROR_CODE -ge 4 ] ; then
-      _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_DB2_DATA"
-      _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-      _END_PROCESS $RUN_ID $ERROR_CODE
-      _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-      _FREE_LOCK $HWW_LOCK_NAME
-      exit 1
-    fi
-
-    #Disconnect from DB2 and log the count in HEMS.
-    _DBDISCONNECT
-  
-    #Start the job and logging
-    _LOG "============ Starting DB2 load for $EXP_TGT_DB2_TABLE ===============" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _LOG "PWD: [$PWD]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _LOG "DB2LOGIN: [$DB2LOGIN]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _LOG "HDPENV: [$HDPENV]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _LOG "STRMJAR: [$STRMJAR]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _LOG "HDPNAMENODE: [$HDPNAMENODE]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _LOG "LOADERPATH: [$LOADERPATH]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _LOG "LOADERSCRIPT: [$LOADERSCRIPT]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _LOG "TGTTBL: [$EXP_TGT_DB2_TABLE]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    _LOG "HDFSETLPATH: [$EXP_SRC_HDFS_PATH]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-  
-    #Check the count of records from HDFS
-    if [ $EXP_INPUT_TYPE = "LIST" ]; then
-      HDPFILEROWCOUNT=$(hadoop fs -cat `cat $EXP_SRC_HDFS_PATH` | wc -l)
-    else
-      HDPFILEROWCOUNT=$(hadoop fs -cat $EXP_SRC_HDFS_PATH | wc -l)
-    fi;
-
-    if [ $HDPFILEROWCOUNT -eq 0 ]; then
-      _LOG "Warning: ETL result is empty, no work to do; exiting." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-      _LOG_PROCESS_DETAIL $RUN_ID "DB2_EXP_STATUS" "NO DATA"
-    else
-      _LOG "Data found in source rows; continuing process." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-      _LOG_PROCESS_DETAIL $RUN_ID "DB2_EXP_HDP_COUNT" "$HDPFILEROWCOUNT"
-      _LOG " Total Records in the Source File :  $HDPFILEROWCOUNT" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-
-      #Invoke Pipeloader
-      _LOG "DB2 integration : bash $LOADERSCRIPT $DB2LOGIN $EXP_SRC_HDFS_PATH $EXP_TGT_DB2_TABLE $HDPNAMENODE $EXP_INPUT_TYPE" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-      bash $LOADERSCRIPT $DB2LOGIN $EXP_SRC_HDFS_PATH $EXP_TGT_DB2_TABLE $HDPNAMENODE $EXP_INPUT_TYPE
-      #Connect to DB2 and check Count of records Loaded
-      _LOG "Update the count from DB2 to HEMS" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-      _DBCONNECT $DB2LOGIN
-      DCOUNT=`/home/db2clnt1/sqllib/bin/db2 -x "select count(*) from $EXP_TGT_DB2_TABLE"`
-      ERROR_CODE=$?
-      if [ $ERROR_CODE -ge 4 ] ; then
-        _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_DB2_DATA"
-        _LOG "Error: SQL merge step failure, rolling back." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-        _LOG_PROCESS_DETAIL $RUN_ID "DB2_REP_STATUS" "FAILED"
-        _END_PROCESS $RUN_ID $ERROR_CODE
-        _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-        _FREE_LOCK $HWW_LOCK_NAME
-        exit 1
-      fi
-
-      #Disconnect from DB2 and log the count in HEMS.
-      _DBDISCONNECT
-
-      _LOG_PROCESS_DETAIL $RUN_ID "DB2_EXP_DB2_COUNT" "$DCOUNT"
-      _LOG_PROCESS_DETAIL $RUN_ID "DB2_EXP_STATUS" "COMPLETED"
-      _LOG "============ Completed DB2 load for $EXP_TGT_DB2_TABLE ===============" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    fi;
   fi
-  
-fi
+  fi
   
   PARTITION_LOAD_FAILED="N";
   if [[ ( "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_PARTITIONED_DATA"  &&  "$STEP_TO_PROCESS_FROM"  -ne  "$STEP_LOAD_DB2_DATA" ) || ( "$PARTED_SEG_LOAD" == "false" )]];then
@@ -953,8 +993,19 @@ fi
 fi
 if [ "$PARTITION_LOAD_FAILED" == "N" ]; then 
   _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_REPORTING_REQUIREMENTS"
+  _LOG "Error:Check etl.etl_sproc_error for more information" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+  _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "FAILED"
+  _END_PROCESS $RUN_ID $ERROR_CODE
+  _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+  _FREE_LOCK $HWW_LOCK_NAME
+  exit 1
 fi
 
+SRC_BOOKMARK_OMNI_FULL=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_OMNI"`
+SRC_BOOKMARK_BKG=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_BKG"`
+  
+echo -e "====================================================================================================================================================================\nHEX Segmented data for Omniture & Booking loaded to DB2 up to BOOKMARKs=[Omniture: $SRC_BOOKMARK_OMNI, Booking: $SRC_BOOKMARK_BKG].\n\nScript Name : $0\n====================================================================================================================================================================\n" | mailx -s "HEX data mart has been refreshed till Omniture: [$SRC_BOOKMARK_OMNI], Booking: [$SRC_BOOKMARK_BKG]" $EMAIL_SUCCESS_RECIPIENTS
+  
 _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "SUCCESS"
 _END_PROCESS $RUN_ID $ERROR_CODE
 _FREE_LOCK $HWW_LOCK_NAME

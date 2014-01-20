@@ -52,6 +52,8 @@ REP_BATCH_SIZE=500;
 FACT_LOAD_SPLIT_SIZE=1073741824;
 EMAIL_TO='agurumurthi@expedia.com,nsucheendran@expedia.com'
 EMAIL_CC='achadha@expedia.com,nsood@expedia.com'
+EMAIL_SUCCESS_TO='dwhwwhex@expedia.com'
+EMAIL_SUCCESS_CC='agurumurthi@expedia.com'
 SEG_NUM_REDUCERS=800;
 SEG_UNPARTED_TABLE='RPT_HEXDM_SEG_UNPARTED'
 SEG_INPUT_FILE_PATH='/autofs/edwfileserver/sherlock_in/HEX/segmentations.txt'
@@ -153,6 +155,18 @@ if [ -z "$FAH_PROCESS_ID" ]; then
     exit 1
   fi
   _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "EMAIL_CC" "$EMAIL_CC"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "EMAIL_SUCCESS_TO" "$EMAIL_SUCCESS_TO"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "EMAIL_SUCCESS_CC" "$EMAIL_SUCCESS_CC"
   if [ $? -ne 0 ]; then
     _LOG "Error writing process context. Installation FAILED."
     $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
