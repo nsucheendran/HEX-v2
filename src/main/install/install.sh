@@ -599,13 +599,14 @@ else
   _LOG "Process $FACT_PROCESS_NAME already exists"
 fi
 
-_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "EMAIL_SUCCESS_TO" "$EMAIL_SUCCESS_TO"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "EMAIL_SUCCESS_TO" "$EMAIL_SUCCESS_TO"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
   $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
   exit 1
 fi
-_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "EMAIL_SUCCESS_CC" "$EMAIL_SUCCESS_CC"
+
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "EMAIL_SUCCESS_CC" "$EMAIL_SUCCESS_CC"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
   $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
