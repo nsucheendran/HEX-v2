@@ -160,18 +160,6 @@ if [ -z "$FAH_PROCESS_ID" ]; then
     $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
     exit 1
   fi
-  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "EMAIL_SUCCESS_TO" "$EMAIL_SUCCESS_TO"
-  if [ $? -ne 0 ]; then
-    _LOG "Error writing process context. Installation FAILED."
-    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-    exit 1
-  fi
-  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "EMAIL_SUCCESS_CC" "$EMAIL_SUCCESS_CC"
-  if [ $? -ne 0 ]; then
-    _LOG "Error writing process context. Installation FAILED."
-    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-    exit 1
-  fi
   _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "BOOKMARK" "`date -d " -2 days" "+%Y-%m-%d 00"`"
   if [ $? -ne 0 ]; then
     _LOG "Error writing process context. Installation FAILED."
@@ -611,7 +599,18 @@ else
   _LOG "Process $FACT_PROCESS_NAME already exists"
 fi
 
-
+_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "EMAIL_SUCCESS_TO" "$EMAIL_SUCCESS_TO"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+  exit 1
+fi
+_WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "EMAIL_SUCCESS_CC" "$EMAIL_SUCCESS_CC"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+  exit 1
+fi
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "SEG_EXP_LIST_TABLE" "$SEG_EXP_LIST_TABLE"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
