@@ -1004,7 +1004,7 @@ fi
 SRC_BOOKMARK_OMNI_FULL=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_OMNI"`
 SRC_BOOKMARK_BKG=`_READ_PROCESS_CONTEXT $PROCESS_ID "SRC_BOOKMARK_BKG"`
   
-echo -e "====================================================================================================================================================================\nHEX Segmented data for Omniture & Booking loaded to DB2 up to BOOKMARKs=[Omniture: $SRC_BOOKMARK_OMNI, Booking: $SRC_BOOKMARK_BKG].\n\nScript Name : $0\n====================================================================================================================================================================\n" | mailx -s "HEX data mart has been refreshed till Omniture: [$SRC_BOOKMARK_OMNI], Booking: [$SRC_BOOKMARK_BKG]" $EMAIL_SUCCESS_RECIPIENTS
+echo -e "====================================================================================================================================================================\nHEX Segmented data for Omniture & Booking loaded to DB2 up to BOOKMARKs=[Omniture: $SRC_BOOKMARK_OMNI_FULL, Booking: $SRC_BOOKMARK_BKG].\n\nScript Name : $0\n====================================================================================================================================================================\n" | mailx -s "HEX data mart has been refreshed till Omniture: [$SRC_BOOKMARK_OMNI_FULL], Booking: [$SRC_BOOKMARK_BKG]" $EMAIL_SUCCESS_RECIPIENTS
   
 _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "SUCCESS"
 _END_PROCESS $RUN_ID $ERROR_CODE
