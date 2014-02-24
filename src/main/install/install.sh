@@ -10,9 +10,11 @@
 #  Date        Author         Description
 #  ----------  -------------- ------------------------------------
 #  2013-09-13  achadha        Created
+#  2013-02-24  nsucheendran	  Introduce STEP_LOAD_DB2_SP
 ###############################################################################
 set -u
 set +e
+
 
 export PLAT_HOME=/usr/local/edw/platform
 source $PLAT_HOME/common/sh_metadata_storage.sh
@@ -310,6 +312,8 @@ _LOG "Configuring process $FACT_PROCESS_NAME ..."
 
 FACT_PROCESS_DESCRIPTION="Loads HEX FACT Data"
 
+FACT_PROCESS_ID=$(_GET_PROCESS_ID "$FACT_PROCESS_NAME")
+if [ -z "$FACT_PROCESS_ID" ]; then
   
 _LOG "(re-)creating table $SEG_EXP_LIST_TABLE ..." 
 _LOG "disable nodrop - OK if errors here." 
@@ -808,7 +812,15 @@ _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "EXP_INPUT_TYPE" "DIRECT"
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "LOAD_DB2" "Y"
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "TOGGLE_DB2" "Y"
 
+
+
+else
+
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_DB2_SP" "7"
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_PARTITIONED_DATA" "8"
 _LOG "Process $FACT_PROCESS_NAME configured successfully"
+
+fi
 
 
 ############################
