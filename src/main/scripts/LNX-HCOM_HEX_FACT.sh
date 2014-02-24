@@ -974,9 +974,7 @@ if [[ "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_DB2_SP" ]]; then
     
     fi;
   
-  fi
-  fi
-  
+ 
   PARTITION_LOAD_FAILED="N";
   if [[ ( "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_PARTITIONED_DATA"  &&  "$STEP_TO_PROCESS_FROM"  -ne  "$STEP_LOAD_DB2_SP" ) || ( "$PARTED_SEG_LOAD" == "false" )]];then
     fg
