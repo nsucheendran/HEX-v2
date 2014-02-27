@@ -819,7 +819,7 @@ _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "TOGGLE_DB2" "Y"
 
 _LOG "Process $FACT_PROCESS_NAME configured successfully"
 
-fi
+
 
 
 ############################
