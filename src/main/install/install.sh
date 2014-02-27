@@ -76,7 +76,8 @@ STEP_LOAD_FACT_DATA=3
 STEP_LOAD_AGG_DATA=4
 STEP_LOAD_SEG_DATA=5
 STEP_LOAD_DB2_DATA=6
-STEP_LOAD_PARTITIONED_DATA=7
+STEP_LOAD_DB2_SP=7
+STEP_LOAD_PARTITIONED_DATA=8
 PARTED_SEG_LOAD="true"
 PARTED_AGG_LOAD="true"
 PARTED_FACT_LOAD="true"
@@ -336,9 +337,7 @@ if [ $? -ne 0 ]; then
 fi
 _LOG "(re-)creating table $SEG_EXP_LIST_TABLE Done." 	
 
-FACT_PROCESS_ID=$(_GET_PROCESS_ID "$FACT_PROCESS_NAME")
-if [ -z "$FACT_PROCESS_ID" ]; then
-  
+ 
   _LOG "(re-)creating table $SEG_TABLE ..." 
   _LOG "disable nodrop - OK if errors here." 
   set +o errexit 
@@ -664,6 +663,12 @@ if [ $? -ne 0 ]; then
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
   exit 1
 fi
+_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_DB2_SP" "$STEP_LOAD_DB2_SP"
+if [ $? -ne 0 ]; then
+  _LOG "Error writing process context. Installation FAILED."
+  $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
+  exit 1
+fi
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_PARTITIONED_DATA" "$STEP_LOAD_PARTITIONED_DATA"
 if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
@@ -812,12 +817,6 @@ _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "EXP_INPUT_TYPE" "DIRECT"
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "LOAD_DB2" "Y"
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "TOGGLE_DB2" "Y"
 
-
-
-else
-
-_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_DB2_SP" "7"
-_WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "STEP_LOAD_PARTITIONED_DATA" "8"
 _LOG "Process $FACT_PROCESS_NAME configured successfully"
 
 fi
