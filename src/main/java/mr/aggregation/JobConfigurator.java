@@ -105,6 +105,7 @@ public final class JobConfigurator {
             add("all_mktg_seo_direct");
             add("entry_page_name");
             add("supplier_property_id");
+            add("supplier_id");
             add("experiment_name");
             add("variant_name");
             add("status");
