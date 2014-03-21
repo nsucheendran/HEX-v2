@@ -47,6 +47,7 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
                  all_hits.min_hit_data[23] as all_mktg_seo_30_day_direct,
                  all_hits.min_hit_data[24] as entry_page_name,
                  all_hits.min_hit_data[25] as supplier_property_id,
+		 all_hits.min_hit_data[27] as supplier_id,
                  substr(all_hits.min_hit_data[0], 1, 7) as year_month
             from (      select split(firstValueNSort(concat_ws("~~~", 
                                                                local_date, 
@@ -75,7 +76,8 @@ insert ${hiveconf:into.overwrite} table ${hiveconf:hex.fah.table} PARTITION(year
                                                                case when (c210 = '' or c210 is null) then 'Unknown' else upper(c210) end,
                                                                case when (c104 = '' or c104 is null) then 'Unknown' else c104 end,
                                                                case when (supplier_property_id = '' or supplier_property_id is null) then '-9998' else cast(coalesce(cast(supplier_property_id as int), -9999) as string) end,
-                                                               cast(local_hour as string)
+                                                               cast(local_hour as string),
+                                                               case when (supplier_id = '' or supplier_id is null) then '-9998' else cast(coalesce(cast(supplier_id as int), -9999) as string) end
                                                               ), 
                                                      gmt,
                                                      visit_page_number
