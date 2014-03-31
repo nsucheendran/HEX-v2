@@ -106,6 +106,7 @@ public final class JobConfigurator {
             add("entry_page_name");
             add("supplier_property_id");
             add("supplier_id");
+            add("lodg_property_key");
             add("experiment_name");
             add("variant_name");
             add("status");

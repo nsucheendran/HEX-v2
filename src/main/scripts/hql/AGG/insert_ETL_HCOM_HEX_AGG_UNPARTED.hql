@@ -1,4 +1,3 @@
-
 CREATE TEMPORARY FUNCTION randomize as 'udf.GenericUDFRandomizeInput';
 
 set hive.auto.convert.join=true;
@@ -164,7 +163,6 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                             randomize(all_mktg_seo_30_day_direct, ${hiveconf:hex.agg.seed}, "###", true, ${hiveconf:hex.agg.mktg.direct.randomize.array})[0] as all_mktg_seo_direct_random,
                             entry_page_name,
                             supplier_property_id,
-                            randomize(supplier_property_id, ${hiveconf:hex.agg.seed}, "###", true, ${hiveconf:hex.agg.sp.randomize.array})[0] as supplier_property_id_random,
                             rep.variant_code,
                             rep.experiment_code,
                             rep.version_number,
@@ -213,7 +211,7 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                                               all_mktg_seo_30_day,
                                               all_mktg_seo_30_day_direct,
                                               entry_page_name,
-                                              supplier_property_id,
+                                              lodg_property_key,
                                               variant_code,
                                               experiment_code,
                                               version_number,
@@ -267,29 +265,9 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                                               property_parnt_chain_acct_typ_name, 
                                               property_paymnt_choice_enabl_ind, 
                                               property_cntrct_model_name, 
-                                              expe_lodg_property_id_random 
-                                         from (select property_typ_name, 
-                                                      property_parnt_chain_name, 
-                                                      property_brand_name, 
-                                                      property_super_regn_name, 
-                                                      property_regn_id, 
-                                                      property_regn_name,
-                                                      property_mkt_id, 
-                                                      property_mkt_name, 
-                                                      property_sub_mkt_id, 
-                                                      property_sub_mkt_name, 
-                                                      property_cntry_name, 
-                                                      property_state_provnc_name, 
-                                                      property_city_name, 
-                                                      expe_half_star_rtg,
-                                                      property_parnt_chain_acct_typ_name, 
-                                                      property_paymnt_choice_enabl_ind, 
-                                                      property_cntrct_model_name, 
-                                                      randomize(expe_lodg_property_id, ${hiveconf:hex.agg.seed}, "###", false, ${hiveconf:hex.agg.sp.randomize.array}) as expe_lodg_property_id_arr
-                                                 from dm.lodg_property_dim 
-                                                where expe_lodg_property_id<>-9998) lodg_property_dim_inner
-                                 LATERAL VIEW explode(expe_lodg_property_id_arr) tt as expe_lodg_property_id_random) lpd 
-                         on (active_metrics.supplier_property_id_random=lpd.expe_lodg_property_id_random)
+                                              lodg_property_key 
+                                             from dm.lodg_property_dim ) lpd 
+                         on (active_metrics.lodg_property_key=lpd.lodg_property_key)
             left outer join dm.site_dim site 
                          on (site.brand_id = 2 and site.ian_business_partnr_id not in ('-9998', '0') and active_metrics.cid=site.ian_business_partnr_id)
             left outer join (          select mktg_chnnl_name, 

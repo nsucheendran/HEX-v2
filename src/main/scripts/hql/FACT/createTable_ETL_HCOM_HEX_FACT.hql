@@ -43,7 +43,9 @@ supplier_property_id int,
 experiment_name string,
 variant_name string,
 status string,
-experiment_test_id string
+experiment_test_id string,
+supplier_id int,
+lodg_property_key int
 ) partitioned by (
 experiment_code string,
 version_number smallint,
