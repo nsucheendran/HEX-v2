@@ -90,30 +90,7 @@ FAH_PROCESS_DESCRIPTION="Loads HEX First Assignment Hit Data"
 
 FAH_PROCESS_ID=$(_GET_PROCESS_ID "$FAH_PROCESS_NAME")
 if [ -z "$FAH_PROCESS_ID" ]; then
-  _LOG "(re-)creating table $FAH_TABLE ..." 
-  _LOG "disable nodrop - OK if errors here." 
-  set +o errexit 
-  sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $FAH_TABLE disable NO_DROP;" 
-  set -o errexit 
-  _LOG "disable nodrop ended." 
-  if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$FAH_TABLE; then 
-    _LOG "removing existing table files ... " 
-    sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$FAH_TABLE 
-    if [ $? -ne 0 ]; then
-      _LOG "Error deleting table files. Installation FAILED."
-      exit 1
-    fi
-  fi 
-  sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_OMNI_HIT/createTable_ETL_HCOM_HEX_ASSIGNMENT_HIT.hql
-  if [ $? -ne 0 ]; then
-    _LOG "Error creating table. Installation FAILED."
-    exit 1
-  fi
-  _LOG "(re-)creating table $FAH_TABLE Done." 
 
-  
-  sudo -E -u $ETL_USER hdfs dfs -chmod -R 775 "/data/HWW/$FAH_DB/${FAH_TABLE}" ;
-  sudo -E -u $ETL_USER hdfs dfs -chmod -R 775 "/data/HWW/$FAH_DB/${TRANS_TABLE}" ;
 
   $PLAT_HOME/tools/metadata/add_process.sh "$FAH_PROCESS_NAME" "$FAH_PROCESS_DESCRIPTION"
   if [ $? -ne 0 ]; then
@@ -195,6 +172,30 @@ if [ -z "$FAH_PROCESS_ID" ]; then
   fi
 else
   _LOG "Process $FAH_PROCESS_NAME already exists"
+  _LOG "(re-)creating table $FAH_TABLE ..." 
+  _LOG "disable nodrop - OK if errors here." 
+  set +o errexit 
+  sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $FAH_TABLE disable NO_DROP;" 
+  set -o errexit 
+  _LOG "disable nodrop ended." 
+  if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$FAH_TABLE; then 
+    _LOG "removing existing table files ... " 
+    sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$FAH_TABLE 
+    if [ $? -ne 0 ]; then
+      _LOG "Error deleting table files. Installation FAILED."
+      exit 1
+    fi
+  fi 
+  sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.fah.db="${FAH_DB}" -hiveconf hex.fah.table="${FAH_TABLE}" -f $SCRIPT_PATH_OMNI_HIT/createTable_ETL_HCOM_HEX_ASSIGNMENT_HIT.hql
+  if [ $? -ne 0 ]; then
+    _LOG "Error creating table. Installation FAILED."
+    exit 1
+  fi
+  _LOG "(re-)creating table $FAH_TABLE Done." 
+  
+  sudo -E -u $ETL_USER hdfs dfs -chmod -R 775 "/data/HWW/$FAH_DB/${FAH_TABLE}" ;
+  sudo -E -u $ETL_USER hdfs dfs -chmod -R 775 "/data/HWW/$FAH_DB/${TRANS_TABLE}" ;
+  
 fi
 
 _LOG "Process $FAH_PROCESS_NAME configured successfully"
@@ -380,49 +381,7 @@ _LOG "(re-)creating table $SEG_EXP_LIST_TABLE Done."
     exit 1
   fi
   _LOG "(re-)creating table $SEG_UNPARTED_TABLE Done." 
-  _LOG "(re-)creating table $ACTIVE_FAH_TABLE ..."
-  _LOG "disable nodrop - OK if errors here." 
-  set +o errexit 
-  sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $ACTIVE_FAH_TABLE disable NO_DROP;" 
-  set -o errexit 
-  _LOG "disable nodrop ended." 
-  if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$ACTIVE_FAH_TABLE; then 
-    _LOG "removing existing table files ... " 
-    sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$ACTIVE_FAH_TABLE 
-    if [ $? -ne 0 ]; then
-      _LOG "Error deleting table files. Installation FAILED."
-      exit 1
-    fi
-  fi 
-  sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${FAH_DB}" -hiveconf hex.table="${ACTIVE_FAH_TABLE}" -f $SCRIPT_PATH_FACT/createTable_ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HITS.hql
-  if [ $? -ne 0 ]; then
-    _LOG "Error creating table. Installation FAILED."
-    exit 1
-  fi
-  _LOG "(re-)creating table $ACTIVE_FAH_TABLE Done." 
-
-
-  _LOG "(re-)creating table $FACT_STAGE_TABLE ..." 
-  _LOG "disable nodrop - OK if errors here." 
-  set +o errexit 
-  sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $FACT_STAGE_TABLE disable NO_DROP;" 
-  set -o errexit 
-  _LOG "disable nodrop ended." 
-  if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$FACT_STAGE_TABLE; then 
-    _LOG "removing existing table files ... " 
-    sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$FACT_STAGE_TABLE 
-    if [ $? -ne 0 ]; then
-      _LOG "Error deleting table files. Installation FAILED."
-      exit 1
-    fi
-  fi 
-  sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${FAH_DB}" -hiveconf hex.table="${FACT_STAGE_TABLE}" -f $SCRIPT_PATH_FACT/createTable_ETL_HCOM_HEX_FACT_STAGE.hql
-  if [ $? -ne 0 ]; then
-    _LOG "Error creating table. Installation FAILED."
-    exit 1
-  fi
-  _LOG "(re-)creating table $FACT_STAGE_TABLE Done." 
-
+  
   _LOG "(re-)creating table $FACT_TABLE ..." 
   _LOG "disable nodrop - OK if errors here." 
   set +o errexit 
@@ -443,29 +402,6 @@ _LOG "(re-)creating table $SEG_EXP_LIST_TABLE Done."
     exit 1
   fi
   _LOG "(re-)creating table $FACT_TABLE Done." 
-
-  _LOG "(re-)creating table $FACT_UNPARTED_TABLE ..." 
-  _LOG "disable nodrop - OK if errors here." 
-  set +o errexit 
-  sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $FACT_UNPARTED_TABLE disable NO_DROP;" 
-  set -o errexit 
-  _LOG "disable nodrop ended." 
-  if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$FACT_UNPARTED_TABLE; then 
-    _LOG "removing existing table files ... " 
-    sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$FACT_UNPARTED_TABLE 
-    if [ $? -ne 0 ]; then
-      _LOG "Error deleting table files. Installation FAILED."
-      exit 1
-    fi
-  fi 
-  sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${FAH_DB}" -hiveconf hex.table="${FACT_UNPARTED_TABLE}" -f $SCRIPT_PATH_FACT/createTable_ETL_HCOM_HEX_FACT_UNPARTED.hql
-  if [ $? -ne 0 ]; then
-    _LOG "Error creating table. Installation FAILED."
-    exit 1
-  fi
-  _LOG "(re-)creating table $FACT_UNPARTED_TABLE Done." 
-
-
 
   _LOG "(re-)creating table $FACT_AGG_TABLE ..." 
   _LOG "disable nodrop - OK if errors here." 
@@ -797,7 +733,7 @@ if [ $? -ne 0 ]; then
   _LOG "Error writing process context. Installation FAILED."
   $PLAT_HOME/tools/metadata/delete_process.sh "$FACT_PROCESS_NAME"
   exit 1
-fi
+
 
 ###########################
 # DB2 Load configuration
@@ -817,10 +753,74 @@ _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "EXP_INPUT_TYPE" "DIRECT"
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "LOAD_DB2" "Y"
 _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "TOGGLE_DB2" "Y"
 
+else
+
 _LOG "Process $FACT_PROCESS_NAME configured successfully"
 
+  _LOG "(re-)creating table $ACTIVE_FAH_TABLE ..."
+  _LOG "disable nodrop - OK if errors here." 
+  set +o errexit 
+  sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $ACTIVE_FAH_TABLE disable NO_DROP;" 
+  set -o errexit 
+  _LOG "disable nodrop ended." 
+  if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$ACTIVE_FAH_TABLE; then 
+    _LOG "removing existing table files ... " 
+    sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$ACTIVE_FAH_TABLE 
+    if [ $? -ne 0 ]; then
+      _LOG "Error deleting table files. Installation FAILED."
+      exit 1
+    fi
+  fi 
+  sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${FAH_DB}" -hiveconf hex.table="${ACTIVE_FAH_TABLE}" -f $SCRIPT_PATH_FACT/createTable_ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HITS.hql
+  if [ $? -ne 0 ]; then
+    _LOG "Error creating table. Installation FAILED."
+    exit 1
+  fi
+  _LOG "(re-)creating table $ACTIVE_FAH_TABLE Done." 
+  
+  _LOG "(re-)creating table $FACT_STAGE_TABLE ..." 
+  _LOG "disable nodrop - OK if errors here." 
+  set +o errexit 
+  sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $FACT_STAGE_TABLE disable NO_DROP;" 
+  set -o errexit 
+  _LOG "disable nodrop ended." 
+  if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$FACT_STAGE_TABLE; then 
+    _LOG "removing existing table files ... " 
+    sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$FACT_STAGE_TABLE 
+    if [ $? -ne 0 ]; then
+      _LOG "Error deleting table files. Installation FAILED."
+      exit 1
+    fi
+  fi 
+  sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${FAH_DB}" -hiveconf hex.table="${FACT_STAGE_TABLE}" -f $SCRIPT_PATH_FACT/createTable_ETL_HCOM_HEX_FACT_STAGE.hql
+  if [ $? -ne 0 ]; then
+    _LOG "Error creating table. Installation FAILED."
+    exit 1
+  fi
+  _LOG "(re-)creating table $FACT_STAGE_TABLE Done." 
+  
+  _LOG "(re-)creating table $FACT_UNPARTED_TABLE ..." 
+  _LOG "disable nodrop - OK if errors here." 
+  set +o errexit 
+  sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $FACT_UNPARTED_TABLE disable NO_DROP;" 
+  set -o errexit 
+  _LOG "disable nodrop ended." 
+  if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$FACT_UNPARTED_TABLE; then 
+    _LOG "removing existing table files ... " 
+    sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$FACT_UNPARTED_TABLE 
+    if [ $? -ne 0 ]; then
+      _LOG "Error deleting table files. Installation FAILED."
+      exit 1
+    fi
+  fi 
+  sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${FAH_DB}" -hiveconf hex.table="${FACT_UNPARTED_TABLE}" -f $SCRIPT_PATH_FACT/createTable_ETL_HCOM_HEX_FACT_UNPARTED.hql
+  if [ $? -ne 0 ]; then
+    _LOG "Error creating table. Installation FAILED."
+    exit 1
+  fi
+  _LOG "(re-)creating table $FACT_UNPARTED_TABLE Done." 
 
-
+fi
 
 ############################
 # script/jar deployment
