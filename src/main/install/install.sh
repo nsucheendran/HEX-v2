@@ -755,7 +755,29 @@ _WRITE_PROCESS_CONTEXT $FACT_PROCESS_ID "TOGGLE_DB2" "Y"
 
 else
 
-_LOG "Process $FACT_PROCESS_NAME configured successfully"
+
+
+  _LOG "(re-)creating table $FACT_UNPARTED_TABLE ..." 
+  _LOG "disable nodrop - OK if errors here." 
+  set +o errexit 
+  sudo -E -u $ETL_USER hive -e "use $FAH_DB; alter table $FACT_UNPARTED_TABLE disable NO_DROP;" 
+  set -o errexit 
+  _LOG "disable nodrop ended." 
+  if sudo -E -u $ETL_USER hdfs dfs -test -e /data/HWW/$FAH_DB/$FACT_UNPARTED_TABLE; then 
+    _LOG "removing existing table files ... " 
+    sudo -E -u $ETL_USER hdfs dfs -rm -R /data/HWW/$FAH_DB/$FACT_UNPARTED_TABLE 
+    if [ $? -ne 0 ]; then
+      _LOG "Error deleting table files. Installation FAILED."
+      exit 1
+    fi
+  fi 
+  sudo -E -u $ETL_USER hive -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${FAH_DB}" -hiveconf hex.table="${FACT_UNPARTED_TABLE}" -f $SCRIPT_PATH_FACT/createTable_ETL_HCOM_HEX_FACT_UNPARTED.hql
+  if [ $? -ne 0 ]; then
+    _LOG "Error creating table. Installation FAILED."
+    exit 1
+  fi
+  _LOG "(re-)creating table $FACT_UNPARTED_TABLE Done." 
+
 
   _LOG "(re-)creating table $ACTIVE_FAH_TABLE ..."
   _LOG "disable nodrop - OK if errors here." 
@@ -819,6 +841,8 @@ _LOG "Process $FACT_PROCESS_NAME configured successfully"
     exit 1
   fi
   _LOG "(re-)creating table $FACT_UNPARTED_TABLE Done." 
+  
+  _LOG "Process $FACT_PROCESS_NAME configured successfully"
 
 fi
 
