@@ -87,7 +87,7 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                  case when pmd.property_mkt_regn_name is null then 'Unknown' else pmd.property_mkt_regn_name end as PSG_mkt_regn_name,
                  case when pmd.property_mkt_super_regn_name is null then 'Unknown' else pmd.property_mkt_super_regn_name end as PSG_mkt_super_regn_name,
 
-                 case when coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name) is null then 'Not Applicable'
+                 case when lcase(coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name)) is null then 'Not Applicable'
                       when lcase(coalesce(property_cntry_name,hcom_srch_dest_cntry_name)) = lcase(site.site_cntry_name) then 'Domestic'
                       else 'International'
                   end as dom_intl_flag,
@@ -163,6 +163,8 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                             randomize(all_mktg_seo_30_day_direct, ${hiveconf:hex.agg.seed}, "###", true, ${hiveconf:hex.agg.mktg.direct.randomize.array})[0] as all_mktg_seo_direct_random,
                             entry_page_name,
                             supplier_property_id,
+                            supplier_id,
+                            lodg_property_key,
                             rep.variant_code,
                             rep.experiment_code,
                             rep.version_number,
@@ -211,6 +213,8 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                                               all_mktg_seo_30_day,
                                               all_mktg_seo_30_day_direct,
                                               entry_page_name,
+                                              supplier_property_id,
+                                              supplier_id,
                                               lodg_property_key,
                                               variant_code,
                                               experiment_code,
@@ -268,7 +272,21 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                                               lodg_property_key 
                                              from dm.lodg_property_dim ) lpd 
                          on (active_metrics.lodg_property_key=lpd.lodg_property_key)
-            left outer join dm.site_dim site 
+            left outer join (
+                              select
+                              case when site.site_cntry_name ='CZECH' then 'Czech Republic'
+                                when site.site_cntry_name ='SPAIN' then	'Spain & Canary Islands'
+                                when site.site_cntry_name ='TAIWAN' then 'Taiwan, Republic of China'
+                                when site.site_cntry_name ='US' then 'United States of America'
+                                when site.site_cntry_name ='KOREA' then 'South Korea'
+                                when site.site_cntry_name ='ISRAEL HEBREW' then 'Israel'
+                                else site.site_cntry_name
+                                end as site_cntry_name,
+                              site.site_super_regn_name,
+                              site.site_regn_name,
+                              site.brand_id,
+                              site.ian_business_partnr_id
+                              from dm.site_dim site ) site 
                          on (site.brand_id = 2 and site.ian_business_partnr_id not in ('-9998', '0') and active_metrics.cid=site.ian_business_partnr_id)
             left outer join (          select mktg_chnnl_name, 
                                               mktg_sub_chnnl_name, 
@@ -371,7 +389,7 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                  pmd.property_mkt_name, 
                  pmd.property_mkt_regn_name, 
                  pmd.property_mkt_super_regn_name, 
-                 case when coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name) is null then 'Not Applicable' 
+                 case when lcase(coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name)) is null then 'Not Applicable' 
                       when lcase(coalesce(property_cntry_name,hcom_srch_dest_cntry_name)) = lcase(site.site_cntry_name) then 'Domestic' 
                       else 'International' 
                   end;

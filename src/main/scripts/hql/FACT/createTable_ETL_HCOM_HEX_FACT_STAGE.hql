@@ -38,7 +38,9 @@ bkg_gbv double,
 bkg_room_nights smallint,
 omniture_gbv double,
 omniture_room_nights smallint,
-gross_profit decimal
+gross_profit decimal,
+supplier_id int,
+lodg_property_key int
 ) 
 partitioned by(year_month string, source string)
 stored as sequencefile
