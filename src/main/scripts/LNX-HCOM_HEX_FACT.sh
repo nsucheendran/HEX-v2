@@ -949,6 +949,8 @@ if [[ "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_DB2_SP" ]]; then
         _FREE_LOCK $HWW_LOCK_NAME
         exit 1
       fi
+      
+      _DBDISCONNECT
 
       _LOG "Load data into Live and Completed tables" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       
