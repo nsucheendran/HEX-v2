@@ -951,23 +951,45 @@ if [[ "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_DB2_SP" ]]; then
       fi
 
       _LOG "Load data into Live and Completed tables" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+      
+      rm -f $HEX_LOGS/hex_db2.out
+      RETRY_COUNT=1
 
-      #Invoke the procedure to insert data into Live and Completed Tables
-      /home/db2clnt1/sqllib/bin/db2 -x "call ETL.SP_RPT_HEXDM_AGG_SEGMENT_LOAD('$FAH_BOOKMARK_DATE_FULL', '$BKG_BOOKMARK_DATE')"
-      ERROR_CODE=$?
-      if [ $ERROR_CODE -ge 2 ] ; then
-        _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_DB2_SP"
-        _LOG "Error:Check etl.etl_sproc_error for more information" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-        _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "FAILED"
-        _END_PROCESS $RUN_ID $ERROR_CODE
-        _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
-        _FREE_LOCK $HWW_LOCK_NAME
-        exit 1
-      fi
+      while true;
+      do
+        #Invoke the procedure to insert data into Live and Completed Tables
+        _DBCONNECT $DB2LOGIN
 
+        /home/db2clnt1/sqllib/bin/db2 -x "call ETL.SP_RPT_HEXDM_AGG_SEGMENT_LOAD('$FAH_BOOKMARK_DATE_FULL', '$BKG_BOOKMARK_DATE')" > $HEX_LOGS/hex_db2.out
+        ERROR_CODE=$?
+  
+        if [ $ERROR_CODE -ge 2 ] ; then
+             _LOG "Error:Check etl.etl_sproc_error for more information" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+             SQL_COND=`egrep -o 'SQL[0-9]+[A-Z]*' $HEX_LOGS/hex_db2.out`
+             _LOG "SQL_COND $SQL_COND" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
 
-      #Disconnect from DB2 
-      _DBDISCONNECT
+                if [ $SQL_COND == 'SQL4712N' ] || [ $SQL_COND == 'SQL0911N' ] || [ $SQL_COND == 'SQL20540N' ] && [ $RETRY_COUNT -le 4 ] ; then
+                        _LOG "Error Condition = $SQL_COND. Retry Count = $RETRY_COUNT" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+                        _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "FAILED"
+                        _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+                        _DBDISCONNECT
+                        RETRY_COUNT=$((RETRY_COUNT+1))
+                        sleep 1800
+                else
+                        _LOG "Sproc Failed" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+                        _DBDISCONNECT
+                        _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "FAILED"
+                        _END_PROCESS $RUN_ID $ERROR_CODE
+                        _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
+                        _FREE_LOCK $HWW_LOCK_NAME
+                        exit 1
+                fi
+        else
+             _LOG "Sproc Successful" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+             _DBDISCONNECT
+             break;
+        fi
+      done
 
       _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "COMPLETED"
       _LOG "============ Completed DB2 post processing for $SEG_TGT_DB2_TABLE ===============" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
