@@ -968,7 +968,7 @@ if [[ "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_DB2_SP" ]]; then
              SQL_COND=`egrep -o 'SQL[0-9]+[A-Z]*' $HEX_LOGS/hex_db2.out`
              _LOG "SQL_COND $SQL_COND" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
 
-                if [ $SQL_COND == 'SQL4712N' ] || [ $SQL_COND == 'SQL0911N' ] || [ $SQL_COND == 'SQL20540N' ] && [ $RETRY_COUNT -le 4 ] ; then
+                if [ $SQL_COND == 'SQL4712N' ] || [ $SQL_COND == 'SQL0911N' ] || [ $SQL_COND == 'SQL2310N' ] || [ $SQL_COND == 'SQL1229N' ] || [ $SQL_COND == 'SQL20540N' ] && [ $RETRY_COUNT -le 4 ] ; then
                         _LOG "Error Condition = $SQL_COND. Retry Count = $RETRY_COUNT" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
                         _LOG_PROCESS_DETAIL $RUN_ID "DB2_SP_STATUS" "FAILED"
                         _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
