@@ -162,9 +162,7 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                             all_mktg_seo_30_day_direct, 
                             randomize(all_mktg_seo_30_day_direct, ${hiveconf:hex.agg.seed}, "###", true, ${hiveconf:hex.agg.mktg.direct.randomize.array})[0] as all_mktg_seo_direct_random,
                             entry_page_name,
-                            supplier_property_id,
-                            supplier_id,
-                            lodg_property_key,
+                            randomize(lodg_property_key, ${hiveconf:hex.agg.seed}, "###", true, ${hiveconf:hex.agg.lp.randomize.array})[0] as lodg_property_key_random,
                             rep.variant_code,
                             rep.experiment_code,
                             rep.version_number,
@@ -252,26 +250,46 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                                            on metrics.variant_code=rep.variant_code 
                                           and metrics.experiment_code=rep.experiment_code 
                                           and metrics.version_number=rep.version_number) active_metrics
-            left outer join (          select property_typ_name, 
-                                              property_parnt_chain_name, 
-                                              property_brand_name, 
-                                              property_super_regn_name, 
-                                              property_regn_id, 
+            left outer join (          select property_typ_name,
+                                              property_parnt_chain_name,
+                                              property_brand_name,
+                                              property_super_regn_name,
+                                              property_regn_id,
                                               property_regn_name,
-                                              property_mkt_id, 
-                                              property_mkt_name, 
-                                              property_sub_mkt_id, 
-                                              property_sub_mkt_name, 
-                                              property_cntry_name, 
-                                              property_state_provnc_name, 
-                                              property_city_name, 
+                                              property_mkt_id,
+                                              property_mkt_name,
+                                              property_sub_mkt_id,
+                                              property_sub_mkt_name,
+                                              property_cntry_name,
+                                              property_state_provnc_name,
+                                              property_city_name,
                                               expe_half_star_rtg,
-                                              property_parnt_chain_acct_typ_name, 
-                                              property_paymnt_choice_enabl_ind, 
-                                              property_cntrct_model_name, 
-                                              lodg_property_key 
-                                             from dm.lodg_property_dim ) lpd 
-                         on (active_metrics.lodg_property_key=lpd.lodg_property_key)
+                                              property_parnt_chain_acct_typ_name,
+                                              property_paymnt_choice_enabl_ind,
+                                              property_cntrct_model_name,
+                                              lodg_property_key_random
+                                         from (select property_typ_name,
+                                                      property_parnt_chain_name,
+                                                      property_brand_name,
+                                                      property_super_regn_name,
+                                                      property_regn_id,
+                                                      property_regn_name,
+                                                      property_mkt_id,
+                                                      property_mkt_name,
+                                                      property_sub_mkt_id,
+                                                      property_sub_mkt_name,
+                                                      property_cntry_name,
+                                                      property_state_provnc_name,
+                                                      property_city_name,
+                                                      expe_half_star_rtg,
+                                                      property_parnt_chain_acct_typ_name,
+                                                      property_paymnt_choice_enabl_ind,
+                                                      property_cntrct_model_name,
+                                                      randomize(lodg_property_key, ${hiveconf:hex.agg.seed}, "###", false, ${hiveconf:hex.agg.lp.randomize.array}) as lodg_property_id_arr
+                                                 from dm.lodg_property_dim
+                                                ) lodg_property_dim_inner
+                                 LATERAL VIEW explode(lodg_property_id_arr) tt as lodg_property_key_random) lpd
+                         on (active_metrics.lodg_property_key_random=lpd.lodg_property_key_random)
             left outer join (
                               select
                               case when site.site_cntry_name ='CZECH' then 'Czech Republic'
