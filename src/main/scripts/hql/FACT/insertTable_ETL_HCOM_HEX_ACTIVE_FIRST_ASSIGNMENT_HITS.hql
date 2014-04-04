@@ -1,4 +1,3 @@
-
 set hive.exec.dynamic.partition.mode=nonstrict;
 set hive.exec.dynamic.partition=true;
 set hive.exec.max.dynamic.partitions=2000;
@@ -121,14 +120,14 @@ from (
                   entry_page_name,
                   supplier_property_id,
                   supplier_id
-           from etldata.etl_hcom_hex_first_assignment_hit 
-           where year_month>='${hiveconf:min_report_date_yrmonth}'
+              from etldata.etl_hcom_hex_first_assignment_hit
+              where year_month>='${hiveconf:min_report_date_yrmonth}'
                  and year_month<='${hiveconf:max_omniture_record_yr_month}'
                  and local_date<='${hiveconf:max_omniture_record_date}'
                  and local_date>='${hiveconf:min_report_date}'
      ) first_hits
-     inner join 
-     (          
+     inner join
+     (
            select variant_code,
                   experiment_code,
                   version_number,
@@ -138,22 +137,19 @@ from (
                   insert_dt,
                   trans_date
            from ${hiveconf:hex.db}.${hiveconf:hex.rep.table}
-      ) rep
+        ) rep
       on first_hits.experiment_variant_code=rep.variant_code
       where first_hits.local_date>=rep.report_start_date
       and first_hits.local_date<=rep.report_end_date
-               ) active_hits
-      left outer join 
-      ( 
-         select lodg_property_key,
-               supplier_id,
-               supplier_property_id,
-               effective_from,
-               effective_to
-               from ${hiveconf:hex.db}.${hiveconf:hex.sup.map.table}
-      ) lpk
-      on active_hits.supplier_id=lpk.supplier_id
-      and active_hits.supplier_property_id=lpk.supplier_property_id
-      where active_hits.local_date>=lpk.effective_from
-      and active_hits.local_date<=lpk.effective_to
-          ;
+      )	active_hits
+	left outer join 
+	( 
+		select lodg_property_key,
+			supplier_id,
+			supplier_property_id
+			from ${hiveconf:hex.db}.${hiveconf:hex.sup.map.table}
+			where current = 1 
+	) lpk
+	on active_hits.supplier_id=lpk.supplier_id
+	and active_hits.supplier_property_id=lpk.supplier_property_id
+;
