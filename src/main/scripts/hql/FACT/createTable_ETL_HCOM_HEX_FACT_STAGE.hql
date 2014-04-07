@@ -33,14 +33,14 @@ all_mktg_seo_30_day string,
 all_mktg_seo_30_day_direct string,
 entry_page_name string,
 supplier_property_id int,
+supplier_id int,
+lodg_property_key int,
 num_transactions int,
 bkg_gbv double,
 bkg_room_nights smallint,
 omniture_gbv double,
 omniture_room_nights smallint,
-gross_profit decimal,
-supplier_id int,
-lodg_property_key int
+gross_profit decimal
 ) 
 partitioned by(year_month string, source string)
 stored as sequencefile
