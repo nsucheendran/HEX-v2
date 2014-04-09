@@ -37,7 +37,9 @@ CREATE EXTERNAL TABLE IF NOT EXISTS ${hiveconf:hex.table} (
   all_mktg_seo_30_day string,
   all_mktg_seo_30_day_direct string,
   entry_page_name string,
-  supplier_property_id int
+  supplier_property_id int,
+  supplier_id int,
+  lodg_property_key int
 ) 
 stored as sequencefile
 LOCATION "/data/HWW/${hiveconf:hex.db}/${hiveconf:hex.table}";

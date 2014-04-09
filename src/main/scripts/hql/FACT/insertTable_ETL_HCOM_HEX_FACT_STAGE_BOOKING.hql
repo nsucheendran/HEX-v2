@@ -46,6 +46,8 @@ insert into table ${hiveconf:hex.db}.${hiveconf:hex.table} partition(year_month,
                  all_mktg_seo_30_day_direct,
                  entry_page_name,
                  supplier_property_id,
+                 supplier_id,
+                 lodg_property_key,
                  case when purchase_flag=false then 0-num_transactions
                       when purchase_flag=true then num_transactions
                       else cast(0 as bigint)
@@ -94,6 +96,8 @@ insert into table ${hiveconf:hex.db}.${hiveconf:hex.table} partition(year_month,
                                    entry_page_name,
                                    supplier_property_id,
                                    source,
+                                   supplier_id,
+                                   lodg_property_key,
                                    trans.itin_number
                               from (          select guid,
                                                      purchase_flag,
@@ -180,6 +184,8 @@ insert into table ${hiveconf:hex.db}.${hiveconf:hex.table} partition(year_month,
                                              all_mktg_seo_30_day_direct,
                                              entry_page_name,
                                              supplier_property_id,
-                                             trans.itin_number
+                                             trans.itin_number,
+                                             supplier_id,
+                                             lodg_property_key
                  ) rep_hit_trans;
 

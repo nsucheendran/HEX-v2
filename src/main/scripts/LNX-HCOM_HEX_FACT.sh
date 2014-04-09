@@ -462,35 +462,36 @@ else
     PROP_DEST_STR_FINAL=${PROP_DEST_STR_FINAL:${#delimiter}};
     PROP_DEST_STR_FINAL="array('"${PROP_DEST_STR_FINAL}"')";
   
-    _LOG "Fetching High Frequence Keys for Column supplier_property_id" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    SUPPLIER_PROP_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select supplier_property_id from ${STAGE_DB}.${FACT_TABLE_UNPARTED} group by supplier_property_id having count(*)>${KEYS_COUNT_LIMIT};"`
+    _LOG "Fetching High Frequence Keys for Column lodg_property_key" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    LODG_PROP_STR=`hive -hiveconf mapred.job.queue.name="${JOB_QUEUE}" -e "select lodg_property_key from ${STAGE_DB}.${FACT_TABLE_UNPARTED} group by lodg_property_key having count(*)>${KEYS_COUNT_LIMIT};"`
     ERROR_CODE=$?
-    if [[ $ERROR_CODE -ne 0 ]]; then   
-      _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching supplier_property_id keys. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
+    if [[ $ERROR_CODE -ne 0 ]]; then
+      _LOG "HEX_FACT: Aggregation load FAILED. Error while fetching lodg_property_key keys. [ERROR_CODE=$ERROR_CODE]." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
       _END_PROCESS $RUN_ID $ERROR_CODE
       _LOG_PROCESS_DETAIL $RUN_ID "STATUS" "ERROR: $ERROR_CODE"
       _FREE_LOCK $HWW_LOCK_NAME
       exit 1
     fi
-    SUPPLIER_PROP_ARR=( $SUPPLIER_PROP_STR );
+    LODG_PROP_ARR=( $LODG_PROP_STR );
     delimiter="','";
-    SUPPLIER_PROP_STR_FINAL=$(printf "${delimiter}%s" "${SUPPLIER_PROP_ARR[@]}");
-    SUPPLIER_PROP_STR_FINAL=${SUPPLIER_PROP_STR_FINAL:${#delimiter}};
-    SUPPLIER_PROP_STR_FINAL="array('"${SUPPLIER_PROP_STR_FINAL}"')";
-  
+    LODG_PROP_STR_FINAL=$(printf "${delimiter}%s" "${LODG_PROP_ARR[@]}");
+    LODG_PROP_STR_FINAL=${LODG_PROP_STR_FINAL:${#delimiter}};
+    LODG_PROP_STR_FINAL="array('"${LODG_PROP_STR_FINAL}"')";
+
     echo "$MKTG_SEO_STR_FINAL" > $HEX_LOGS/mktg_seo.lst
     echo "$MKTG_SEO_DIRECT_STR_FINAL" > $HEX_LOGS/mktg_seo_direct.lst
     echo "$PROP_DEST_STR_FINAL" > $HEX_LOGS/prop_dest.lst
-    echo "$SUPPLIER_PROP_STR_FINAL" > $HEX_LOGS/sup_prop.lst
+    echo "$LODG_PROP_STR_FINAL" > $HEX_LOGS/lodg_prop.lst
     MKTG_SEO_STR_FINAL=""
     MKTG_SEO_DIRECT_STR_FINAL=""
     PROP_DEST_STR_FINAL=""
-    SUPPLIER_PROP_STR_FINAL=""
-  
+    LODG_PROP_STR_FINAL=""
+
+
     perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.randomize.array}#@f#' $SCRIPT_PATH_AGG/insert_ETL_HCOM_HEX_AGG_UNPARTED.hql > $HEX_LOGS/temp.hql
     perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/mktg_seo_direct.lst";@f=<F>}s#\${hiveconf:hex.agg.mktg.direct.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/temp2.hql
     perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/prop_dest.lst";@f=<F>}s#\${hiveconf:hex.agg.pd.randomize.array}#@f#' $HEX_LOGS/temp2.hql > $HEX_LOGS/temp.hql
-    perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/sup_prop.lst";@f=<F>}s#\${hiveconf:hex.agg.sp.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/temp2.hql
+    perl -pe 'BEGIN{open F,"/usr/etl/HWW/log/lodg_prop.lst";@f=<F>}s#\${hiveconf:hex.agg.lp.randomize.array}#@f#' $HEX_LOGS/temp.hql > $HEX_LOGS/temp2.hql
       
     _LOG "Fetching Reporting Requirements Count" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     REQ_COUNT=`hive -hiveconf mapred.job.queue.name=${JOB_QUEUE} -e "select count(1) from ${STAGE_DB}.${REPORT_TABLE}"`
