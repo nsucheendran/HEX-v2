@@ -71,6 +71,7 @@ FACT_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "FACT_TABLE"`
 FACT_TABLE_UNPARTED=`_READ_PROCESS_CONTEXT $PROCESS_ID "FACT_TABLE_UNPARTED"`
 JAR_PATH=`_READ_PROCESS_CONTEXT $PROCESS_ID "JAR_PATH"`
 AGG_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "AGG_TABLE"`
+SUP_MAP_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "SUP_MAP_TABLE"`
 FACT_AGG_UNPARTED_TABLE=`_READ_PROCESS_CONTEXT $PROCESS_ID "FACT_AGG_UNPARTED_TABLE"`
 KEYS_COUNT_LIMIT=`_READ_PROCESS_CONTEXT $PROCESS_ID "KEYS_COUNT_LIMIT"`
 AGG_NUM_REDUCERS=`_READ_PROCESS_CONTEXT $PROCESS_ID "AGG_NUM_REDUCERS"`
@@ -292,7 +293,7 @@ else
     _LOG "MIN_REPORT_DATE=$MIN_REPORT_DATE, MIN_REPORT_DATE_YM=$MIN_REPORT_DATE_YM, MAX_OMNI_HIT_DATE=$MAX_OMNI_HIT_DATE, MAX_OMNI_HIT_DATE_YM=$MAX_OMNI_HIT_DATE_YM" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
   
     _LOG "loading first assignment hits for active reporting requirements into $ACTIVE_FAH_TABLE ..." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
-    hive -hiveconf max_omniture_record_yr_month="${MAX_OMNI_HIT_DATE_YM}" -hiveconf max_omniture_record_date="${MAX_OMNI_HIT_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf hex.rep.table="${REPORT_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.table="${ACTIVE_FAH_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HITS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+    hive -hiveconf max_omniture_record_yr_month="${MAX_OMNI_HIT_DATE_YM}" -hiveconf max_omniture_record_date="${MAX_OMNI_HIT_DATE}" -hiveconf min_report_date="${MIN_REPORT_DATE}" -hiveconf min_report_date_yrmonth="${MIN_REPORT_DATE_YM}" -hiveconf hex.rep.table="${REPORT_TABLE}" -hiveconf job.queue="${JOB_QUEUE}" -hiveconf hex.db="${STAGE_DB}" -hiveconf hex.sup.map.table="{SUP_MAP_TABLE}" -hiveconf hex.table="${ACTIVE_FAH_TABLE}" -f $SCRIPT_PATH/insertTable_ETL_HCOM_HEX_ACTIVE_FIRST_ASSIGNMENT_HITS.hql >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "HEX_FACT_STAGE: Booking Fact Staging load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log
