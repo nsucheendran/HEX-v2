@@ -147,31 +147,7 @@ if [ -z "$FAH_PROCESS_ID" ]; then
     $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
     exit 1
   fi
-  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "PROCESSING_TYPE" "R"
-  if [ $? -ne 0 ]; then
-    _LOG "Error writing process context. Installation FAILED."
-    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-    exit 1
-  fi
-  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_SCOPE" "OMNI_HIT_TRANS"
-  if [ $? -ne 0 ]; then
-    _LOG "Error writing process context. Installation FAILED."
-    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-    exit 1
-  fi
-  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_YEAR" "$REPROCESS_START_YEAR"
-  if [ $? -ne 0 ]; then
-    _LOG "Error writing process context. Installation FAILED."
-    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-    exit 1
-  fi
-  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_MONTH" "$REPROCESS_START_MONTH"
-  if [ $? -ne 0 ]; then
-    _LOG "Error writing process context. Installation FAILED."
-    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
-    exit 1
-  fi
-else
+  else
   _LOG "Process $FAH_PROCESS_NAME already exists"
   _LOG "(re-)creating table $FAH_TABLE ..." 
   _LOG "disable nodrop - OK if errors here." 
@@ -196,6 +172,32 @@ else
   
   sudo -E -u $ETL_USER hdfs dfs -chmod -R 775 "/data/HWW/$FAH_DB/${FAH_TABLE}" ;
   sudo -E -u $ETL_USER hdfs dfs -chmod -R 775 "/data/HWW/$FAH_DB/${TRANS_TABLE}" ;
+  
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "PROCESSING_TYPE" "R"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_SCOPE" "OMNI_HIT_TRANS"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_YEAR" "$REPROCESS_START_YEAR"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+    exit 1
+  fi
+  _WRITE_PROCESS_CONTEXT $FAH_PROCESS_ID "REPROCESS_START_MONTH" "$REPROCESS_START_MONTH"
+  if [ $? -ne 0 ]; then
+    _LOG "Error writing process context. Installation FAILED."
+    $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
+    exit 1
+  fi
+  
   
 fi
 
