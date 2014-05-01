@@ -50,24 +50,52 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                  case when browsr.brwsr_name is null then 'Unknown' else browsr.brwsr_name end as brwsr_name,
                  case when browsr.brwsr_typ_name is null then 'Unknown' else browsr.brwsr_typ_name end as brwsr_typ_name,
 
-                 case when lpd.property_typ_name is null then 'Unknown' else lpd.property_typ_name end as property_typ_name, 
-                 case when lpd.property_parnt_chain_name is null then 'Unknown' else lpd.property_parnt_chain_name end as property_parnt_chain_name, 
-                 case when lpd.property_brand_name is null then 'Unknown' else lpd.property_brand_name end as property_brand_name, 
-                 case when lpd.property_super_regn_name is null then 'Unknown' else lpd.property_super_regn_name end as property_super_regn_name, 
-                 case when lpd.property_regn_id is null then -9998 else lpd.property_regn_id end as property_regn_id, 
-                 case when lpd.property_regn_name is null then 'Unknown' else lpd.property_regn_name end as property_regn_name,
-                 case when lpd.property_mkt_id is null then -9998 else lpd.property_mkt_id end as property_mkt_id, 
-                 case when lpd.property_mkt_name is null then 'Unknown' else lpd.property_mkt_name end as property_mkt_name, 
-                 case when lpd.property_sub_mkt_id is null then -9998 else lpd.property_sub_mkt_id end as property_sub_mkt_id, 
-                 case when lpd.property_sub_mkt_name is null then 'Unknown' else lpd.property_sub_mkt_name end as property_sub_mkt_name, 
-                 case when lpd.property_cntry_name is null then 'Unknown' else lpd.property_cntry_name end as property_cntry_name, 
-                 case when lpd.property_state_provnc_name is null then 'Unknown' else lpd.property_state_provnc_name end as property_state_provnc_name, 
-                 case when lpd.property_city_name is null then 'Unknown' else lpd.property_city_name end as property_city_name, 
-                 case when lpd.expe_half_star_rtg is null then 'Unknown' else cast(lpd.expe_half_star_rtg as string) end as expe_half_star_rtg,
-                 case when lpd.property_parnt_chain_acct_typ_name is null then 'Unknown' else lpd.property_parnt_chain_acct_typ_name end as property_parnt_chain_acct_typ_name, 
-                 case when lpd.property_paymnt_choice_enabl_ind is null then 'Unknown' else lpd.property_paymnt_choice_enabl_ind end as property_paymnt_choice_enabl_ind, 
-                 case when lpd.property_cntrct_model_name is null then 'Unknown' else lpd.property_cntrct_model_name end as property_cntrct_model_name,
-                                           
+                 case when lpd.property_typ_name is null then 'Unknown'
+                      when lpd.property_typ_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_typ_name end as property_typ_name,
+                 case when lpd.property_parnt_chain_name is null then 'Unknown'
+                      when lpd.property_parnt_chain_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_parnt_chain_name end as property_parnt_chain_name,
+                 case when lpd.property_brand_name is null then 'Unknown'
+                      when lpd.property_brand_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_brand_name end as property_brand_name,
+                 case when lpd.property_super_regn_name is null then 'Unknown'
+                      when lpd.property_super_regn_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_super_regn_name end as property_super_regn_name,
+                 case when lpd.property_regn_id is null then -9998 else lpd.property_regn_id end as property_regn_id,
+                 case when lpd.property_regn_name is null then 'Unknown'
+                      when lpd.property_regn_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_regn_name end as property_regn_name,
+                 case when lpd.property_mkt_id is null then -9998 else lpd.property_mkt_id end as property_mkt_id,
+                 case when lpd.property_mkt_name is null then 'Unknown'
+                      when lpd.property_mkt_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_mkt_name end as property_mkt_name,
+                 case when lpd.property_sub_mkt_id is null then -9998 else lpd.property_sub_mkt_id end as property_sub_mkt_id,
+                 case when lpd.property_sub_mkt_name is null then 'Unknown'
+                      when lpd.property_sub_mkt_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_sub_mkt_name end as property_sub_mkt_name,
+                 case when lpd.property_cntry_name is null then 'Unknown'
+                      when lpd.property_cntry_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_cntry_name end as property_cntry_name,
+                 case when lpd.property_state_provnc_name is null then 'Unknown'
+                      when lpd.property_state_provnc_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_state_provnc_name end as property_state_provnc_name,
+                 case when lpd.property_city_name is null then 'Unknown'
+                      when lpd.property_city_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_city_name end as property_city_name,
+                 case when lpd.expe_half_star_rtg is null then 'Unknown'
+                      when lpd.expe_half_star_rtg = 'Not Applicable' then 'Not Mapped'
+                      else cast(lpd.expe_half_star_rtg as string) end as expe_half_star_rtg,
+                 case when lpd.property_parnt_chain_acct_typ_name is null then 'Unknown'
+                      when lpd.property_parnt_chain_acct_typ_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_parnt_chain_acct_typ_name end as property_parnt_chain_acct_typ_name,
+                 case when lpd.property_paymnt_choice_enabl_ind is null then 'Unknown'
+                      when lpd.property_paymnt_choice_enabl_ind = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_paymnt_choice_enabl_ind end as property_paymnt_choice_enabl_ind,
+                 case when lpd.property_cntrct_model_name is null then 'Unknown'
+                      when lpd.property_cntrct_model_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_cntrct_model_name end as property_cntrct_model_name,
+                      
                  case when site.site_super_regn_name is null then 'Unknown' else site.site_super_regn_name end as POSa_Super_Region, 
                  case when site.site_regn_name is null then 'Unknown' else site.site_regn_name end as POSa_Region,
                  case when site.site_cntry_name is null then 'Unknown' else site.site_cntry_name end as POSa_Country,
