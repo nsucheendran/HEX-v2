@@ -52,7 +52,9 @@ select active_hits.guid,
        active_hits.entry_page_name,
        active_hits.supplier_property_id,
        active_hits.supplier_id,
-       case when lpk.lodg_property_key is null or lpk.lodg_property_key = '' then -9998 else lpk.lodg_property_key end as lodg_property_key
+       case when active_hits.supplier_id = -9998 or active_hits.supplier_property_id = -9998 then -1
+            when lpk.lodg_property_key is null or lpk.lodg_property_key = '' then -2
+            else lpk.lodg_property_key end as lodg_property_key
 from (
 select /*+ MAPJOIN(rep) */ guid,
        cid,
