@@ -81,7 +81,6 @@ public final class R4AggregationJob extends Configured implements Tool {
                 rhsfields.add(field.getName());
             }
         } finally {
-            cl.close();
         }
         configurator.lhsFields(lhsfields).rhsFields(rhsfields).numReduceTasks(numReduceTasks);
         configurator.configureJob(job);
@@ -119,6 +118,7 @@ public final class R4AggregationJob extends Configured implements Tool {
             if (fileSystem != null) {
                 fileSystem.close();
             }
+	    cl.close();
         }
         return success ? 0 : -1;
     }
