@@ -147,8 +147,7 @@ if [ -z "$FAH_PROCESS_ID" ]; then
     $PLAT_HOME/tools/metadata/delete_process.sh "$FAH_PROCESS_NAME"
     exit 1
   fi
-  else
-  _LOG "Process $FAH_PROCESS_NAME already exists"
+
   _LOG "(re-)creating table $FAH_TABLE ..." 
   _LOG "disable nodrop - OK if errors here." 
   set +o errexit 
@@ -199,6 +198,8 @@ if [ -z "$FAH_PROCESS_ID" ]; then
   fi
   
   
+else
+  _LOG "Process $FAH_PROCESS_NAME already exists"
 fi
 
 _LOG "Process $FAH_PROCESS_NAME configured successfully"
