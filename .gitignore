@@ -12,5 +12,3 @@ target/
 
 # hidden #
 .*
-derby.log
-metastore_db
