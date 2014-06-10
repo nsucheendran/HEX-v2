@@ -22,84 +22,86 @@ import com.google.common.collect.Lists;
 
 // Return output as List of STRINGS (always), independent of the input dataType
 public class GenericUDFRandomizeInput extends GenericUDF {
-    private ListObjectInspector whitelistValuesOI;
-    private static final Random RANDOM_GENERATOR = new Random();
+  private ListObjectInspector whitelistValuesOI;
+  private static final Random RANDOM_GENERATOR = new Random();
 
-    @Override
-    public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
-        if (arguments.length < 4) {
-            throw new UDFArgumentLengthException(
-                    "The function repeatInput(inputValue, seed, seedValSeparator, randomize, whitelistValues) "
-                            + "requires atleast 3 arguments.");
-        }
-        // 1. Check we received the right object types.
-        ObjectInspector inputValOI = arguments[0];
-        ObjectInspector seedOI = arguments[1];
-        ObjectInspector seedValSeparatorOI = arguments[2];
-        ObjectInspector randomizeOI = null;
-        if (arguments.length >= 4) {
-            randomizeOI = arguments[3];
-        }
-        if (arguments.length == 5) {
-            if (arguments[4] != null && !(arguments[4] instanceof ListObjectInspector)) {
-                throw new UDFArgumentException("fifth argument must be a list / array");
-            }
-            this.whitelistValuesOI = (ListObjectInspector) arguments[4];
-        }
-        if (!(inputValOI instanceof PrimitiveObjectInspector)) {
-            throw new UDFArgumentException("first argument must be a primitive data type");
-        }
-        if (!(seedOI instanceof IntObjectInspector)) {
-            throw new UDFArgumentException("second argument must be of type int");
-        }
-        if (!(seedValSeparatorOI instanceof StringObjectInspector)) {
-            throw new UDFArgumentException("third argument must be of type String");
-        }
-        if (randomizeOI != null && !(randomizeOI instanceof BooleanObjectInspector)) {
-            throw new UDFArgumentException("fourth argument must be of type Boolean");
-        }
-        return ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.writableStringObjectInspector);
+  @Override
+  public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
+    if (arguments.length < 4) {
+      throw new UDFArgumentLengthException(
+          "The function repeatInput(inputValue, seed, seedValSeparator, randomize, whitelistValues) "
+              + "requires atleast 3 arguments.");
     }
+    // 1. Check we received the right object types.
+    ObjectInspector inputValOI = arguments[0];
+    ObjectInspector seedOI = arguments[1];
+    ObjectInspector seedValSeparatorOI = arguments[2];
+    ObjectInspector randomizeOI = null;
+    if (arguments.length >= 4) {
+      randomizeOI = arguments[3];
+    }
+    if (arguments.length == 5) {
+      if (arguments[4] != null && !(arguments[4] instanceof ListObjectInspector)) {
+        throw new UDFArgumentException("fifth argument must be a list / array");
+      }
+      this.whitelistValuesOI = (ListObjectInspector) arguments[4];
+    }
+    if (!(inputValOI instanceof PrimitiveObjectInspector)) {
+      throw new UDFArgumentException("first argument must be a primitive data type");
+    }
+    if (!(seedOI instanceof IntObjectInspector)) {
+      throw new UDFArgumentException("second argument must be of type int");
+    }
+    if (!(seedValSeparatorOI instanceof StringObjectInspector)) {
+      throw new UDFArgumentException("third argument must be of type String");
+    }
+    if (randomizeOI != null && !(randomizeOI instanceof BooleanObjectInspector)) {
+      throw new UDFArgumentException("fourth argument must be of type Boolean");
+    }
+    return ObjectInspectorFactory
+        .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.writableStringObjectInspector);
+  }
 
-    @Override
-    public Object evaluate(DeferredObject[] arguments) throws HiveException {
-        String inputVal = (String) ObjectInspectorUtils.copyToStandardJavaObject(arguments[0].get(),
-                PrimitiveObjectInspectorFactory.javaStringObjectInspector);
-        Integer seed = (Integer) ObjectInspectorUtils.copyToStandardJavaObject(arguments[1].get(),
-                PrimitiveObjectInspectorFactory.writableIntObjectInspector);
-        String seedValSeparator = (String) ObjectInspectorUtils.copyToStandardJavaObject(arguments[2].get(),
-                PrimitiveObjectInspectorFactory.javaStringObjectInspector);
-        Boolean randomizeInput = null;
-        if (arguments.length >= 4) {
-            randomizeInput = (Boolean) ObjectInspectorUtils.copyToStandardJavaObject(arguments[3].get(),
-                    PrimitiveObjectInspectorFactory.writableBooleanObjectInspector);
-        }
-        List<String> whitelist = null;
-        if (whitelistValuesOI != null) {
-            whitelist = (List<String>) this.whitelistValuesOI.getList(arguments[4].get());
-        }
-        // check for nulls
-        if (inputVal == null || seed == null || seedValSeparator == null) {
-            return null;
-        }
-        Text inputValText = new Text(inputVal);
-        if (whitelist != null && !whitelist.contains(inputValText)) {
-            return Lists.newArrayList(inputValText);
-        }
-        if (randomizeInput == null || randomizeInput) {
-            int randomVal = RANDOM_GENERATOR.nextInt(seed);
-            return Lists.newArrayList(new Text(inputValText + seedValSeparator + randomVal));
-        }
-        List<Text> repInputValues = Lists.newArrayList();
-        for (int num = 0; num < seed; num++) {
-            repInputValues.add(new Text(inputVal + seedValSeparator + num));
-        }
-        return repInputValues;
+  @Override
+  public Object evaluate(DeferredObject[] arguments) throws HiveException {
+    String inputVal = (String) ObjectInspectorUtils.copyToStandardJavaObject(arguments[0].get(),
+        PrimitiveObjectInspectorFactory.javaStringObjectInspector);
+    Integer seed = (Integer) ObjectInspectorUtils.copyToStandardJavaObject(arguments[1].get(),
+        PrimitiveObjectInspectorFactory.writableIntObjectInspector);
+    String seedValSeparator = (String) ObjectInspectorUtils.copyToStandardJavaObject(arguments[2].get(),
+        PrimitiveObjectInspectorFactory.javaStringObjectInspector);
+    Boolean randomizeInput = null;
+    if (arguments.length >= 4) {
+      randomizeInput = (Boolean) ObjectInspectorUtils.copyToStandardJavaObject(arguments[3].get(),
+          PrimitiveObjectInspectorFactory.writableBooleanObjectInspector);
     }
+    List<String> whitelist = null;
+    if (whitelistValuesOI != null) {
+      whitelist = (List<String>) this.whitelistValuesOI.getList(arguments[4].get());
+    }
+    // check for nulls
+    if (inputVal == null || seed == null || seedValSeparator == null) {
+      return null;
+    }
+    Text inputValText = new Text(inputVal);
+    if (whitelist != null && !whitelist.contains(inputValText)) {
+      return Lists.newArrayList(inputValText);
+    }
+    if (randomizeInput == null || randomizeInput) {
+      int randomVal = RANDOM_GENERATOR.nextInt(seed);
+      return Lists.newArrayList(new Text(inputValText + seedValSeparator + randomVal));
+    }
+    List<Text> repInputValues = Lists.newArrayList();
+    for (int num = 0; num < seed; num++) {
+      repInputValues.add(new Text(inputVal + seedValSeparator + num));
+    }
+    return repInputValues;
+  }
 
-    @Override
-    public String getDisplayString(String[] children) {
-        assert (children.length == 5);
-        return "randomize(" + children[0] + ", " + children[1] + ", " + children[2] + ", " + children[3] + ", " + children[4] + ")";
-    }
+  @Override
+  public String getDisplayString(String[] children) {
+    assert (children.length == 5);
+    return "randomize(" + children[0] + ", " + children[1] + ", " + children[2] + ", " + children[3] + ", "
+        + children[4] + ")";
+  }
 }

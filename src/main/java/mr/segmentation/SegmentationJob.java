@@ -42,111 +42,113 @@ import org.apache.thrift.TException;
  * @author achadha
  */
 public final class SegmentationJob extends Configured implements Tool {
-    private static final Logger log = Logger.getLogger(SegmentationJob.class);
-    private static final String jobName = "hdp_hww_hex_etl_fact_segmentation";
+  private static final Logger log = Logger.getLogger(SegmentationJob.class);
+  private static final String jobName = "hdp_hww_hex_etl_fact_segmentation";
 
-    public static void main(final String[] args) throws Exception {
-        GenericOptionsParser parser = new GenericOptionsParser(new Configuration(), new Options(), args);
-        int res = ToolRunner.run(parser.getConfiguration(), new SegmentationJob(), args);
-        System.exit(res);
+  public static void main(final String[] args) throws Exception {
+    GenericOptionsParser parser = new GenericOptionsParser(new Configuration(), new Options(), args);
+    int res = ToolRunner.run(parser.getConfiguration(), new SegmentationJob(), args);
+    System.exit(res);
+  }
+
+  public int run(final String[] arg0) throws IOException, TException, InterruptedException, ClassNotFoundException {
+    Configuration mainConf = super.getConf();
+    int numReduceTasks = Integer.parseInt(mainConf.get("reducers", "800"));
+    String queueName = mainConf.get("queueName", "hwwetl");
+    String sourceDbName = mainConf.get("sourceDbName", "dm");
+    String targetDbName = mainConf.get("targetDbName", "dm");
+    String sourceTableName = mainConf.get("sourceTableName", "rpt_hexdm_agg_unparted");
+    String targetTableName = mainConf.get("targetTableName", "rpt_hexdm_seg_unparted");
+    String segFilePath = mainConf.get("segFile", "/autofs/edwfileserver/sherlock_in/HEX/segmentations.txt");
+
+    SegmentationJobConfigurator configurator = new SegmentationJobConfigurator();
+    Job job = configurator.initJob(mainConf, jobName, queueName);
+
+    List<String> sourceFields, targetFields;
+    HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
+    Path outputPath = null;
+    try {
+      Table targetTable = cl.getTable(targetDbName, targetTableName);
+      StorageDescriptor tableSd = targetTable.getSd();
+      outputPath = new Path(tableSd.getLocation());
+
+      setInputPathsFromTable(sourceDbName, sourceTableName, job, cl);
+
+      sourceFields = getFieldNames(sourceDbName, sourceTableName, cl);
+      targetFields = getFieldNames(targetDbName, targetTableName, cl);
+    } finally {
+      cl.close();
     }
 
-    public int run(final String[] arg0) throws IOException, TException, InterruptedException, ClassNotFoundException {
-        Configuration mainConf = super.getConf();
-        int numReduceTasks = Integer.parseInt(mainConf.get("reducers", "800"));
-        String queueName = mainConf.get("queueName", "hwwetl");
-        String sourceDbName = mainConf.get("sourceDbName", "dm");
-        String targetDbName = mainConf.get("targetDbName", "dm");
-        String sourceTableName = mainConf.get("sourceTableName", "rpt_hexdm_agg_unparted");
-        String targetTableName = mainConf.get("targetTableName", "rpt_hexdm_seg_unparted");
-        String segFilePath = mainConf.get("segFile", "/autofs/edwfileserver/sherlock_in/HEX/segmentations.txt");
-
-        SegmentationJobConfigurator configurator = new SegmentationJobConfigurator();
-        Job job = configurator.initJob(mainConf, jobName, queueName);
-
-        List<String> sourceFields, targetFields;
-        HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
-        Path outputPath = null;
-        try {
-            Table targetTable = cl.getTable(targetDbName, targetTableName);
-            StorageDescriptor tableSd = targetTable.getSd();
-            outputPath = new Path(tableSd.getLocation());
-
-            setInputPathsFromTable(sourceDbName, sourceTableName, job, cl);
-
-            sourceFields = getFieldNames(sourceDbName, sourceTableName, cl);
-            targetFields = getFieldNames(targetDbName, targetTableName, cl);
-        } finally {
-            cl.close();
-        }
-        
-        BufferedReader segSpecReader = new BufferedReader(new InputStreamReader(new FileInputStream(segFilePath)));
-        try {
-            configurator.colMap(sourceFields, targetFields, segSpecReader).numReduceTasks(numReduceTasks);
-        } finally {
-            segSpecReader.close();
-        }
-        
-        configurator.configureJob(job);
-//        job.getConfiguration().set("data", getReportDataAsString(reportTableName, reportDbName, configurator, job, cl));
-
-        FileSystem fileSystem = null;
-        boolean success = false;
-        try {
-            fileSystem = outputPath.getFileSystem(job.getConfiguration());
-            success = fileSystem.delete(outputPath, true);
-            if (success) {
-                FileOutputFormat.setOutputPath(job, outputPath);
-                success = job.waitForCompletion(true);
-                log.info("output written to: " + outputPath.toString());
-            } else {
-                log.info("Not able to delete output path: " + outputPath + ". Exiting!");
-            }
-        } finally {
-            if (fileSystem != null) {
-                fileSystem.close();
-            }
-        }
-        return success ? 0 : -1;
+    BufferedReader segSpecReader = new BufferedReader(new InputStreamReader(new FileInputStream(segFilePath)));
+    try {
+      configurator.colMap(sourceFields, targetFields, segSpecReader).numReduceTasks(numReduceTasks);
+    } finally {
+      segSpecReader.close();
     }
 
-    private List<String> getFieldNames(String dbName, String tableName, HiveMetaStoreClient cl) throws TException {
-        List<FieldSchema> fieldschemas = cl.getFields(dbName, tableName);
-        List<String> fieldNames = new ArrayList<String>(fieldschemas.size());
-        for (FieldSchema field : fieldschemas) {
-            fieldNames.add(field.getName());
-        }
-        return fieldNames;
-    }
+    configurator.configureJob(job);
+    // job.getConfiguration().set("data",
+    // getReportDataAsString(reportTableName, reportDbName, configurator,
+    // job, cl));
 
-    private void setInputPathsFromTable(String sourceDbName, String sourceTableName, Job job, HiveMetaStoreClient cl) throws TException,
-            IOException {
-        Table table = cl.getTable(sourceDbName, sourceTableName);
-        Path tblPath = new Path(table.getSd().getLocation());
-        FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
-
-        RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
-        Set<String> inputPathsAdded = new HashSet<String>();
-        StringBuilder inputPathsBuilder = new StringBuilder();
-        boolean first = true;
-        while (files.hasNext()) {
-            LocatedFileStatus lfs = files.next();
-            String[] pathSplits = lfs.getPath().toString().split("\\" + Path.SEPARATOR);
-            StringBuilder pathMinusFileName = new StringBuilder();
-            for (int j = 0; j < pathSplits.length - 1; j++) {
-                pathMinusFileName.append(pathSplits[j] + Path.SEPARATOR);
-            }
-            if (!inputPathsAdded.contains(pathMinusFileName.toString())) {
-                if (!first) {
-                    inputPathsBuilder.append(",");
-                }
-                inputPathsBuilder.append(pathMinusFileName).append("*");
-                log.info("Adding input path to process: " + pathMinusFileName);
-                first = false;
-                inputPathsAdded.add(pathMinusFileName.toString());
-            }
-        }
+    FileSystem fileSystem = null;
+    boolean success = false;
+    try {
+      fileSystem = outputPath.getFileSystem(job.getConfiguration());
+      success = fileSystem.delete(outputPath, true);
+      if (success) {
+        FileOutputFormat.setOutputPath(job, outputPath);
+        success = job.waitForCompletion(true);
+        log.info("output written to: " + outputPath.toString());
+      } else {
+        log.info("Not able to delete output path: " + outputPath + ". Exiting!");
+      }
+    } finally {
+      if (fileSystem != null) {
         fileSystem.close();
-        CFInputFormat.setInputPaths(job, inputPathsBuilder.toString());
+      }
     }
+    return success ? 0 : -1;
+  }
+
+  private List<String> getFieldNames(String dbName, String tableName, HiveMetaStoreClient cl) throws TException {
+    List<FieldSchema> fieldschemas = cl.getFields(dbName, tableName);
+    List<String> fieldNames = new ArrayList<String>(fieldschemas.size());
+    for (FieldSchema field : fieldschemas) {
+      fieldNames.add(field.getName());
+    }
+    return fieldNames;
+  }
+
+  private void setInputPathsFromTable(String sourceDbName, String sourceTableName, Job job, HiveMetaStoreClient cl)
+    throws TException, IOException {
+    Table table = cl.getTable(sourceDbName, sourceTableName);
+    Path tblPath = new Path(table.getSd().getLocation());
+    FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
+
+    RemoteIterator<LocatedFileStatus> files = fileSystem.listFiles(tblPath, true);
+    Set<String> inputPathsAdded = new HashSet<String>();
+    StringBuilder inputPathsBuilder = new StringBuilder();
+    boolean first = true;
+    while (files.hasNext()) {
+      LocatedFileStatus lfs = files.next();
+      String[] pathSplits = lfs.getPath().toString().split("\\" + Path.SEPARATOR);
+      StringBuilder pathMinusFileName = new StringBuilder();
+      for (int j = 0; j < pathSplits.length - 1; j++) {
+        pathMinusFileName.append(pathSplits[j] + Path.SEPARATOR);
+      }
+      if (!inputPathsAdded.contains(pathMinusFileName.toString())) {
+        if (!first) {
+          inputPathsBuilder.append(",");
+        }
+        inputPathsBuilder.append(pathMinusFileName).append("*");
+        log.info("Adding input path to process: " + pathMinusFileName);
+        first = false;
+        inputPathsAdded.add(pathMinusFileName.toString());
+      }
+    }
+    fileSystem.close();
+    CFInputFormat.setInputPaths(job, inputPathsBuilder.toString());
+  }
 }
