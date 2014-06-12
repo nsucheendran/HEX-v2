@@ -45,11 +45,6 @@
       <artifactId>hadoop-test</artifactId>
     </dependency>
     <dependency>
-      <groupId>it.unimi.dsi</groupId>
-      <artifactId>fastutil</artifactId>
-      <version>6.5.11</version>
-    </dependency>
-    <dependency>
       <groupId>com.googlecode.jmockit</groupId>
       <artifactId>jmockit</artifactId>
       <version>1.5</version>
