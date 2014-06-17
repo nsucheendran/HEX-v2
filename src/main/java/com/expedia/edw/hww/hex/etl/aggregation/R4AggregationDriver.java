@@ -71,13 +71,6 @@ public class R4AggregationDriver implements DriverEntryPoint {
     this.sourceTableName = sourceTableName;
     this.targetTableName = targetTableName;
     this.reportTableName = reportTableName;
-    log.info("numReduceTasks : " + numReduceTasks);
-    log.info("queueName : " + queueName);
-    log.info("sourceDbName : " + sourceDbName);
-    log.info("targetDbName : " + targetDbName);
-    log.info("sourceTableName : " + sourceTableName);
-    log.info("targetTableName : " + targetTableName);
-    log.info("reportTableName : " + reportTableName);
   }
 
   @Override
