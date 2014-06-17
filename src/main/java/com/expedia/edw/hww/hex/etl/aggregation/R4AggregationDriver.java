@@ -55,11 +55,11 @@ public class R4AggregationDriver implements DriverEntryPoint {
 
   @Autowired
   R4AggregationDriver(@Value("#{args}") List<String> args, Configuration configuration, StatsWriter statsWriter,
-      ManifestAttributes manifestAttributes, @Value("${hex.reducer.count}") int numReduceTasks,
-      @Value("${hex.queue.name}") String queueName, @Value("${hex.source.dbname}") String sourceDbName,
-      @Value("${hex.target.dbname}") String targetDbName, @Value("${hex.source.table.name}") String sourceTableName,
-      @Value("${hex.target.table.name}") String targetTableName,
-      @Value("${hex.report.table.name}") String reportTableName) {
+      ManifestAttributes manifestAttributes, @Value("${reducers}") int numReduceTasks,
+      @Value("${queue.name}") String queueName, @Value("${source.db.name}") String sourceDbName,
+      @Value("${target.db.name}") String targetDbName, @Value("${source.table.name}") String sourceTableName,
+      @Value("${target.table.name}") String targetTableName,
+      @Value("${report.table.name}") String reportTableName) {
     this.args = args;
     this.configuration = configuration;
     this.statsWriter = statsWriter;
@@ -71,6 +71,13 @@ public class R4AggregationDriver implements DriverEntryPoint {
     this.sourceTableName = sourceTableName;
     this.targetTableName = targetTableName;
     this.reportTableName = reportTableName;
+    log.info("numReduceTasks : " + numReduceTasks);
+    log.info("queueName : " + queueName);
+    log.info("sourceDbName : " + sourceDbName);
+    log.info("targetDbName : " + targetDbName);
+    log.info("sourceTableName : " + sourceTableName);
+    log.info("targetTableName : " + targetTableName);
+    log.info("reportTableName : " + reportTableName);
   }
 
   @Override

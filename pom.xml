@@ -9,11 +9,10 @@
 
   <name>hdp_hww_hex_etl</name>
   <artifactId>hdp_hww_hex_etl</artifactId>
-  <version>3.0.5-SNAPSHOT</version>
+  <version>3.0.3-SNAPSHOT</version>
   <packaging>jar</packaging>
     
   <properties>
-    <hadoopMainClass>com.expedia.edw.hww.hex.etl.aggregation.R4AggregationTool</hadoopMainClass>
     <hww.common.parent.version>8.0.0</hww.common.parent.version>
     <shade.prefix>${project.groupId}.shaded</shade.prefix>
   </properties>
