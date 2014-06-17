@@ -22,6 +22,9 @@ public class R4AggregationTool extends AbstractSpringTool {
   }
 
   public static void main(String[] args) {
-    new R4AggregationTool().start(args);
+    int status = new R4AggregationTool().start(args);
+    if (status != 0) {
+      System.exit(status);
+    }
   }
 }

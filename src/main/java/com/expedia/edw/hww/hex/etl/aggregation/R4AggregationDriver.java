@@ -40,6 +40,7 @@ public class R4AggregationDriver implements DriverEntryPoint {
   private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
 
   List<String> args;
+  @Autowired
   Configuration configuration;
   StatsWriter statsWriter;
   ManifestAttributes manifestAttributes;
@@ -50,6 +51,7 @@ public class R4AggregationDriver implements DriverEntryPoint {
   String sourceTableName;
   String targetTableName;
   String reportTableName;
+  private FileSystem fileSystem;
 
   @Autowired
   R4AggregationDriver(@Value("#{args}") List<String> args, Configuration configuration, StatsWriter statsWriter,
@@ -73,6 +75,7 @@ public class R4AggregationDriver implements DriverEntryPoint {
 
   @Override
   public void run() throws Exception {
+    fileSystem = FileSystem.get(configuration);
     JobConfigurator configurator = new JobConfigurator();
     Job job = configurator.initJob(configuration, jobName, queueName);
 
