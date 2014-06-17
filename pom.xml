@@ -9,11 +9,12 @@
 
   <name>hdp_hww_hex_etl</name>
   <artifactId>hdp_hww_hex_etl</artifactId>
-  <version>3.0.3-SNAPSHOT</version>
+  <version>3.0.5-SNAPSHOT</version>
   <packaging>jar</packaging>
     
   <properties>
-    <hadoopMainClass>mr.aggregation.R4AggregationJob</hadoopMainClass>
+    <hadoopMainClass>com.expedia.edw.hww.hex.etl.aggregation.R4AggregationTool</hadoopMainClass>
+    <hww.common.parent.version>8.0.0</hww.common.parent.version>
     <shade.prefix>${project.groupId}.shaded</shade.prefix>
   </properties>
   
@@ -22,6 +23,29 @@
     <developerConnection>scm:git:git@github.com:ExpediaEDW/edw-HEXHadoopETL.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
+  
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <version>1.0-alpha-2</version>
+        <executions>
+          <execution>
+            <phase>initialize</phase>
+            <goals>
+              <goal>read-project-properties</goal>
+            </goals>
+            <configuration>
+              <files>
+                <file>src/main/resources/com/expedia/edw/hww/hex/etl/aggregation/default.properties</file>
+              </files>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 
   <dependencies>
     <dependency>
@@ -61,6 +85,16 @@
       <version>1.0.0</version>
       <classifier>hadoop2</classifier>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.expedia.edw.hww.common</groupId>
+      <artifactId>common-hadoop-spring</artifactId>
+      <version>${hww.common.parent.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.expedia.edw.hww.common</groupId>
+      <artifactId>common-hadoop-metrics</artifactId>
+      <version>${hww.common.parent.version}</version>
     </dependency>
   </dependencies>
 </project>
