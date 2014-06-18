@@ -10,7 +10,6 @@ import java.util.Set;
 
 import mr.CFInputFormat;
 import mr.Constants;
-import mr.aggregation.JobConfigurator;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
