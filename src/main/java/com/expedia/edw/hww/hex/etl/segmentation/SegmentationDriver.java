@@ -1,5 +1,7 @@
 package com.expedia.edw.hww.hex.etl.segmentation;
 
+import static com.expedia.edw.hww.common.hadoop.metrics.CountersToMapFunction.countersToMap;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -21,6 +23,7 @@ import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.log4j.Logger;
@@ -80,6 +83,8 @@ public class SegmentationDriver implements DriverEntryPoint {
     SegmentationJobConfigurator configurator = new SegmentationJobConfigurator();
     Job job = configurator.initJob(configuration, jobName, queueName);
 
+    Counters counter = job.getCounters();
+
     List<String> sourceFields, targetFields;
     HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
     Path outputPath = null;
@@ -115,6 +120,7 @@ public class SegmentationDriver implements DriverEntryPoint {
         FileOutputFormat.setOutputPath(job, outputPath);
         success = job.waitForCompletion(true);
         log.info("output written to: " + outputPath.toString());
+        statsWriter.writeStats(countersToMap(manifestAttributes).apply(counter));
       } else {
         log.info("Not able to delete output path: " + outputPath + ". Exiting!");
       }
