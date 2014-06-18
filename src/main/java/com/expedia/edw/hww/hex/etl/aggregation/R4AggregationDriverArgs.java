@@ -10,57 +10,57 @@ import com.expedia.edw.hww.hex.etl.HexConstants;
 public class R4AggregationDriverArgs implements ValidatingBean {
 
   @Parameter(names = { HexConstants.REDUCER_COUNT }, description = "Reducer count for the Aggregation step", required = true)
-  private Integer reducers;
+  private Integer aggregationReducers;
 
   @Parameter(names = { HexConstants.QUEUE_NAME }, description = "Queue Name for the Aggregation step", required = true)
-  private String queueName;
+  private String aggregationQueueName;
 
   @Parameter(names = { HexConstants.SOURCE_DATABASE_NAME }, description = "Source DB Name for the Aggregation step", required = true)
-  private String sourceDbName;
+  private String aggregationSourceDbName;
 
   @Parameter(names = { HexConstants.TARGET_DATABASE_NAME }, description = "Target DB Name for the Aggregation step", required = true)
-  private String targetDbName;
+  private String aggregationTargetDbName;
 
   @Parameter(names = { HexConstants.SOURCE_TABLE_NAME }, description = "Source Table Name for the Aggregation step", required = true)
-  private String sourceTableName;
+  private String aggregationSourceTableName;
 
   @Parameter(names = { HexConstants.TARGET_TABLE_NAME }, description = "Target Table Name for the Aggregation step", required = true)
-  private String targetTableName;
+  private String aggregationTargetTableName;
 
   @Parameter(names = { HexConstants.REPORT_TABLE_NAME }, description = "Report Table Name count for the Aggregation step", required = true)
-  private String reportTableName;
+  private String aggregationReportTableName;
 
   @Override
   public void validate() {
 
   }
 
-  public Integer getReducers() {
-    return reducers;
+  public Integer getAggregationReducers() {
+    return aggregationReducers;
   }
 
-  public String getQueueName() {
-    return queueName;
+  public String getAggregationQueueName() {
+    return aggregationQueueName;
   }
 
-  public String getSourceDbName() {
-    return sourceDbName;
+  public String getAggregationSourceDbName() {
+    return aggregationSourceDbName;
   }
 
-  public String getTargetDbName() {
-    return targetDbName;
+  public String getAggregationTargetDbName() {
+    return aggregationTargetDbName;
   }
 
-  public String getSourceTableName() {
-    return sourceTableName;
+  public String getAggregationSourceTableName() {
+    return aggregationSourceTableName;
   }
 
-  public String getTargetTableName() {
-    return targetTableName;
+  public String getAggregationTargetTableName() {
+    return aggregationTargetTableName;
   }
 
-  public String getReportTableName() {
-    return reportTableName;
+  public String getAggregationReportTableName() {
+    return aggregationReportTableName;
   }
 
 }

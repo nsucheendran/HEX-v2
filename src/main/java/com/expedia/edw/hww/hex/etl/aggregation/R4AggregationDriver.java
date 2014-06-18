@@ -1,5 +1,7 @@
 package com.expedia.edw.hww.hex.etl.aggregation;
 
+import static com.expedia.edw.hww.common.hadoop.metrics.CountersToMapFunction.countersToMap;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -54,11 +56,13 @@ public class R4AggregationDriver implements DriverEntryPoint {
 
   @Autowired
   R4AggregationDriver(@Value("#{args}") List<String> args, Configuration configuration, StatsWriter statsWriter,
-      ManifestAttributes manifestAttributes, @Value("${reducers}") int numReduceTasks,
-      @Value("${queue.name}") String queueName, @Value("${source.db.name}") String sourceDbName,
-      @Value("${target.db.name}") String targetDbName, @Value("${source.table.name}") String sourceTableName,
-      @Value("${target.table.name}") String targetTableName,
-      @Value("${report.table.name}") String reportTableName) {
+      ManifestAttributes manifestAttributes, @Value("${aggregation.reducers}") int numReduceTasks,
+      @Value("${aggregation.queue.name}") String queueName,
+      @Value("${aggregation.source.db.name}") String sourceDbName,
+      @Value("${aggregation.target.db.name}") String targetDbName,
+      @Value("${aggregation.source.table.name}") String sourceTableName,
+      @Value("${aggregation.target.table.name}") String targetTableName,
+      @Value("${aggregation.report.table.name}") String reportTableName) {
     this.args = args;
     this.configuration = configuration;
     this.statsWriter = statsWriter;
@@ -125,6 +129,9 @@ public class R4AggregationDriver implements DriverEntryPoint {
 
         success = job.waitForCompletion(true);
         log.info("output written to: " + outputPath.toString());
+
+        log.info("Enabling StatsWriter");
+        statsWriter.writeStats(countersToMap(manifestAttributes).apply(job.getCounters()));
       } else {
         log.info("Not able to delete output path: " + outputPath + ". Exiting!!!");
       }
