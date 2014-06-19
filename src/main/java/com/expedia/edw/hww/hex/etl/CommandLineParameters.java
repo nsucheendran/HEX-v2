@@ -1,6 +1,6 @@
 package com.expedia.edw.hww.hex.etl;
 
-public class CommandLineParameters {
+public final class CommandLineParameters {
   /**
    * Constants for command line parameters.
    */
