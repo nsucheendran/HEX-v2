@@ -28,27 +28,27 @@ public class SegmentationDriverArgs {
   @Parameter(names = { CommandLineParameters.SEGMENTATION_INPUT_FILE_PATH }, description = "Report Table Name count for the Aggregation step", required = true)
   private String segmentationInputFilePath;
 
-  public Integer getReducers() {
+  public Integer getSegmentationReducers() {
     return reducers;
   }
 
-  public String getQueueName() {
+  public String getSegmentationQueueName() {
     return queueName;
   }
 
-  public String getSourceDbName() {
+  public String getSegmentationSourceDbName() {
     return sourceDbName;
   }
 
-  public String getTargetDbName() {
+  public String getSegmentationTargetDbName() {
     return targetDbName;
   }
 
-  public String getSourceTableName() {
+  public String getSegmentationSourceTableName() {
     return sourceTableName;
   }
 
-  public String getTargetTableName() {
+  public String getSegmentationTargetTableName() {
     return targetTableName;
   }
 
