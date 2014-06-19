@@ -15,9 +15,7 @@ import java.util.Set;
 
 import mr.CFInputFormat;
 
-import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
@@ -25,15 +23,18 @@ import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.util.Tool;
-import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.expedia.edw.hww.common.hadoop.spring.DriverEntryPoint;
+import com.expedia.edw.hww.common.logging.ManifestAttributes;
+import com.expedia.edw.hww.common.metrics.StatsWriter;
 
 /*
  * Multi-group-by Map-Reduce for segmenting AGG (denormalized star-schema table) into a multi-grain
@@ -41,26 +42,27 @@ import org.apache.thrift.TException;
  * 
  * @author achadha
  */
-public final class SegmentationJob extends Configured implements Tool {
+public final class SegmentationJob implements DriverEntryPoint {
   private static final Logger log = Logger.getLogger(SegmentationJob.class);
-  private static final String jobName = "hdp_hww_hex_etl_fact_segmentation";
+  private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
 
-  public static void main(final String[] args) throws Exception {
-    GenericOptionsParser parser = new GenericOptionsParser(new Configuration(), new Options(), args);
-    int res = ToolRunner.run(parser.getConfiguration(), new SegmentationJob(), args);
-    System.exit(res);
-  }
+  List<String> args;
+  @Autowired
+  Configuration configuration;
+  StatsWriter statsWriter;
+  ManifestAttributes manifestAttributes;
+  int numReduceTasks;
+  String queueName;
+  String sourceDbName;
+  String targetDbName;
+  String sourceTableName;
+  String targetTableName;
+  String segmentationInputFilePath;
+  private FileSystem fileSystem;
 
-  public int run(final String[] arg0) throws IOException, TException, InterruptedException, ClassNotFoundException {
-    Configuration mainConf = super.getConf();
-    int numReduceTasks = Integer.parseInt(mainConf.get("reducers", "800"));
-    String queueName = mainConf.get("queueName", "hwwetl");
-    String sourceDbName = mainConf.get("sourceDbName", "dm");
-    String targetDbName = mainConf.get("targetDbName", "dm");
-    String sourceTableName = mainConf.get("sourceTableName", "rpt_hexdm_agg_unparted");
-    String targetTableName = mainConf.get("targetTableName", "rpt_hexdm_seg_unparted");
-    String segFilePath = mainConf.get("segFile", "/autofs/edwfileserver/sherlock_in/HEX/segmentations.txt");
-
+  @Override
+  public void run() throws IOException, NoSuchObjectException, TException, InterruptedException, ClassNotFoundException {
+    Configuration mainConf = configuration;
     SegmentationJobConfigurator configurator = new SegmentationJobConfigurator();
     Job job = configurator.initJob(mainConf, jobName, queueName);
 
@@ -80,7 +82,8 @@ public final class SegmentationJob extends Configured implements Tool {
       cl.close();
     }
 
-    BufferedReader segSpecReader = new BufferedReader(new InputStreamReader(new FileInputStream(segFilePath)));
+    BufferedReader segSpecReader = new BufferedReader(new InputStreamReader(new FileInputStream(
+        segmentationInputFilePath)));
     try {
       configurator.colMap(sourceFields, targetFields, segSpecReader).numReduceTasks(numReduceTasks);
     } finally {
@@ -88,9 +91,6 @@ public final class SegmentationJob extends Configured implements Tool {
     }
 
     configurator.configureJob(job);
-    // job.getConfiguration().set("data",
-    // getReportDataAsString(reportTableName, reportDbName, configurator,
-    // job, cl));
 
     FileSystem fileSystem = null;
     boolean success = false;
@@ -109,7 +109,6 @@ public final class SegmentationJob extends Configured implements Tool {
         fileSystem.close();
       }
     }
-    return success ? 0 : -1;
   }
 
   private List<String> getFieldNames(String dbName, String tableName, HiveMetaStoreClient cl) throws TException {

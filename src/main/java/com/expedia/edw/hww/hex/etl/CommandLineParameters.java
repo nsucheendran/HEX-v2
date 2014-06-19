@@ -11,8 +11,8 @@ public final class CommandLineParameters {
   public static final String SOURCE_TABLE_NAME = "--sourceTableName";
   public static final String TARGET_TABLE_NAME = "--targetTableName";
   public static final String REPORT_TABLE_NAME = "--reportTableName";
+  public static final String SEGMENTATION_INPUT_FILE_PATH = "--segmentationInputFilePath";
 
   private CommandLineParameters() {
-
   }
 }

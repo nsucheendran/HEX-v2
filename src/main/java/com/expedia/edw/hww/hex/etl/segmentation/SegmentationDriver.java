@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 import mr.CFInputFormat;
+import mr.segmentation.SegmentationJobConfigurator;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -23,7 +24,6 @@ import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
-import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.log4j.Logger;
@@ -83,8 +83,6 @@ public class SegmentationDriver implements DriverEntryPoint {
     SegmentationJobConfigurator configurator = new SegmentationJobConfigurator();
     Job job = configurator.initJob(configuration, jobName, queueName);
 
-    Counters counter = job.getCounters();
-
     List<String> sourceFields, targetFields;
     HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
     Path outputPath = null;
@@ -120,7 +118,7 @@ public class SegmentationDriver implements DriverEntryPoint {
         FileOutputFormat.setOutputPath(job, outputPath);
         success = job.waitForCompletion(true);
         log.info("output written to: " + outputPath.toString());
-        statsWriter.writeStats(countersToMap(manifestAttributes).apply(counter));
+        statsWriter.writeStats(countersToMap(manifestAttributes).apply(job.getCounters()));
       } else {
         log.info("Not able to delete output path: " + outputPath + ". Exiting!");
       }

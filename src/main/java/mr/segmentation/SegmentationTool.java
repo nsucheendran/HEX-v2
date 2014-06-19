@@ -1,8 +1,9 @@
-package com.expedia.edw.hww.hex.etl.segmentation;
+package mr.segmentation;
 
 import com.expedia.edw.hww.common.hadoop.spring.AbstractSpringTool;
 import com.expedia.edw.hww.common.hadoop.spring.BaseContext;
 import com.expedia.edw.hww.common.hadoop.spring.DriverEntryPoint;
+import com.expedia.edw.hww.hex.etl.segmentation.SegmentationDriver;
 
 public class SegmentationTool extends AbstractSpringTool {
 
