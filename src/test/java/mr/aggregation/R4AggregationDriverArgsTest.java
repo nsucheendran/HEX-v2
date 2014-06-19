@@ -2,13 +2,12 @@ package mr.aggregation;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import mr.Constants;
 
 import org.junit.Test;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
-
-import com.expedia.edw.hww.hex.etl.HexConstants;
 
 public class R4AggregationDriverArgsTest {
 
@@ -24,10 +23,10 @@ public class R4AggregationDriverArgsTest {
   public void validParamTest() {
     R4AggregationDriverArgs driverArgs = new R4AggregationDriverArgs();
 
-    new JCommander(driverArgs, new String[] { HexConstants.QUEUE_NAME, queueName, HexConstants.REDUCER_COUNT,
-        reducerCount, HexConstants.SOURCE_DATABASE_NAME, sourceDbName, HexConstants.TARGET_DATABASE_NAME, targetDbName,
-        HexConstants.SOURCE_TABLE_NAME, sourceTableName, HexConstants.TARGET_TABLE_NAME, targetTableName,
-        HexConstants.REPORT_TABLE_NAME, reportTableName });
+    new JCommander(driverArgs, new String[] { Constants.QUEUE_NAME, queueName, Constants.REDUCER_COUNT, reducerCount,
+        Constants.SOURCE_DATABASE_NAME, sourceDbName, Constants.TARGET_DATABASE_NAME, targetDbName,
+        Constants.SOURCE_TABLE_NAME, sourceTableName, Constants.TARGET_TABLE_NAME, targetTableName,
+        Constants.REPORT_TABLE_NAME, reportTableName });
 
     assertThat(driverArgs.getAggregationQueueName(), is(queueName));
     assertThat(driverArgs.getAggregationReducers(), is(Integer.valueOf(reducerCount)));
@@ -49,8 +48,8 @@ public class R4AggregationDriverArgsTest {
   public void missingArgsTest() {
     R4AggregationDriverArgs driverArgs = new R4AggregationDriverArgs();
 
-    new JCommander(driverArgs, new String[] { HexConstants.QUEUE_NAME, queueName, HexConstants.REDUCER_COUNT,
-        reducerCount, HexConstants.SOURCE_DATABASE_NAME, sourceDbName, HexConstants.TARGET_DATABASE_NAME, targetDbName,
-        HexConstants.SOURCE_TABLE_NAME, sourceTableName, HexConstants.TARGET_TABLE_NAME, targetTableName });
+    new JCommander(driverArgs, new String[] { Constants.QUEUE_NAME, queueName, Constants.REDUCER_COUNT, reducerCount,
+        Constants.SOURCE_DATABASE_NAME, sourceDbName, Constants.TARGET_DATABASE_NAME, targetDbName,
+        Constants.SOURCE_TABLE_NAME, sourceTableName, Constants.TARGET_TABLE_NAME, targetTableName });
   }
 }
