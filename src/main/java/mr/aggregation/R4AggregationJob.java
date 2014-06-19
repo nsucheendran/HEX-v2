@@ -1,5 +1,7 @@
 package mr.aggregation;
 
+import static com.expedia.edw.hww.common.hadoop.metrics.CountersToMapFunction.countersToMap;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -11,9 +13,7 @@ import java.util.Set;
 import mr.CFInputFormat;
 import mr.Constants;
 
-import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
@@ -25,11 +25,15 @@ import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.util.Tool;
-import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import com.expedia.edw.hww.common.hadoop.spring.DriverEntryPoint;
+import com.expedia.edw.hww.common.logging.ManifestAttributes;
+import com.expedia.edw.hww.common.metrics.StatsWriter;
 
 /*
  * MapReduce job that emulates the hiveql at
@@ -39,57 +43,73 @@ import org.apache.thrift.TException;
  * @author nsood
  * @author achadha
  */
-public final class R4AggregationJob extends Configured implements Tool {
+@Component
+public final class R4AggregationJob implements DriverEntryPoint {
   private static final Logger log = Logger.getLogger(R4AggregationJob.class);
   private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
 
-  // private Pattern partitionDirPattern; // = Pattern.compile("(.*)(" +
-  // jobName + ")(\\/)(.*)(\\/)(^\\/)*");
-  // private Pattern partitionBkupDirPattern; // = Pattern.compile("(.*)(" +
-  // jobName + "bkup)(\\/)(.*)(\\/)(^\\/)*");
+  List<String> args;
+  @Autowired
+  Configuration configuration;
+  StatsWriter statsWriter;
+  ManifestAttributes manifestAttributes;
+  int numReduceTasks;
+  String queueName;
+  String sourceDbName;
+  String targetDbName;
+  String sourceTableName;
+  String targetTableName;
+  String reportTableName;
+  private FileSystem fileSystem;
 
-  public static void main(final String[] args) throws Exception {
-    GenericOptionsParser parser = new GenericOptionsParser(new Configuration(), new Options(), args);
-    int res = ToolRunner.run(parser.getConfiguration(), new R4AggregationJob(), args);
-    System.exit(res);
+  @Autowired
+  R4AggregationJob(@Value("#{args}") List<String> args, Configuration configuration, StatsWriter statsWriter,
+      ManifestAttributes manifestAttributes, @Value("${aggregation.reducers}") int numReduceTasks,
+      @Value("${aggregation.queue.name}") String queueName,
+      @Value("${aggregation.source.db.name}") String sourceDbName,
+      @Value("${aggregation.target.db.name}") String targetDbName,
+      @Value("${aggregation.source.table.name}") String sourceTableName,
+      @Value("${aggregation.target.table.name}") String targetTableName,
+      @Value("${aggregation.report.table.name}") String reportTableName) {
+    this.args = args;
+    this.configuration = configuration;
+    this.statsWriter = statsWriter;
+    this.manifestAttributes = manifestAttributes;
+    this.numReduceTasks = numReduceTasks;
+    this.queueName = queueName;
+    this.sourceDbName = sourceDbName;
+    this.targetDbName = targetDbName;
+    this.sourceTableName = sourceTableName;
+    this.targetTableName = targetTableName;
+    this.reportTableName = reportTableName;
   }
 
-  public int run(final String[] arg0) throws IOException, TException, InterruptedException, ClassNotFoundException {
-    Configuration mainConf = super.getConf();
-    int numReduceTasks = Integer.parseInt(mainConf.get("reducers", "100"));
-    String queueName = mainConf.get("queueName", "edwdev");
-    String sourceDbName = mainConf.get("sourceDbName", "etldata");
-    String targetDbName = mainConf.get("targetDbName", "hwwdev");
-    String sourceTableName = mainConf.get("sourceTableName", "etl_hcom_hex_fact_staging");
-    String targetTableName = mainConf.get("targetTableName", "etl_hcom_hex_fact_non_partitioned");
-    String reportTableName = mainConf.get("reportTableName", "hex_reporting_requirements");
+  @Override
+  public void run() throws IOException, TException, InterruptedException, ClassNotFoundException {
+    fileSystem = FileSystem.get(configuration);
 
     JobConfigurator configurator = new JobConfigurator();
-    Job job = configurator.initJob(mainConf, jobName, queueName);
+    Job job = configurator.initJob(configuration, jobName, queueName);
 
     List<String> lhsfields, rhsfields;
     HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
-    try {
-      setInputPathsFromTable(sourceDbName, sourceTableName, job, cl);
+    setInputPathsFromTable(sourceDbName, sourceTableName, job, cl);
 
-      List<FieldSchema> fieldschemas = cl.getFields(sourceDbName, sourceTableName);
-      lhsfields = new ArrayList<String>(fieldschemas.size());
-      for (FieldSchema field : fieldschemas) {
-        lhsfields.add(field.getName());
-      }
-      List<FieldSchema> rhsfieldschemas = cl.getFields(targetDbName, reportTableName);
-      rhsfields = new ArrayList<String>(rhsfieldschemas.size());
-      for (FieldSchema field : rhsfieldschemas) {
-        rhsfields.add(field.getName());
-      }
-    } finally {
+    List<FieldSchema> fieldschemas = cl.getFields(sourceDbName, sourceTableName);
+    lhsfields = new ArrayList<String>(fieldschemas.size());
+    for (FieldSchema field : fieldschemas) {
+      lhsfields.add(field.getName());
     }
+
+    List<FieldSchema> rhsfieldschemas = cl.getFields(targetDbName, reportTableName);
+    rhsfields = new ArrayList<String>(rhsfieldschemas.size());
+    for (FieldSchema field : rhsfieldschemas) {
+      rhsfields.add(field.getName());
+    }
+
     configurator.lhsFields(lhsfields).rhsFields(rhsfields).numReduceTasks(numReduceTasks);
     configurator.configureJob(job);
     job.getConfiguration().set("data", getReportDataAsString(reportTableName, targetDbName, configurator, job, cl));
-    // job.getConfiguration().set
-    // Set JVM reuse to speed up reducer
-    // conf.setNumTasksToExecutePerJvm(-1);
     Table table = cl.getTable(targetDbName, targetTableName);
     StorageDescriptor tableSd = table.getSd();
     Path outputPath = new Path(tableSd.getLocation());
@@ -100,20 +120,15 @@ public final class R4AggregationJob extends Configured implements Tool {
       fileSystem = outputPath.getFileSystem(job.getConfiguration());
       success = fileSystem.delete(outputPath, true);
       if (success) {
-        // MultipleOutputs.setCountersEnabled(job, true);
         job.getConfiguration().setBoolean("mapred.compress.map.output", true);
         job.getConfiguration().set("mapred.map.output.compression.codec", "org.apache.hadoop.io.compress.SnappyCodec");
-        // MultipleOutputs.addNamedOutput(job, "outroot",
-        // SequenceFileOutputFormat.class, BytesWritable.class,
-        // Text.class);
         FileOutputFormat.setOutputPath(job, outputPath);
-
-        // FileOutputFormat.setCompressOutput(job, true);
-        // FileOutputFormat.setOutputCompressorClass(job,
-        // org.apache.hadoop.io.compress.SnappyCodec.class);
 
         success = job.waitForCompletion(true);
         log.info("output written to: " + outputPath.toString());
+
+        log.info("Enabling StatsWriter");
+        statsWriter.writeStats(countersToMap(manifestAttributes).apply(job.getCounters()));
       } else {
         log.info("Not able to delete output path: " + outputPath + ". Exiting!!!");
       }
@@ -123,11 +138,10 @@ public final class R4AggregationJob extends Configured implements Tool {
       }
       cl.close();
     }
-    return success ? 0 : -1;
   }
 
   private void setInputPathsFromTable(String sourceDbName, String sourceTableName, Job job, HiveMetaStoreClient cl)
-    throws TException, IOException {
+      throws TException, IOException {
     Table table = cl.getTable(sourceDbName, sourceTableName);
     Path tblPath = new Path(table.getSd().getLocation());
     FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
@@ -183,7 +197,6 @@ public final class R4AggregationJob extends Configured implements Tool {
         fileSystem.close();
       }
     }
-    // log.info("Reporting Data: " + data.toString());
     return data.toString();
   }
 }
