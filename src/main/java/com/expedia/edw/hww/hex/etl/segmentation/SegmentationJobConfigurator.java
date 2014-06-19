@@ -14,10 +14,10 @@ import java.util.Map;
 import java.util.Set;
 
 import mr.dto.TextMultiple;
-import mr.segmentation.ColumnMapping;
 import mr.segmentation.SegmentationCombiner;
 import mr.segmentation.SegmentationMapper;
 import mr.segmentation.SegmentationReducer;
+import mr.segmentation.SegmentationTool;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;

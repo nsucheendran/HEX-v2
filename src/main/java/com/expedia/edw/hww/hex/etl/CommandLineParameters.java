@@ -1,6 +1,9 @@
 package com.expedia.edw.hww.hex.etl;
 
-public class HexConstants {
+public final class CommandLineParameters {
+  /**
+   * Constants for command line parameters.
+   */
   public static final String REDUCER_COUNT = "--reducers";
   public static final String QUEUE_NAME = "--queueName";
   public static final String SOURCE_DATABASE_NAME = "--sourceDbName";
@@ -10,6 +13,6 @@ public class HexConstants {
   public static final String REPORT_TABLE_NAME = "--reportTableName";
   public static final String SEGMENTATION_INPUT_FILE_PATH = "--segmentationInputFilePath";
 
-  private HexConstants() {
+  private CommandLineParameters() {
   }
 }
