@@ -1,13 +1,12 @@
-package com.expedia.edw.hww.hex.etl.aggregation;
+package mr.aggregation;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 
-import com.expedia.edw.hww.common.hadoop.spring.ValidatingBean;
 import com.expedia.edw.hww.hex.etl.HexConstants;
 
 @Parameters(separators = "=")
-public class R4AggregationDriverArgs implements ValidatingBean {
+public class R4AggregationDriverArgs {
 
   @Parameter(names = { HexConstants.REDUCER_COUNT }, description = "Reducer count for the Aggregation step", required = true)
   private Integer aggregationReducers;
@@ -29,11 +28,6 @@ public class R4AggregationDriverArgs implements ValidatingBean {
 
   @Parameter(names = { HexConstants.REPORT_TABLE_NAME }, description = "Report Table Name count for the Aggregation step", required = true)
   private String aggregationReportTableName;
-
-  @Override
-  public void validate() {
-
-  }
 
   public Integer getAggregationReducers() {
     return aggregationReducers;

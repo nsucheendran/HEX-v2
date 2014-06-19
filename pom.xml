@@ -37,7 +37,7 @@
             </goals>
             <configuration>
               <files>
-                <file>src/main/resources/com/expedia/edw/hww/hex/etl/aggregation/default.properties</file>
+                <file>src/main/resources/mr/aggregation/default.properties</file>
               </files>
             </configuration>
           </execution>

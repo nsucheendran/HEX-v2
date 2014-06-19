@@ -391,14 +391,14 @@ else
     _LOG_PROCESS_DETAIL $RUN_ID "FACT_UNPARTED_STATUS" "STARTED"
     export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/usr/lib/hive/lib/*:/app/edw/hive/conf
   
-    hadoop jar ${JAR_PATH} mr.aggregation.R4AggregationJob \
-    -DqueueName=${JOB_QUEUE} \
-    -Dreducers=${FACT_REDUCERS} \
-    -DsourceDbName=${STAGE_DB} \
-    -DtargetDbName=${STAGE_DB} \
-    -DsourceTableName=${STAGE_TABLE} \
-    -DtargetTableName=${FACT_TABLE_UNPARTED} \
-    -DreportTableName=${REPORT_TABLE} >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+    hadoop jar ${JAR_PATH} mr.aggregation.R4AggregationTool \
+    --queueName=${JOB_QUEUE} \
+    --reducers=${FACT_REDUCERS} \
+    --sourceDbName=${STAGE_DB} \
+    --targetDbName=${STAGE_DB} \
+    --sourceTableName=${STAGE_TABLE} \
+    --targetTableName=${FACT_TABLE_UNPARTED} \
+    --reportTableName=${REPORT_TABLE} >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
       _LOG "HEX_FACT: Booking Fact load FAILED [ERROR_CODE=$ERROR_CODE]. See [$HEX_LOGS/$LOG_FILE_NAME] for more information." $HEX_LOGS/LNX-HCOM_HEX_FACT.log

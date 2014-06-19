@@ -1,4 +1,4 @@
-package com.expedia.edw.hww.hex.etl.aggregation;
+package mr.aggregation;
 
 import com.expedia.edw.hww.common.hadoop.spring.AbstractSpringTool;
 import com.expedia.edw.hww.common.hadoop.spring.BaseContext;
@@ -18,7 +18,7 @@ public class R4AggregationTool extends AbstractSpringTool {
 
   @Override
   protected Class<? extends DriverEntryPoint> getDriverClass() {
-    return R4AggregationDriver.class;
+    return R4AggregationJob.class;
   }
 
   public static void main(String[] args) {
