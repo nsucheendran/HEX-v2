@@ -390,7 +390,9 @@ else
     _LOG "Starting Fact MapReduce [Log file: $HEX_LOGS/$LOG_FILE_NAME]" $HEX_LOGS/LNX-HCOM_HEX_FACT.log
     _LOG_PROCESS_DETAIL $RUN_ID "FACT_UNPARTED_STATUS" "STARTED"
     export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/usr/lib/hive/lib/*:/app/edw/hive/conf
-  
+
+    source /usr/etl/HWW/common-scripts/init.sh
+
     hadoop jar ${JAR_PATH} mr.aggregation.R4AggregationTool \
     --queueName=${JOB_QUEUE} \
     --reducers=${FACT_REDUCERS} \
