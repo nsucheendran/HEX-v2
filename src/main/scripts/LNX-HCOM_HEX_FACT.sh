@@ -596,14 +596,14 @@ else
     _LOG_PROCESS_DETAIL $RUN_ID "SEG_UNPARTED_STATUS" "STARTED"
     export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/usr/lib/hive/lib/*:/app/edw/hive/conf
     
-    hadoop jar ${JAR_PATH} mr.segmentation.SegmentationJob \
-    -DqueueName=${JOB_QUEUE} \
-    -Dreducers=${SEG_NUM_REDUCERS} \
-    -DsourceDbName=${AGG_DB} \
-    -DtargetDbName=${AGG_DB} \
-    -DsourceTableName=${FACT_AGG_UNPARTED_TABLE} \
-    -DtargetTableName=${SEG_UNPARTED_TABLE} \
-    -DsegFile=${SEG_INPUT_FILE_PATH} >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+    hadoop jar ${JAR_PATH} mr.segmentation.SegmentationTool \
+    --queueName=${JOB_QUEUE} \
+    --reducers=${SEG_NUM_REDUCERS} \
+    --sourceDbName=${AGG_DB} \
+    --targetDbName=${AGG_DB} \
+    --sourceTableName=${FACT_AGG_UNPARTED_TABLE} \
+    --targetTableName=${SEG_UNPARTED_TABLE} \
+    --segFile=${SEG_INPUT_FILE_PATH} >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
