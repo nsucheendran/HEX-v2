@@ -10,7 +10,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import mr.CFInputFormat;
 import mr.Constants;
 
 import org.apache.hadoop.conf.Configuration;
@@ -24,6 +23,7 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -48,19 +48,17 @@ public final class R4AggregationJob implements DriverEntryPoint {
   private static final Logger log = Logger.getLogger(R4AggregationJob.class);
   private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
 
-  List<String> args;
-  @Autowired
-  Configuration configuration;
-  StatsWriter statsWriter;
-  ManifestAttributes manifestAttributes;
-  int numReduceTasks;
-  String queueName;
-  String sourceDbName;
-  String targetDbName;
-  String sourceTableName;
-  String targetTableName;
-  String reportTableName;
-  private FileSystem fileSystem;
+  private final List<String> args;
+  private final Configuration configuration;
+  private final StatsWriter statsWriter;
+  private final ManifestAttributes manifestAttributes;
+  private final int numReduceTasks;
+  private final String queueName;
+  private final String sourceDbName;
+  private final String targetDbName;
+  private final String sourceTableName;
+  private final String targetTableName;
+  private final String reportTableName;
 
   @Autowired
   R4AggregationJob(@Value("#{args}") List<String> args, Configuration configuration, StatsWriter statsWriter,
@@ -86,8 +84,6 @@ public final class R4AggregationJob implements DriverEntryPoint {
 
   @Override
   public void run() throws IOException, TException, InterruptedException, ClassNotFoundException {
-    fileSystem = FileSystem.get(configuration);
-
     JobConfigurator configurator = new JobConfigurator();
     Job job = configurator.initJob(configuration, jobName, queueName);
 
@@ -141,7 +137,7 @@ public final class R4AggregationJob implements DriverEntryPoint {
   }
 
   private void setInputPathsFromTable(String sourceDbName, String sourceTableName, Job job, HiveMetaStoreClient cl)
-      throws TException, IOException {
+    throws TException, IOException {
     Table table = cl.getTable(sourceDbName, sourceTableName);
     Path tblPath = new Path(table.getSd().getLocation());
     FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());
@@ -168,7 +164,7 @@ public final class R4AggregationJob implements DriverEntryPoint {
       }
     }
     fileSystem.close();
-    CFInputFormat.setInputPaths(job, inputPathsBuilder.toString());
+    FileInputFormat.setInputPaths(job, inputPathsBuilder.toString());
   }
 
   private String getReportDataAsString(String reportTableName, String reportDbName, JobConfigurator configurator,
