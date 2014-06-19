@@ -3,7 +3,6 @@ package mr.segmentation;
 import com.expedia.edw.hww.common.hadoop.spring.AbstractSpringTool;
 import com.expedia.edw.hww.common.hadoop.spring.BaseContext;
 import com.expedia.edw.hww.common.hadoop.spring.DriverEntryPoint;
-import com.expedia.edw.hww.hex.etl.segmentation.SegmentationDriver;
 
 public class SegmentationTool extends AbstractSpringTool {
 
@@ -19,7 +18,7 @@ public class SegmentationTool extends AbstractSpringTool {
 
   @Override
   protected Class<? extends DriverEntryPoint> getDriverClass() {
-    return SegmentationDriver.class;
+    return SegmentationJob.class;
   }
 
   public static void main(String[] args) {

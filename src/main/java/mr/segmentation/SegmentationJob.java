@@ -31,6 +31,8 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import com.expedia.edw.hww.common.hadoop.spring.DriverEntryPoint;
 import com.expedia.edw.hww.common.logging.ManifestAttributes;
@@ -42,6 +44,7 @@ import com.expedia.edw.hww.common.metrics.StatsWriter;
  * 
  * @author achadha
  */
+@Component
 public final class SegmentationJob implements DriverEntryPoint {
   private static final Logger log = Logger.getLogger(SegmentationJob.class);
   private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
@@ -59,6 +62,28 @@ public final class SegmentationJob implements DriverEntryPoint {
   String targetTableName;
   String segmentationInputFilePath;
   private FileSystem fileSystem;
+
+  @Autowired
+  SegmentationJob(@Value("#{args}") List<String> args, Configuration configuration, StatsWriter statsWriter,
+      ManifestAttributes manifestAttributes, @Value("${segmentation.reducers}") int numReduceTasks,
+      @Value("${segmentation.queue.name}") String queueName,
+      @Value("${segmentation.source.db.name}") String sourceDbName,
+      @Value("${segmentation.target.db.name}") String targetDbName,
+      @Value("${segmentation.source.table.name}") String sourceTableName,
+      @Value("${segmentation.target.table.name}") String targetTableName,
+      @Value("${segmentation.input.file.path}") String segmentationInputFilePath) {
+    this.args = args;
+    this.configuration = configuration;
+    this.statsWriter = statsWriter;
+    this.manifestAttributes = manifestAttributes;
+    this.numReduceTasks = numReduceTasks;
+    this.queueName = queueName;
+    this.sourceDbName = sourceDbName;
+    this.targetDbName = targetDbName;
+    this.sourceTableName = sourceTableName;
+    this.targetTableName = targetTableName;
+    this.segmentationInputFilePath = segmentationInputFilePath;
+  }
 
   @Override
   public void run() throws IOException, NoSuchObjectException, TException, InterruptedException, ClassNotFoundException {
