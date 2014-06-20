@@ -13,8 +13,8 @@
   <packaging>jar</packaging>
     
   <properties>
-    <hww.common.parent.version>8.0.0</hww.common.parent.version>
     <shade.prefix>${project.groupId}.shaded</shade.prefix>
+    <hww.common.parent.version>8.0.0</hww.common.parent.version>
   </properties>
   
   <scm>
@@ -38,6 +38,7 @@
             <configuration>
               <files>
                 <file>src/main/resources/mr/aggregation/default.properties</file>
+                <file>src/main/resources/mr/segmentation/default.properties</file>
               </files>
             </configuration>
           </execution>
