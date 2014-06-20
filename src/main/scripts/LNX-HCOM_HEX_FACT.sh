@@ -605,7 +605,7 @@ else
     --targetDbName=${AGG_DB} \
     --sourceTableName=${FACT_AGG_UNPARTED_TABLE} \
     --targetTableName=${SEG_UNPARTED_TABLE} \
-    --segFile=${SEG_INPUT_FILE_PATH} >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
+    --segmentationInputFilePath=${SEG_INPUT_FILE_PATH} >> $HEX_LOGS/$LOG_FILE_NAME 2>&1 
   
     ERROR_CODE=$?
     if [[ $ERROR_CODE -ne 0 ]]; then
