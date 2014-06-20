@@ -1,7 +1,3 @@
-/*
- * @author achadha
- */
-
 package mr.segmentation;
 
 import java.io.BufferedReader;
@@ -12,8 +8,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import mr.CFInputFormat;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -27,6 +21,7 @@ import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -47,21 +42,19 @@ import com.expedia.edw.hww.common.metrics.StatsWriter;
 @Component
 public final class SegmentationJob implements DriverEntryPoint {
   private static final Logger log = Logger.getLogger(SegmentationJob.class);
-  private static final String jobName = "hdp_hww_hex_etl_fact_aggregation";
+  private static final String jobName = "hdp_hww_hex_etl_fact_segmentation";
 
-  List<String> args;
-  @Autowired
-  Configuration configuration;
-  StatsWriter statsWriter;
-  ManifestAttributes manifestAttributes;
-  int numReduceTasks;
-  String queueName;
-  String sourceDbName;
-  String targetDbName;
-  String sourceTableName;
-  String targetTableName;
-  String segmentationInputFilePath;
-  private FileSystem fileSystem;
+  private final List<String> args;
+  private final Configuration configuration;
+  private final StatsWriter statsWriter;
+  private final ManifestAttributes manifestAttributes;
+  private final int numReduceTasks;
+  private final String queueName;
+  private final String sourceDbName;
+  private final String targetDbName;
+  private final String sourceTableName;
+  private final String targetTableName;
+  private final String segmentationInputFilePath;
 
   @Autowired
   SegmentationJob(@Value("#{args}") List<String> args, Configuration configuration, StatsWriter statsWriter,
@@ -87,9 +80,8 @@ public final class SegmentationJob implements DriverEntryPoint {
 
   @Override
   public void run() throws IOException, NoSuchObjectException, TException, InterruptedException, ClassNotFoundException {
-    Configuration mainConf = configuration;
     SegmentationJobConfigurator configurator = new SegmentationJobConfigurator();
-    Job job = configurator.initJob(mainConf, jobName, queueName);
+    Job job = configurator.initJob(configuration, jobName, queueName);
 
     List<String> sourceFields, targetFields;
     HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
@@ -173,6 +165,6 @@ public final class SegmentationJob implements DriverEntryPoint {
       }
     }
     fileSystem.close();
-    CFInputFormat.setInputPaths(job, inputPathsBuilder.toString());
+    FileInputFormat.setInputPaths(job, inputPathsBuilder.toString());
   }
 }
