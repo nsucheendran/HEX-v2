@@ -1,5 +1,7 @@
 package mr.segmentation;
 
+import static com.expedia.edw.hww.common.hadoop.metrics.CountersToMapFunction.countersToMap;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -118,6 +120,8 @@ public final class SegmentationJob implements DriverEntryPoint {
         FileOutputFormat.setOutputPath(job, outputPath);
         success = job.waitForCompletion(true);
         log.info("output written to: " + outputPath.toString());
+        log.info("Enabling StatsWriter");
+        statsWriter.writeStats(countersToMap(manifestAttributes).apply(job.getCounters()));
       } else {
         log.info("Not able to delete output path: " + outputPath + ". Exiting!");
       }
