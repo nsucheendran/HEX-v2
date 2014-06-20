@@ -87,10 +87,10 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.expedia.edw.hww.common</groupId>
-      <artifactId>common-hadoop-spring</artifactId>
-      <version>${hww.common.parent.version}</version>
-    </dependency>
+  	  <groupId>com.expedia.edw.hww.common</groupId>
+  	  <artifactId>common-hadoop-spring</artifactId>
+  	  <version>${hww.common.parent.version}</version>
+	</dependency>
 	<dependency>
       <groupId>com.expedia.edw.hww.common</groupId>
       <artifactId>common-hadoop-metrics</artifactId>
