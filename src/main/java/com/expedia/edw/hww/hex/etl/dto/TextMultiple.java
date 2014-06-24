@@ -8,10 +8,10 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 
-import mr.segmentation.SegmentationSpec;
-
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
+
+import com.expedia.edw.hww.hex.etl.segmentation.SegmentationSpec;
 
 public class TextMultiple implements WritableComparable<TextMultiple> {
 
