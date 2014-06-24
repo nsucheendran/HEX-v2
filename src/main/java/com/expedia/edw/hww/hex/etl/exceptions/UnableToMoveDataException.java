@@ -1,4 +1,4 @@
-package mr.exceptions;
+package com.expedia.edw.hww.hex.etl.exceptions;
 
 public class UnableToMoveDataException extends RuntimeException {
 

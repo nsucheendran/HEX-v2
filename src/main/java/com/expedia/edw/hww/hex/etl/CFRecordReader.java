@@ -1,4 +1,4 @@
-package mr;
+package com.expedia.edw.hww.hex.etl;
 
 import java.io.IOException;
 

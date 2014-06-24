@@ -7,9 +7,9 @@ package mr.segmentation;
 import java.util.HashMap;
 import java.util.Map;
 
-import mr.utils.Utils;
-
 import org.apache.hadoop.io.Text;
+
+import com.expedia.edw.hww.hex.etl.utils.Utils;
 
 public final class SegmentationSpec {
   private String[] specData;

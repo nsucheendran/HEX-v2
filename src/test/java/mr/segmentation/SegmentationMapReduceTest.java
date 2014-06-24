@@ -15,8 +15,6 @@ import java.util.UUID;
 
 import mockit.Mock;
 import mockit.MockUp;
-import mr.Constants;
-import mr.dto.TextMultiple;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -30,6 +28,9 @@ import org.apache.hadoop.mrunit.mapreduce.MapReduceDriver;
 import org.apache.hadoop.mrunit.mapreduce.ReduceDriver;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.expedia.edw.hww.hex.etl.Constants;
+import com.expedia.edw.hww.hex.etl.dto.TextMultiple;
 
 public class SegmentationMapReduceTest {
   private static final BytesWritable bw = new BytesWritable(new byte[0], 0);

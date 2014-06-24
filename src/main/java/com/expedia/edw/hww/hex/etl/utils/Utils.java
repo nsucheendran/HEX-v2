@@ -1,6 +1,6 @@
-package mr.utils;
+package com.expedia.edw.hww.hex.etl.utils;
 
-import static mr.Constants.HIVE_NULL_VALUE;
+import static com.expedia.edw.hww.hex.etl.Constants.HIVE_NULL_VALUE;
 
 public final class Utils {
   private Utils() {

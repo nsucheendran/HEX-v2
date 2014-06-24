@@ -20,9 +20,9 @@ import static mr.segmentation.MeasureFieldPositions.NUM_UNIQUE_VIEWERS;
 
 import java.io.IOException;
 
-import mr.dto.TextMultiple;
-
 import org.apache.hadoop.mapreduce.Reducer;
+
+import com.expedia.edw.hww.hex.etl.dto.TextMultiple;
 
 public class SegmentationCombiner extends Reducer<TextMultiple, TextMultiple, TextMultiple, TextMultiple> {
   private final TextMultiple outVal = new TextMultiple(new String[13]);

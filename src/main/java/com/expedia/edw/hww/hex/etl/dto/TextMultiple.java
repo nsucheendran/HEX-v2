@@ -1,7 +1,7 @@
-package mr.dto;
+package com.expedia.edw.hww.hex.etl.dto;
 
-import static mr.utils.Utils.coalesce;
-import static mr.utils.Utils.containsArrayInt;
+import static com.expedia.edw.hww.hex.etl.utils.Utils.coalesce;
+import static com.expedia.edw.hww.hex.etl.utils.Utils.containsArrayInt;
 
 import java.io.DataInput;
 import java.io.DataOutput;

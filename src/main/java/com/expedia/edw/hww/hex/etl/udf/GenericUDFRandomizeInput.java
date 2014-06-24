@@ -1,4 +1,4 @@
-package udf;
+package com.expedia.edw.hww.hex.etl.udf;
 
 import java.util.List;
 import java.util.Random;

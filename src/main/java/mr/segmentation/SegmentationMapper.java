@@ -4,16 +4,16 @@
 
 package mr.segmentation;
 
-import static mr.Constants.TAB_SEP_PATTERN;
+import static com.expedia.edw.hww.hex.etl.Constants.TAB_SEP_PATTERN;
 
 import java.io.IOException;
-
-import mr.dto.TextMultiple;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+
+import com.expedia.edw.hww.hex.etl.dto.TextMultiple;
 
 public class SegmentationMapper extends Mapper<BytesWritable, Text, TextMultiple, TextMultiple> {
 

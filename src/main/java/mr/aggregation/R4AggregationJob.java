@@ -10,8 +10,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import mr.Constants;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -34,6 +32,7 @@ import org.springframework.stereotype.Component;
 import com.expedia.edw.hww.common.hadoop.spring.DriverEntryPoint;
 import com.expedia.edw.hww.common.logging.ManifestAttributes;
 import com.expedia.edw.hww.common.metrics.StatsWriter;
+import com.expedia.edw.hww.hex.etl.Constants;
 
 /*
  * MapReduce job that emulates the hiveql at

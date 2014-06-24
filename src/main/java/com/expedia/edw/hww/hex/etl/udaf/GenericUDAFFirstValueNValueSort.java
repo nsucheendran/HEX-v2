@@ -1,4 +1,4 @@
-package udaf;
+package com.expedia.edw.hww.hex.etl.udaf;
 
 import java.util.ArrayList;
 import java.util.HashMap;

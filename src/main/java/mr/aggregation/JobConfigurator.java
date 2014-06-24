@@ -7,16 +7,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import mr.CFInputFormat;
-import mr.Constants;
-import mr.dto.TextMultiple;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+
+import com.expedia.edw.hww.hex.etl.CFInputFormat;
+import com.expedia.edw.hww.hex.etl.Constants;
+import com.expedia.edw.hww.hex.etl.dto.TextMultiple;
 
 public final class JobConfigurator {
   private Map<String, String> equiJoinKeys = new HashMap<String, String>() {

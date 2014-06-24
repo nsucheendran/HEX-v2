@@ -1,4 +1,4 @@
-CREATE TEMPORARY FUNCTION firstValueNSort AS 'udaf.GenericUDAFFirstValueNValueSort';
+CREATE TEMPORARY FUNCTION firstValueNSort AS 'com.expedia.edw.hww.hex.etl.udaf.GenericUDAFFirstValueNValueSort';
 
 set hive.exec.dynamic.partition.mode=nonstrict;
 set hive.exec.dynamic.partition=true;

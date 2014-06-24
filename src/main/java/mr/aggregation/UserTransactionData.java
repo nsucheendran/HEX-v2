@@ -1,7 +1,8 @@
 package mr.aggregation;
 
-import static mr.utils.Utils.coalesce;
-import mr.dto.TextMultiple;
+import static com.expedia.edw.hww.hex.etl.utils.Utils.coalesce;
+
+import com.expedia.edw.hww.hex.etl.dto.TextMultiple;
 
 public class UserTransactionData {
   private String transDate;

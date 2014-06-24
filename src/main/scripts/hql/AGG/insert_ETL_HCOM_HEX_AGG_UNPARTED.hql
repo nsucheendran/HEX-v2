@@ -1,4 +1,4 @@
-CREATE TEMPORARY FUNCTION randomize as 'udf.GenericUDFRandomizeInput';
+CREATE TEMPORARY FUNCTION randomize as 'com.expedia.edw.hww.hex.etl.udf.GenericUDFRandomizeInput';
 
 set hive.auto.convert.join=true;
 set hive.exec.dynamic.partition.mode=nonstrict;

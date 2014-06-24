@@ -4,11 +4,11 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import mr.dto.TextMultiple;
-
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
+
+import com.expedia.edw.hww.hex.etl.dto.TextMultiple;
 
 public class R4Reducer extends Reducer<TextMultiple, TextMultiple, BytesWritable, Text> {
   private final BytesWritable bw = new BytesWritable(new byte[0], 0);

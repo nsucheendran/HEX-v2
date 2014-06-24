@@ -21,11 +21,11 @@ import static mr.segmentation.MeasureFieldPositions.NUM_UNIQUE_VIEWERS;
 import java.io.IOException;
 import java.util.UUID;
 
-import mr.dto.TextMultiple;
-
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
+
+import com.expedia.edw.hww.hex.etl.dto.TextMultiple;
 
 public class SegmentationReducer extends Reducer<TextMultiple, TextMultiple, Text, NullWritable> {
   private final NullWritable bw = NullWritable.get();
