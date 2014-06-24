@@ -1,5 +1,5 @@
-CREATE TEMPORARY FUNCTION firstValueNSort AS 'udaf.GenericUDAFFirstValueNValueSort';
-CREATE TEMPORARY FUNCTION matchAndApplyPattern AS 'udf.GenericUDFApplyPatternOnList';
+CREATE TEMPORARY FUNCTION firstValueNSort AS 'com.expedia.edw.hww.hex.etl.udaf.GenericUDAFFirstValueNValueSort';
+CREATE TEMPORARY FUNCTION matchAndApplyPattern AS 'com.expedia.edw.hww.hex.etl.udf.GenericUDFApplyPatternOnList';
 
 set hive.exec.dynamic.partition.mode=nonstrict;
 set hive.exec.dynamic.partition=true;

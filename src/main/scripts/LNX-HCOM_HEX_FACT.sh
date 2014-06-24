@@ -393,7 +393,7 @@ else
 
     source /usr/etl/HWW/common-scripts/init.sh
 
-    hadoop jar ${JAR_PATH} mr.aggregation.R4AggregationTool \
+    hadoop jar ${JAR_PATH} com.expedia.edw.hww.hex.etl.aggregation.R4AggregationTool \
     --queueName=${JOB_QUEUE} \
     --reducers=${FACT_REDUCERS} \
     --sourceDbName=${STAGE_DB} \
@@ -598,7 +598,7 @@ else
     _LOG_PROCESS_DETAIL $RUN_ID "SEG_UNPARTED_STATUS" "STARTED"
     export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/usr/lib/hive/lib/*:/app/edw/hive/conf
     
-    hadoop jar ${JAR_PATH} mr.segmentation.SegmentationTool \
+    hadoop jar ${JAR_PATH} com.expedia.edw.hww.hex.etl.segmentation.SegmentationTool \
     --queueName=${JOB_QUEUE} \
     --reducers=${SEG_NUM_REDUCERS} \
     --sourceDbName=${AGG_DB} \
