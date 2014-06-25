@@ -138,22 +138,19 @@ public final class JobConfigurator {
 
   }
 
-  public Job initJob(Configuration config, String jobName, String queueName) throws IOException {
+  public Job initJob(Configuration config, String jobName) throws IOException {
     JobConf conf = new JobConf(config);
-    conf.setQueueName(queueName);
     Job job = new Job(conf, jobName);
     job.setJarByClass(R4AggregationJob.class);
 
     job.setMapperClass(R4Mapper.class);
     job.setReducerClass(R4Reducer.class);
-    // job.setInputFormatClass(SequenceFileInputFormat.class);
     job.setInputFormatClass(CFInputFormat.class);
     job.setOutputFormatClass(SequenceFileOutputFormat.class);
     job.setOutputKeyClass(BytesWritable.class);
     job.setOutputValueClass(Text.class);
     job.setMapOutputKeyClass(TextMultiple.class);
     job.setMapOutputValueClass(TextMultiple.class);
-    // job.getConfiguration().setLong("mapred.min.split.size", 536870912L);
     return job;
   }
 
@@ -183,7 +180,7 @@ public final class JobConfigurator {
   }
 
   public JobConfigurator lhsFields(List<String> lhsFields) {
-    this.lhsfields = lhsFields;
+    lhsfields = lhsFields;
     return this;
   }
 
@@ -225,13 +222,11 @@ public final class JobConfigurator {
           keySb.append(",");
         }
         keySb.append(i);
-        // System.out.println(field + " => key[" + (kj - 1) + "]");
       } else {
         if (vj++ > 0) {
           valSb.append(",");
         }
         valSb.append(i);
-        // System.out.println(field + " => val[" + (vj - 1) + "]");
       }
       if (equiJoinKeys.containsKey(field)) {
         equiLhsPosMap.put(field, i);
@@ -266,11 +261,6 @@ public final class JobConfigurator {
     job.getConfiguration().set("eqjoin", equiJoinPosMap.toString());
     job.getConfiguration().set("ltejoin", lteJoinPosMap.toString());
     job.getConfiguration().set("gtejoin", gteJoinPosMap.toString());
-
-    // System.out.println("eqjoin: " + equiJoinPosMap);
-    // System.out.println("ltejoin: " + lteJoinPosMap);
-    // System.out.println("gtejoin: " + gteJoinPosMap);
-
   }
 
   public void stripe(String row, StringBuilder data) {

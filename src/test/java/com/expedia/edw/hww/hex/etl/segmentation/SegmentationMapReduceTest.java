@@ -31,10 +31,6 @@ import org.junit.Test;
 
 import com.expedia.edw.hww.hex.etl.Constants;
 import com.expedia.edw.hww.hex.etl.dto.TextMultiple;
-import com.expedia.edw.hww.hex.etl.segmentation.SegmentationCombiner;
-import com.expedia.edw.hww.hex.etl.segmentation.SegmentationJobConfigurator;
-import com.expedia.edw.hww.hex.etl.segmentation.SegmentationMapper;
-import com.expedia.edw.hww.hex.etl.segmentation.SegmentationReducer;
 
 public class SegmentationMapReduceTest {
   private static final BytesWritable bw = new BytesWritable(new byte[0], 0);
@@ -63,6 +59,7 @@ public class SegmentationMapReduceTest {
     mapReduceDriver.setReducer(reducer);
     jobConfigurator = new SegmentationJobConfigurator();
     new MockUp<UUID>() {
+      @Override
       @Mock
       public String toString() {
         return "mockuuid";
@@ -116,7 +113,7 @@ public class SegmentationMapReduceTest {
     jobConfigurator.colMap(Arrays.asList("lf1", "lf2", "lf3", "lf4"), Arrays.asList("lf1", "lf2", "lf3", "lf4"),
         new BufferedReader(new StringReader(segFileContent)));
 
-    Job job = jobConfigurator.initJob(mapDriver.getConfiguration(), "mapTest", "edwdev");
+    Job job = jobConfigurator.initJob(mapDriver.getConfiguration(), "mapTest");
     jobConfigurator.configureJob(job);
     mapDriver.setConfiguration(job.getConfiguration());
     return job;
@@ -136,22 +133,22 @@ public class SegmentationMapReduceTest {
     Text text = new Text();
     StringBuilder sb = new StringBuilder();
     reduceDriver
-        .withInput(
-            new TextMultiple("key1", "key2", "key3", "key4", "key5"),
-            Arrays.asList(
-                new TextMultiple("1", "240", "2", "242", "2", "30", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("1", "240", "2", "242", "2", "30", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("-1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("-1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("-1", "-140", "3", "-142", "3", "-20", "23", "23", "23", "23", "23", "23", "23")))
-        .withOutput(
-            text(text, sb, "\t", "mockuuid", "key1", "key2", "4", "1320", "28", "1336", "28", "180", "230", "230.0",
-                "230", "230.0", "230", "230.0", "230", "key3", "key4", "key5"), NullWritable.get());
+    .withInput(
+        new TextMultiple("key1", "key2", "key3", "key4", "key5"),
+        Arrays.asList(
+            new TextMultiple("1", "240", "2", "242", "2", "30", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("1", "240", "2", "242", "2", "30", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("-1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("-1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("-1", "-140", "3", "-142", "3", "-20", "23", "23", "23", "23", "23", "23", "23")))
+            .withOutput(
+                text(text, sb, "\t", "mockuuid", "key1", "key2", "4", "1320", "28", "1336", "28", "180", "230", "230.0",
+                    "230", "230.0", "230", "230.0", "230", "key3", "key4", "key5"), NullWritable.get());
     reduceDriver.runTest();
 
   }
@@ -168,23 +165,23 @@ public class SegmentationMapReduceTest {
     FileOutputFormat.setOutputPath(job, outPath);
     combineDriver.setConfiguration(job.getConfiguration());
     combineDriver
-        .withInput(
-            new TextMultiple("key1", "key2", "key3", "key4", "key5"),
-            Arrays.asList(
-                new TextMultiple("1", "240", "2", "242", "2", "30", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("1", "240", "2", "242", "2", "30", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("-1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("-1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
-                new TextMultiple("-1", "-140", "3", "-142", "3", "-20", "23", "23", "23", "23", "23", "23", "23")))
-        .withOutput(
-            new TextMultiple("key1", "key2", "key3", "key4", "key5"),
-            new TextMultiple("4", "1320", "28", "1336", "28", "180", "230", "230.0", "230", "230.0", "230", "230.0",
-                "230"));
+    .withInput(
+        new TextMultiple("key1", "key2", "key3", "key4", "key5"),
+        Arrays.asList(
+            new TextMultiple("1", "240", "2", "242", "2", "30", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("1", "240", "2", "242", "2", "30", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("-1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("-1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("1", "140", "3", "142", "3", "20", "23", "23", "23", "23", "23", "23", "23"),
+            new TextMultiple("-1", "-140", "3", "-142", "3", "-20", "23", "23", "23", "23", "23", "23", "23")))
+            .withOutput(
+                new TextMultiple("key1", "key2", "key3", "key4", "key5"),
+                new TextMultiple("4", "1320", "28", "1336", "28", "180", "230", "230.0", "230", "230.0", "230", "230.0",
+                    "230"));
     combineDriver.runTest();
 
   }

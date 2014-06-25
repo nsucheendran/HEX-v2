@@ -2,6 +2,7 @@ package com.expedia.edw.hww.hex.etl.segmentation;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+
 import com.expedia.edw.hww.hex.etl.CommandLineParameters;
 
 @Parameters(separators = "=")
@@ -9,9 +10,6 @@ public class SegmentationDriverArgs {
 
   @Parameter(names = { CommandLineParameters.REDUCER_COUNT }, description = "Reducer count for the Segmentation step", required = true)
   private Integer reducers;
-
-  @Parameter(names = { CommandLineParameters.QUEUE_NAME }, description = "Queue Name for the Segmentation step", required = true)
-  private String queueName;
 
   @Parameter(names = { CommandLineParameters.SOURCE_DATABASE_NAME }, description = "Source DB Name for the Segmentation step", required = true)
   private String sourceDbName;
@@ -30,10 +28,6 @@ public class SegmentationDriverArgs {
 
   public Integer getSegmentationReducers() {
     return reducers;
-  }
-
-  public String getSegmentationQueueName() {
-    return queueName;
   }
 
   public String getSegmentationSourceDbName() {
