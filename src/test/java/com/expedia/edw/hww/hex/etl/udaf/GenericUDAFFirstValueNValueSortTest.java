@@ -7,6 +7,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.hive.ql.exec.UDFArgumentTypeException;
@@ -14,9 +16,14 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuffer;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.Mode;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.StandardConstantMapObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.StandardMapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableStringObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.junit.Test;
@@ -166,7 +173,7 @@ public class GenericUDAFFirstValueNValueSortTest {
 
 
   @Test
-  public void testGenericUDAFOrderedNValueEvaluator() throws HiveException {
+  public void testGenericUDAFOrderedNValueEvaluatorAggregationBuffer() throws HiveException {
     GenericUDAFOrderedNValueEvaluator evaluator = new GenericUDAFOrderedNValueEvaluator();
     AggregationBuffer aggBuffer = evaluator.getNewAggregationBuffer();
 
@@ -207,5 +214,51 @@ public class GenericUDAFFirstValueNValueSortTest {
     assertNull(map.keySet().iterator().next());
     assertNull(minOrderedSet.getMinValue());
     assertNull(map.get(map.keySet().iterator().next()));
+  }
+
+  @Test
+  public void testGenericUDAFOrderedNValueEvaluatorInitCompleteMode() throws HiveException {
+    testCompleteAndPartial1(Mode.COMPLETE, WritableStringObjectInspector.class);
+  }
+
+  @Test
+  public void testGenericUDAFOrderedNValueEvaluatorInitPartial1Mode() throws HiveException {
+    testCompleteAndPartial1(Mode.PARTIAL1, StandardMapObjectInspector.class);
+  }
+
+  @Test
+  public void testGenericUDAFOrderedNValueEvaluatorInitPartial2Mode() throws HiveException {
+    testFinalAndPartial2(Mode.PARTIAL2, StandardConstantMapObjectInspector.class);
+  }
+
+  @Test
+  public void testGenericUDAFOrderedNValueEvaluatorInitFinalMode() throws HiveException {
+    testFinalAndPartial2(Mode.FINAL, WritableStringObjectInspector.class);
+  }
+
+  private void testFinalAndPartial2(Mode m, Class<?> c) throws HiveException {
+    ObjectInspector stringOI = PrimitiveObjectInspectorFactory.javaStringObjectInspector;
+    List<String> structFieldNames = new ArrayList<String>();
+    structFieldNames.add("field1");
+    List<ObjectInspector> structFieldObjectInspectors = new ArrayList<ObjectInspector>();
+    structFieldObjectInspectors.add(stringOI);
+    ObjectInspector structOI = ObjectInspectorFactory.getStandardStructObjectInspector(structFieldNames, structFieldObjectInspectors);
+    GenericUDAFOrderedNValueEvaluator evaluator = new GenericUDAFOrderedNValueEvaluator();
+    ObjectInspector[] parameters = new ObjectInspector[2];
+    parameters[0] = ObjectInspectorFactory.getStandardConstantMapObjectInspector(stringOI, structOI, null);
+    parameters[1] = structOI;
+    ObjectInspector oi = evaluator.init(m, parameters);
+
+    assertThat(oi.getClass().getName(), is(c.getName()));
+  }
+
+  private void testCompleteAndPartial1(Mode m, Class<?> c) throws HiveException {
+    GenericUDAFOrderedNValueEvaluator evaluator = new GenericUDAFOrderedNValueEvaluator();
+    ObjectInspector[] parameters = new ObjectInspector[2];
+    parameters[0] = PrimitiveObjectInspectorFactory.javaStringObjectInspector;
+    parameters[1] = PrimitiveObjectInspectorFactory.javaStringObjectInspector;
+    ObjectInspector oi = evaluator.init(m, parameters);
+
+    assertThat(oi.getClass().getName(), is(c.getName()));
   }
 }
