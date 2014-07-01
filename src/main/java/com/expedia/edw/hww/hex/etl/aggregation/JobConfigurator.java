@@ -130,7 +130,7 @@ public final class JobConfigurator {
 
   private Map<String, IntPair> rhsPosMap;
 
-  private List<String> lhsfields;
+  private List<String> lhsFields;
 
   private int numReduceTasks = 100;
 
@@ -180,7 +180,7 @@ public final class JobConfigurator {
   }
 
   public JobConfigurator lhsFields(List<String> lhsFields) {
-    lhsfields = lhsFields;
+    this.lhsFields = lhsFields;
     return this;
   }
 
@@ -216,7 +216,7 @@ public final class JobConfigurator {
     Map<String, Integer> equiLhsPosMap = new HashMap<String, Integer>();
     Map<String, Integer> lteLhsPosMap = new HashMap<String, Integer>();
     Map<String, Integer> gteLhsPosMap = new HashMap<String, Integer>();
-    for (String field : lhsfields) {
+    for (String field : lhsFields) {
       if (groupKeys.contains(field)) {
         if (kj++ > 0) {
           keySb.append(",");
