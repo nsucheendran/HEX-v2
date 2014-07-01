@@ -31,10 +31,6 @@ import org.junit.Test;
 
 import com.expedia.edw.hww.hex.etl.Constants;
 import com.expedia.edw.hww.hex.etl.dto.TextMultiple;
-import com.expedia.edw.hww.hex.etl.segmentation.SegmentationCombiner;
-import com.expedia.edw.hww.hex.etl.segmentation.SegmentationJobConfigurator;
-import com.expedia.edw.hww.hex.etl.segmentation.SegmentationMapper;
-import com.expedia.edw.hww.hex.etl.segmentation.SegmentationReducer;
 
 public class SegmentationMapReduceTest {
   private static final BytesWritable bw = new BytesWritable(new byte[0], 0);
@@ -63,6 +59,7 @@ public class SegmentationMapReduceTest {
     mapReduceDriver.setReducer(reducer);
     jobConfigurator = new SegmentationJobConfigurator();
     new MockUp<UUID>() {
+      @Override
       @Mock
       public String toString() {
         return "mockuuid";
@@ -116,7 +113,7 @@ public class SegmentationMapReduceTest {
     jobConfigurator.colMap(Arrays.asList("lf1", "lf2", "lf3", "lf4"), Arrays.asList("lf1", "lf2", "lf3", "lf4"),
         new BufferedReader(new StringReader(segFileContent)));
 
-    Job job = jobConfigurator.initJob(mapDriver.getConfiguration(), "mapTest", "edwdev");
+    Job job = jobConfigurator.initJob(mapDriver.getConfiguration(), "mapTest");
     jobConfigurator.configureJob(job);
     mapDriver.setConfiguration(job.getConfiguration());
     return job;

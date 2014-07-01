@@ -9,11 +9,9 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 
 import com.expedia.edw.hww.hex.etl.CommandLineParameters;
-import com.expedia.edw.hww.hex.etl.aggregation.R4AggregationDriverArgs;
 
 public class R4AggregationDriverArgsTest {
 
-  private final String queueName = "edwdev";
   private final String reducerCount = "250";
   private final String sourceDbName = "sourceDB";
   private final String targetDbName = "targetDB";
@@ -25,12 +23,11 @@ public class R4AggregationDriverArgsTest {
   public void validParamTest() {
     R4AggregationDriverArgs driverArgs = new R4AggregationDriverArgs();
 
-    new JCommander(driverArgs, new String[] { CommandLineParameters.QUEUE_NAME, queueName, CommandLineParameters.REDUCER_COUNT, reducerCount,
+    new JCommander(driverArgs, new String[] { CommandLineParameters.REDUCER_COUNT, reducerCount,
         CommandLineParameters.SOURCE_DATABASE_NAME, sourceDbName, CommandLineParameters.TARGET_DATABASE_NAME, targetDbName,
         CommandLineParameters.SOURCE_TABLE_NAME, sourceTableName, CommandLineParameters.TARGET_TABLE_NAME, targetTableName,
         CommandLineParameters.REPORT_TABLE_NAME, reportTableName });
 
-    assertThat(driverArgs.getAggregationQueueName(), is(queueName));
     assertThat(driverArgs.getAggregationReducers(), is(Integer.valueOf(reducerCount)));
     assertThat(driverArgs.getAggregationSourceDbName(), is(sourceDbName));
     assertThat(driverArgs.getAggregationTargetDbName(), is(targetDbName));
@@ -50,7 +47,7 @@ public class R4AggregationDriverArgsTest {
   public void missingArgsTest() {
     R4AggregationDriverArgs driverArgs = new R4AggregationDriverArgs();
 
-    new JCommander(driverArgs, new String[] { CommandLineParameters.QUEUE_NAME, queueName, CommandLineParameters.REDUCER_COUNT, reducerCount,
+    new JCommander(driverArgs, new String[] { CommandLineParameters.REDUCER_COUNT, reducerCount,
         CommandLineParameters.SOURCE_DATABASE_NAME, sourceDbName, CommandLineParameters.TARGET_DATABASE_NAME, targetDbName,
         CommandLineParameters.SOURCE_TABLE_NAME, sourceTableName, CommandLineParameters.TARGET_TABLE_NAME, targetTableName });
   }

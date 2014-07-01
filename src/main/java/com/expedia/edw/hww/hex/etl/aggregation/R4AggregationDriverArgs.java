@@ -12,10 +12,6 @@ public class R4AggregationDriverArgs {
   @Parameter(names = { CommandLineParameters.REDUCER_COUNT }, description = "Reducer count for the Aggregation step", required = true)
   private Integer aggregationReducers;
 
-  // TODO: Need to remove queueName argument in order to bring in -Dmapred.job.queue.name=QUEUE_NAME
-  @Parameter(names = { CommandLineParameters.QUEUE_NAME }, description = "Queue Name for the Aggregation step", required = true)
-  private String aggregationQueueName;
-
   @Parameter(names = { CommandLineParameters.SOURCE_DATABASE_NAME }, description = "Source DB Name for the Aggregation step", required = true)
   private String aggregationSourceDbName;
 
@@ -33,10 +29,6 @@ public class R4AggregationDriverArgs {
 
   public Integer getAggregationReducers() {
     return aggregationReducers;
-  }
-
-  public String getAggregationQueueName() {
-    return aggregationQueueName;
   }
 
   public String getAggregationSourceDbName() {

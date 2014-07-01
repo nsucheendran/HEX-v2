@@ -51,7 +51,6 @@ public final class SegmentationJob implements DriverEntryPoint {
   private final StatsWriter statsWriter;
   private final ManifestAttributes manifestAttributes;
   private final int numReduceTasks;
-  private final String queueName;
   private final String sourceDbName;
   private final String targetDbName;
   private final String sourceTableName;
@@ -61,7 +60,6 @@ public final class SegmentationJob implements DriverEntryPoint {
   @Autowired
   SegmentationJob(@Value("#{args}") List<String> args, Configuration configuration, StatsWriter statsWriter,
       ManifestAttributes manifestAttributes, @Value("${segmentation.reducers}") int numReduceTasks,
-      @Value("${segmentation.queue.name}") String queueName,
       @Value("${segmentation.source.db.name}") String sourceDbName,
       @Value("${segmentation.target.db.name}") String targetDbName,
       @Value("${segmentation.source.table.name}") String sourceTableName,
@@ -72,7 +70,6 @@ public final class SegmentationJob implements DriverEntryPoint {
     this.statsWriter = statsWriter;
     this.manifestAttributes = manifestAttributes;
     this.numReduceTasks = numReduceTasks;
-    this.queueName = queueName;
     this.sourceDbName = sourceDbName;
     this.targetDbName = targetDbName;
     this.sourceTableName = sourceTableName;
@@ -83,7 +80,7 @@ public final class SegmentationJob implements DriverEntryPoint {
   @Override
   public void run() throws IOException, NoSuchObjectException, TException, InterruptedException, ClassNotFoundException {
     SegmentationJobConfigurator configurator = new SegmentationJobConfigurator();
-    Job job = configurator.initJob(configuration, jobName, queueName);
+    Job job = configurator.initJob(configuration, jobName);
 
     List<String> sourceFields, targetFields;
     HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());
@@ -142,7 +139,7 @@ public final class SegmentationJob implements DriverEntryPoint {
   }
 
   private void setInputPathsFromTable(String sourceDbName, String sourceTableName, Job job, HiveMetaStoreClient cl)
-    throws TException, IOException {
+      throws TException, IOException {
     Table table = cl.getTable(sourceDbName, sourceTableName);
     Path tblPath = new Path(table.getSd().getLocation());
     FileSystem fileSystem = tblPath.getFileSystem(job.getConfiguration());

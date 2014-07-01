@@ -89,7 +89,7 @@ public class R4MapReduceTest {
     jobConfigurator.lhsFields(Arrays.asList("lf1", "lf2", "lf3", "lf4")).rhsFields(
         Arrays.asList("rf1", "rf2", "rf3", "rf4"));
 
-    Job job = jobConfigurator.initJob(mapDriver.getConfiguration(), "mapTest", "edwdev");
+    Job job = jobConfigurator.initJob(mapDriver.getConfiguration(), "mapTest");
     jobConfigurator.configureJob(job);
     StringBuilder data = new StringBuilder();
     // rf1\trf2\trf3\trf4
@@ -147,7 +147,7 @@ public class R4MapReduceTest {
     jobConfigurator.lhsFields(Arrays.asList("lf1", "lf2", "lf3", "lf4")).rhsFields(
         Arrays.asList("rf1", "rf2", "rf3", "rf4"));
 
-    Job job = jobConfigurator.initJob(mapDriver.getConfiguration(), "mapTest", "edwdev");
+    Job job = jobConfigurator.initJob(mapDriver.getConfiguration(), "mapTest");
     jobConfigurator.configureJob(job);
     StringBuilder data = new StringBuilder();
     // rf1\trf2\trf3\trf4
@@ -172,7 +172,7 @@ public class R4MapReduceTest {
   @SuppressWarnings("deprecation")
   public void reducer() throws IOException {
 
-    Job job = jobConfigurator.numReduceTasks(100).initJob(mapDriver.getConfiguration(), "reduceTest", "edwdev");
+    Job job = jobConfigurator.numReduceTasks(100).initJob(mapDriver.getConfiguration(), "reduceTest");
     jobConfigurator.rhsKeys(new HashSet<String>() {
       private static final long serialVersionUID = 1L;
 

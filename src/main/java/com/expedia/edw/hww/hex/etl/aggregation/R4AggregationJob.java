@@ -52,7 +52,6 @@ public final class R4AggregationJob implements DriverEntryPoint {
   private final StatsWriter statsWriter;
   private final ManifestAttributes manifestAttributes;
   private final int numReduceTasks;
-  private final String queueName;
   private final String sourceDbName;
   private final String targetDbName;
   private final String sourceTableName;
@@ -62,7 +61,6 @@ public final class R4AggregationJob implements DriverEntryPoint {
   @Autowired
   R4AggregationJob(@Value("#{args}") List<String> args, Configuration configuration, StatsWriter statsWriter,
       ManifestAttributes manifestAttributes, @Value("${aggregation.reducers}") int numReduceTasks,
-      @Value("${aggregation.queue.name}") String queueName,
       @Value("${aggregation.source.db.name}") String sourceDbName,
       @Value("${aggregation.target.db.name}") String targetDbName,
       @Value("${aggregation.source.table.name}") String sourceTableName,
@@ -73,7 +71,6 @@ public final class R4AggregationJob implements DriverEntryPoint {
     this.statsWriter = statsWriter;
     this.manifestAttributes = manifestAttributes;
     this.numReduceTasks = numReduceTasks;
-    this.queueName = queueName;
     this.sourceDbName = sourceDbName;
     this.targetDbName = targetDbName;
     this.sourceTableName = sourceTableName;
@@ -84,7 +81,7 @@ public final class R4AggregationJob implements DriverEntryPoint {
   @Override
   public void run() throws IOException, TException, InterruptedException, ClassNotFoundException {
     JobConfigurator configurator = new JobConfigurator();
-    Job job = configurator.initJob(configuration, jobName, queueName);
+    Job job = configurator.initJob(configuration, jobName);
 
     List<String> lhsfields, rhsfields;
     HiveMetaStoreClient cl = new HiveMetaStoreClient(new HiveConf());

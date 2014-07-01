@@ -9,11 +9,9 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 
 import com.expedia.edw.hww.hex.etl.CommandLineParameters;
-import com.expedia.edw.hww.hex.etl.segmentation.SegmentationDriverArgs;
 
 public class SegmentationDriverArgsTest {
 
-  private final String queueName = "edwdev";
   private final String reducerCount = "250";
   private final String sourceDbName = "sourceDB";
   private final String targetDbName = "targetDB";
@@ -25,13 +23,12 @@ public class SegmentationDriverArgsTest {
   public void validParamTest() {
     SegmentationDriverArgs driverArgs = new SegmentationDriverArgs();
 
-    new JCommander(driverArgs, new String[] { CommandLineParameters.QUEUE_NAME, queueName,
-        CommandLineParameters.REDUCER_COUNT, reducerCount, CommandLineParameters.SOURCE_DATABASE_NAME, sourceDbName,
-        CommandLineParameters.TARGET_DATABASE_NAME, targetDbName, CommandLineParameters.SOURCE_TABLE_NAME,
-        sourceTableName, CommandLineParameters.TARGET_TABLE_NAME, targetTableName,
-        CommandLineParameters.SEGMENTATION_INPUT_FILE_PATH, segmentationFileInputPath });
+    new JCommander(driverArgs, new String[] { CommandLineParameters.REDUCER_COUNT, reducerCount,
+        CommandLineParameters.SOURCE_DATABASE_NAME, sourceDbName, CommandLineParameters.TARGET_DATABASE_NAME,
+        targetDbName, CommandLineParameters.SOURCE_TABLE_NAME, sourceTableName,
+        CommandLineParameters.TARGET_TABLE_NAME, targetTableName, CommandLineParameters.SEGMENTATION_INPUT_FILE_PATH,
+        segmentationFileInputPath });
 
-    assertThat(driverArgs.getSegmentationQueueName(), is(queueName));
     assertThat(driverArgs.getSegmentationReducers(), is(Integer.valueOf(reducerCount)));
     assertThat(driverArgs.getSegmentationSourceDbName(), is(sourceDbName));
     assertThat(driverArgs.getSegmentationTargetDbName(), is(targetDbName));
@@ -51,9 +48,9 @@ public class SegmentationDriverArgsTest {
   public void missingArgsTest() {
     SegmentationDriverArgs driverArgs = new SegmentationDriverArgs();
 
-    new JCommander(driverArgs, new String[] { CommandLineParameters.QUEUE_NAME, queueName,
-        CommandLineParameters.REDUCER_COUNT, reducerCount, CommandLineParameters.SOURCE_DATABASE_NAME, sourceDbName,
-        CommandLineParameters.TARGET_DATABASE_NAME, targetDbName, CommandLineParameters.SOURCE_TABLE_NAME,
-        sourceTableName, CommandLineParameters.TARGET_TABLE_NAME, targetTableName });
+    new JCommander(driverArgs, new String[] { CommandLineParameters.REDUCER_COUNT, reducerCount,
+        CommandLineParameters.SOURCE_DATABASE_NAME, sourceDbName, CommandLineParameters.TARGET_DATABASE_NAME,
+        targetDbName, CommandLineParameters.SOURCE_TABLE_NAME, sourceTableName,
+        CommandLineParameters.TARGET_TABLE_NAME, targetTableName });
   }
 }

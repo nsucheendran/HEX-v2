@@ -24,7 +24,6 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import com.expedia.edw.hww.hex.etl.dto.TextMultiple;
 
 public final class SegmentationJobConfigurator {
-
   private Map<String, String> groupKeys = new HashMap<String, String>() {
     private static final long serialVersionUID = 1L;
 
@@ -132,9 +131,8 @@ public final class SegmentationJobConfigurator {
   private String metricsStr;
   private String segSpecStr;
 
-  public Job initJob(Configuration config, String jobName, String queueName) throws IOException {
+  public Job initJob(Configuration config, String jobName) throws IOException {
     JobConf conf = new JobConf(config);
-    conf.setQueueName(queueName);
     Job job = new Job(conf, jobName);
     job.setJarByClass(SegmentationJob.class);
 
@@ -184,12 +182,12 @@ public final class SegmentationJobConfigurator {
       }
     }
 
-    this.metricsStr = metricsSB.toString();
+    metricsStr = metricsSB.toString();
     StringBuilder colMapSB = new StringBuilder();
     for (ColumnMapping mapping : mappings) {
       colMapSB.append(mapping.toString()).append('\n');
     }
-    this.colMapStr = colMapSB.toString();
+    colMapStr = colMapSB.toString();
     StringBuilder segSpecSB = new StringBuilder();
     String line = segSpecReader.readLine();
     while (line != null && !"".equals(line.trim())) {
@@ -209,7 +207,7 @@ public final class SegmentationJobConfigurator {
       segSpecSB.append('\n');
       line = segSpecReader.readLine();
     }
-    this.segSpecStr = segSpecSB.toString();
+    segSpecStr = segSpecSB.toString();
     return this;
   }
 
