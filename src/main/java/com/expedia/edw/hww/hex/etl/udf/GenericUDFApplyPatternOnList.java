@@ -50,7 +50,7 @@ public class GenericUDFApplyPatternOnList extends GenericUDF {
     if (!(includeSourceArrayInOutputOI instanceof BooleanObjectInspector)) {
       throw new UDFArgumentException("fourth argument must be of type boolean");
     }
-    this.listOI = (ListObjectInspector) inputArrOI;
+    listOI = (ListObjectInspector) inputArrOI;
     if (!(listOI.getListElementObjectInspector() instanceof StringObjectInspector)) {
       throw new UDFArgumentException("first argument must be a list of type string");
     }
@@ -58,10 +58,11 @@ public class GenericUDFApplyPatternOnList extends GenericUDF {
         .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.writableStringObjectInspector);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public Object evaluate(DeferredObject[] arguments) throws HiveException {
     assert (arguments.length == 4);
-    List<Text> list = (List<Text>) this.listOI.getList(arguments[0].get());
+    List<Text> list = (List<Text>) listOI.getList(arguments[0].get());
     String pattern = (String) ObjectInspectorUtils.copyToStandardJavaObject(arguments[1].get(),
         PrimitiveObjectInspectorFactory.javaStringObjectInspector);
     String replaceRegex = (String) ObjectInspectorUtils.copyToStandardJavaObject(arguments[2].get(),

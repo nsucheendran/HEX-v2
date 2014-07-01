@@ -46,6 +46,7 @@ public final class SegmentationJob implements DriverEntryPoint {
   private static final Logger log = Logger.getLogger(SegmentationJob.class);
   private static final String jobName = "hdp_hww_hex_etl_fact_segmentation";
 
+  @SuppressWarnings("unused")
   private final List<String> args;
   private final Configuration configuration;
   private final StatsWriter statsWriter;

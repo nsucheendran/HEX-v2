@@ -233,6 +233,7 @@ public class GenericUDFRandomizeInputTest {
     return objects;
   }
 
+  @SuppressWarnings("unchecked")
   private void testEvaluateData(boolean isRandom, boolean isNewInput) throws Exception {
     String inputStr = "Test";
     int inputSeedSize = 5;
