@@ -395,6 +395,8 @@ else
 
     hadoop jar ${JAR_PATH} com.expedia.edw.hww.hex.etl.aggregation.R4AggregationTool \
     -Dmapred.job.queue.name=${JOB_QUEUE} \
+    -Dgraphite.host=$GRAPHITE_HOST \
+    -Dgraphite.prefix=$GRAPHITE_PREFIX \
     --reducers=${FACT_REDUCERS} \
     --sourceDbName=${STAGE_DB} \
     --targetDbName=${STAGE_DB} \
@@ -600,6 +602,8 @@ else
     
     hadoop jar ${JAR_PATH} com.expedia.edw.hww.hex.etl.segmentation.SegmentationTool \
     -Dmapred.job.queue.name=${JOB_QUEUE} \
+    -Dgraphite.host=$GRAPHITE_HOST \
+    -Dgraphite.prefix=$GRAPHITE_PREFIX \
     --reducers=${SEG_NUM_REDUCERS} \
     --sourceDbName=${AGG_DB} \
     --targetDbName=${AGG_DB} \
