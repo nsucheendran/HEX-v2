@@ -179,6 +179,11 @@ public class GenericUDFApplyPatternOnListTest {
   }
 
   @Test
+  public void testEvaluateNullAppend() throws Exception {
+    testEvaluateAppend(null);
+  }
+
+  @Test
   public void testGetDisplayString() {
     String[] children = new String[4];
     children[0] = "one";
@@ -230,7 +235,7 @@ public class GenericUDFApplyPatternOnListTest {
   }
 
   @SuppressWarnings("unchecked")
-  private void testEvaluateAppend(boolean isinputAppended) throws Exception {
+  private void testEvaluateAppend(Boolean isInputAppended) throws Exception {
     List<Text> inputTexts = new ArrayList<Text>();
     inputTexts.add(new Text("H001.001"));
     inputTexts.add(new Text("H001.002"));
@@ -239,7 +244,7 @@ public class GenericUDFApplyPatternOnListTest {
     inputTexts.add(new Text("H002.002"));
 
     Set<Text> expectedTexts = new HashSet<Text>();
-    if (isinputAppended) {
+    if (isInputAppended == null || isInputAppended) {
       expectedTexts.addAll(inputTexts);
     }
     expectedTexts.add(new Text("H001.%"));
@@ -248,7 +253,10 @@ public class GenericUDFApplyPatternOnListTest {
     arguments[0] = new GenericUDF.DeferredJavaObject(inputTexts);
     arguments[1] = new GenericUDF.DeferredJavaObject("([^\\.]*)([\\.])(.*)");
     arguments[2] = new GenericUDF.DeferredJavaObject("$1$2%");
-    BooleanWritable booleanWritable = new BooleanWritable(isinputAppended);
+    BooleanWritable booleanWritable = null;
+    if (isInputAppended != null) {
+      booleanWritable = new BooleanWritable(isInputAppended);
+    }
     arguments[3] = new GenericUDF.DeferredJavaObject(booleanWritable);
 
     GenericUDFApplyPatternOnList patternOnList = getGenericUDFApplyPatternOnList();
@@ -263,4 +271,5 @@ public class GenericUDFApplyPatternOnListTest {
       fail("Unexpected return type from UDF");
     }
   }
+
 }

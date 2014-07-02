@@ -7,6 +7,9 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import com.expedia.edw.hww.hex.etl.segmentation.ColumnMapping;
+import com.expedia.edw.hww.hex.etl.segmentation.SegmentationSpec;
+
 public class TextMultipleTest {
   @Test
   public void testEqualsSame() {
@@ -68,5 +71,31 @@ public class TextMultipleTest {
 
     TextMultiple textMultipleTwo = new TextMultiple("Str1");
     assertThat(textMultipleTwo.hashCode(), is(3511264));
+  }
+
+  @Test
+  public void testStripeFlankNotNullAppend() {
+    TextMultiple textMultiple = new TextMultiple("Str1", "Str2", "Str3", "Str4");
+    ColumnMapping[] columnMappings = new ColumnMapping[1];
+
+    columnMappings[0] = new ColumnMapping(1, "Col1");
+    SegmentationSpec spec = new SegmentationSpec("Test1\tTest2\t3", columnMappings);
+    textMultiple.stripeFlank(new String[] {""}, spec, "append");
+
+    assertThat(textMultiple.size(), is(4));
+    assertThat(textMultiple.getTextElementAt(3).toString(), is("append"));
+  }
+
+  @Test
+  public void testStripeFlankNullAppend() {
+    TextMultiple textMultiple = new TextMultiple("Str1", "Str2", "Str3", "Str4");
+    ColumnMapping[] columnMappings = new ColumnMapping[1];
+
+    columnMappings[0] = new ColumnMapping(1, "Col1");
+    SegmentationSpec spec = new SegmentationSpec("Test1\tTest2\t3", columnMappings);
+    textMultiple.stripeFlank(new String[] {""}, spec);
+
+    assertThat(textMultiple.size(), is(4));
+    assertThat(textMultiple.getTextElementAt(3).toString(), is("Str4"));
   }
 }
