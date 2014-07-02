@@ -14,10 +14,10 @@ report_start_date string,
 report_end_date string,
 status string,
 trans_date string,
+experiment_test_id string,
 test_manager string,
 product_manager string, 
 pod string,
-experiment_test_id string,
 last_updated_datetm string,
 insert_datetm string)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ',';

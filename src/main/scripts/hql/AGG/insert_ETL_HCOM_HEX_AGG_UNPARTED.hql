@@ -1,5 +1,4 @@
-
-CREATE TEMPORARY FUNCTION randomize as 'udf.GenericUDFRandomizeInput';
+CREATE TEMPORARY FUNCTION randomize as 'com.expedia.edw.hww.hex.etl.udf.GenericUDFRandomizeInput';
 
 set hive.auto.convert.join=true;
 set hive.exec.dynamic.partition.mode=nonstrict;
@@ -51,24 +50,52 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                  case when browsr.brwsr_name is null then 'Unknown' else browsr.brwsr_name end as brwsr_name,
                  case when browsr.brwsr_typ_name is null then 'Unknown' else browsr.brwsr_typ_name end as brwsr_typ_name,
 
-                 case when lpd.property_typ_name is null then 'Unknown' else lpd.property_typ_name end as property_typ_name, 
-                 case when lpd.property_parnt_chain_name is null then 'Unknown' else lpd.property_parnt_chain_name end as property_parnt_chain_name, 
-                 case when lpd.property_brand_name is null then 'Unknown' else lpd.property_brand_name end as property_brand_name, 
-                 case when lpd.property_super_regn_name is null then 'Unknown' else lpd.property_super_regn_name end as property_super_regn_name, 
-                 case when lpd.property_regn_id is null then -9998 else lpd.property_regn_id end as property_regn_id, 
-                 case when lpd.property_regn_name is null then 'Unknown' else lpd.property_regn_name end as property_regn_name,
-                 case when lpd.property_mkt_id is null then -9998 else lpd.property_mkt_id end as property_mkt_id, 
-                 case when lpd.property_mkt_name is null then 'Unknown' else lpd.property_mkt_name end as property_mkt_name, 
-                 case when lpd.property_sub_mkt_id is null then -9998 else lpd.property_sub_mkt_id end as property_sub_mkt_id, 
-                 case when lpd.property_sub_mkt_name is null then 'Unknown' else lpd.property_sub_mkt_name end as property_sub_mkt_name, 
-                 case when lpd.property_cntry_name is null then 'Unknown' else lpd.property_cntry_name end as property_cntry_name, 
-                 case when lpd.property_state_provnc_name is null then 'Unknown' else lpd.property_state_provnc_name end as property_state_provnc_name, 
-                 case when lpd.property_city_name is null then 'Unknown' else lpd.property_city_name end as property_city_name, 
-                 case when lpd.expe_half_star_rtg is null then 'Unknown' else cast(lpd.expe_half_star_rtg as string) end as expe_half_star_rtg,
-                 case when lpd.property_parnt_chain_acct_typ_name is null then 'Unknown' else lpd.property_parnt_chain_acct_typ_name end as property_parnt_chain_acct_typ_name, 
-                 case when lpd.property_paymnt_choice_enabl_ind is null then 'Unknown' else lpd.property_paymnt_choice_enabl_ind end as property_paymnt_choice_enabl_ind, 
-                 case when lpd.property_cntrct_model_name is null then 'Unknown' else lpd.property_cntrct_model_name end as property_cntrct_model_name,
-                                           
+                 case when lpd.property_typ_name is null then 'Unknown'
+                      when lpd.property_typ_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_typ_name end as property_typ_name,
+                 case when lpd.property_parnt_chain_name is null then 'Unknown'
+                      when lpd.property_parnt_chain_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_parnt_chain_name end as property_parnt_chain_name,
+                 case when lpd.property_brand_name is null then 'Unknown'
+                      when lpd.property_brand_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_brand_name end as property_brand_name,
+                 case when lpd.property_super_regn_name is null then 'Unknown'
+                      when lpd.property_super_regn_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_super_regn_name end as property_super_regn_name,
+                 case when lpd.property_regn_id is null then -9998 else lpd.property_regn_id end as property_regn_id,
+                 case when lpd.property_regn_name is null then 'Unknown'
+                      when lpd.property_regn_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_regn_name end as property_regn_name,
+                 case when lpd.property_mkt_id is null then -9998 else lpd.property_mkt_id end as property_mkt_id,
+                 case when lpd.property_mkt_name is null then 'Unknown'
+                      when lpd.property_mkt_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_mkt_name end as property_mkt_name,
+                 case when lpd.property_sub_mkt_id is null then -9998 else lpd.property_sub_mkt_id end as property_sub_mkt_id,
+                 case when lpd.property_sub_mkt_name is null then 'Unknown'
+                      when lpd.property_sub_mkt_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_sub_mkt_name end as property_sub_mkt_name,
+                 case when lpd.property_cntry_name is null then 'Unknown'
+                      when lpd.property_cntry_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_cntry_name end as property_cntry_name,
+                 case when lpd.property_state_provnc_name is null then 'Unknown'
+                      when lpd.property_state_provnc_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_state_provnc_name end as property_state_provnc_name,
+                 case when lpd.property_city_name is null then 'Unknown'
+                      when lpd.property_city_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_city_name end as property_city_name,
+                 case when lpd.expe_half_star_rtg is null then 'Unknown'
+                      when lpd.expe_half_star_rtg = 'Not Applicable' then 'Not Mapped'
+                      else cast(lpd.expe_half_star_rtg as string) end as expe_half_star_rtg,
+                 case when lpd.property_parnt_chain_acct_typ_name is null then 'Unknown'
+                      when lpd.property_parnt_chain_acct_typ_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_parnt_chain_acct_typ_name end as property_parnt_chain_acct_typ_name,
+                 case when lpd.property_paymnt_choice_enabl_ind is null then 'Unknown'
+                      when lpd.property_paymnt_choice_enabl_ind = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_paymnt_choice_enabl_ind end as property_paymnt_choice_enabl_ind,
+                 case when lpd.property_cntrct_model_name is null then 'Unknown'
+                      when lpd.property_cntrct_model_name = 'Not Applicable' then 'Not Mapped'
+                      else lpd.property_cntrct_model_name end as property_cntrct_model_name,
+                      
                  case when site.site_super_regn_name is null then 'Unknown' else site.site_super_regn_name end as POSa_Super_Region, 
                  case when site.site_regn_name is null then 'Unknown' else site.site_regn_name end as POSa_Region,
                  case when site.site_cntry_name is null then 'Unknown' else site.site_cntry_name end as POSa_Country,
@@ -88,8 +115,8 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                  case when pmd.property_mkt_regn_name is null then 'Unknown' else pmd.property_mkt_regn_name end as PSG_mkt_regn_name,
                  case when pmd.property_mkt_super_regn_name is null then 'Unknown' else pmd.property_mkt_super_regn_name end as PSG_mkt_super_regn_name,
 
-                 case when coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name) is null then 'Not Applicable'
-                      when coalesce(property_cntry_name,hcom_srch_dest_cntry_name) = site.site_cntry_name then 'Domestic'
+                 case when lcase(coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name)) is null then 'Not Applicable'
+                      when lcase(coalesce(property_cntry_name,hcom_srch_dest_cntry_name)) = lcase(site.site_cntry_name) then 'Domestic'
                       else 'International'
                   end as dom_intl_flag,
 
@@ -163,8 +190,7 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                             all_mktg_seo_30_day_direct, 
                             randomize(all_mktg_seo_30_day_direct, ${hiveconf:hex.agg.seed}, "###", true, ${hiveconf:hex.agg.mktg.direct.randomize.array})[0] as all_mktg_seo_direct_random,
                             entry_page_name,
-                            supplier_property_id,
-                            randomize(supplier_property_id, ${hiveconf:hex.agg.seed}, "###", true, ${hiveconf:hex.agg.sp.randomize.array})[0] as supplier_property_id_random,
+                            randomize(lodg_property_key, ${hiveconf:hex.agg.seed}, "###", true, ${hiveconf:hex.agg.lp.randomize.array})[0] as lodg_property_key_random,
                             rep.variant_code,
                             rep.experiment_code,
                             rep.version_number,
@@ -214,6 +240,8 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                                               all_mktg_seo_30_day_direct,
                                               entry_page_name,
                                               supplier_property_id,
+                                              supplier_id,
+                                              lodg_property_key,
                                               variant_code,
                                               experiment_code,
                                               version_number,
@@ -250,47 +278,61 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                                            on metrics.variant_code=rep.variant_code 
                                           and metrics.experiment_code=rep.experiment_code 
                                           and metrics.version_number=rep.version_number) active_metrics
-            left outer join (          select property_typ_name, 
-                                              property_parnt_chain_name, 
-                                              property_brand_name, 
-                                              property_super_regn_name, 
-                                              property_regn_id, 
+            left outer join (          select property_typ_name,
+                                              property_parnt_chain_name,
+                                              property_brand_name,
+                                              property_super_regn_name,
+                                              property_regn_id,
                                               property_regn_name,
-                                              property_mkt_id, 
-                                              property_mkt_name, 
-                                              property_sub_mkt_id, 
-                                              property_sub_mkt_name, 
-                                              property_cntry_name, 
-                                              property_state_provnc_name, 
-                                              property_city_name, 
+                                              property_mkt_id,
+                                              property_mkt_name,
+                                              property_sub_mkt_id,
+                                              property_sub_mkt_name,
+                                              property_cntry_name,
+                                              property_state_provnc_name,
+                                              property_city_name,
                                               expe_half_star_rtg,
-                                              property_parnt_chain_acct_typ_name, 
-                                              property_paymnt_choice_enabl_ind, 
-                                              property_cntrct_model_name, 
-                                              expe_lodg_property_id_random 
-                                         from (select property_typ_name, 
-                                                      property_parnt_chain_name, 
-                                                      property_brand_name, 
-                                                      property_super_regn_name, 
-                                                      property_regn_id, 
+                                              property_parnt_chain_acct_typ_name,
+                                              property_paymnt_choice_enabl_ind,
+                                              property_cntrct_model_name,
+                                              lodg_property_key_random
+                                         from (select property_typ_name,
+                                                      property_parnt_chain_name,
+                                                      property_brand_name,
+                                                      property_super_regn_name,
+                                                      property_regn_id,
                                                       property_regn_name,
-                                                      property_mkt_id, 
-                                                      property_mkt_name, 
-                                                      property_sub_mkt_id, 
-                                                      property_sub_mkt_name, 
-                                                      property_cntry_name, 
-                                                      property_state_provnc_name, 
-                                                      property_city_name, 
+                                                      property_mkt_id,
+                                                      property_mkt_name,
+                                                      property_sub_mkt_id,
+                                                      property_sub_mkt_name,
+                                                      property_cntry_name,
+                                                      property_state_provnc_name,
+                                                      property_city_name,
                                                       expe_half_star_rtg,
-                                                      property_parnt_chain_acct_typ_name, 
-                                                      property_paymnt_choice_enabl_ind, 
-                                                      property_cntrct_model_name, 
-                                                      randomize(expe_lodg_property_id, ${hiveconf:hex.agg.seed}, "###", false, ${hiveconf:hex.agg.sp.randomize.array}) as expe_lodg_property_id_arr
-                                                 from dm.lodg_property_dim 
-                                                where expe_lodg_property_id<>-9998) lodg_property_dim_inner
-                                 LATERAL VIEW explode(expe_lodg_property_id_arr) tt as expe_lodg_property_id_random) lpd 
-                         on (active_metrics.supplier_property_id_random=lpd.expe_lodg_property_id_random)
-            left outer join dm.site_dim site 
+                                                      property_parnt_chain_acct_typ_name,
+                                                      property_paymnt_choice_enabl_ind,
+                                                      property_cntrct_model_name,
+                                                      randomize(lodg_property_key, ${hiveconf:hex.agg.seed}, "###", false, ${hiveconf:hex.agg.lp.randomize.array}) as lodg_property_id_arr
+                                                 from dm.lodg_property_dim
+                                                ) lodg_property_dim_inner
+                                 LATERAL VIEW explode(lodg_property_id_arr) tt as lodg_property_key_random) lpd
+                         on (active_metrics.lodg_property_key_random=lpd.lodg_property_key_random)
+            left outer join (
+                              select
+                              case when site.site_cntry_name ='CZECH' then 'Czech Republic'
+                                when site.site_cntry_name ='SPAIN' then	'Spain & Canary Islands'
+                                when site.site_cntry_name ='TAIWAN' then 'Taiwan, Republic of China'
+                                when site.site_cntry_name ='US' then 'United States of America'
+                                when site.site_cntry_name ='KOREA' then 'South Korea'
+                                when site.site_cntry_name ='ISRAEL HEBREW' then 'Israel'
+                                else site.site_cntry_name
+                                end as site_cntry_name,
+                              site.site_super_regn_name,
+                              site.site_regn_name,
+                              site.brand_id,
+                              site.ian_business_partnr_id
+                              from dm.site_dim site ) site 
                          on (site.brand_id = 2 and site.ian_business_partnr_id not in ('-9998', '0') and active_metrics.cid=site.ian_business_partnr_id)
             left outer join (          select mktg_chnnl_name, 
                                               mktg_sub_chnnl_name, 
@@ -393,7 +435,7 @@ insert overwrite table ${hiveconf:hex.agg.unparted.table}
                  pmd.property_mkt_name, 
                  pmd.property_mkt_regn_name, 
                  pmd.property_mkt_super_regn_name, 
-                 case when coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name) is null then 'Not Applicable' 
-                      when coalesce(property_cntry_name,hcom_srch_dest_cntry_name) = site.site_cntry_name then 'Domestic' 
+                 case when lcase(coalesce(lpd.property_cntry_name,sdd.hcom_srch_dest_cntry_name)) is null then 'Not Applicable' 
+                      when lcase(coalesce(property_cntry_name,hcom_srch_dest_cntry_name)) = lcase(site.site_cntry_name) then 'Domestic' 
                       else 'International' 
                   end;

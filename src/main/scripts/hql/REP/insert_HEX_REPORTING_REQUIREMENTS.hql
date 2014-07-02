@@ -19,7 +19,7 @@ select experiment_code,
        min(test_manager), 
        min(product_manager), 
        min(pod), 
-       min(experiment_test_id), 
+       min(case when experiment_test_id is null or experiment_test_id  = '' then experiment_code else experiment_test_id end ), 
        case when min(last_updated_datetm)<>'' and min(last_updated_datetm) is not null 
             then FROM_UNIXTIME(UNIX_TIMESTAMP(min(last_updated_datetm), "MM/dd/yyyy HH:mm"), "yyyy-MM-dd HH:mm") 
             else null 

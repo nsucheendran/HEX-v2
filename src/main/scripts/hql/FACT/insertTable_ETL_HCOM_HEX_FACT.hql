@@ -57,9 +57,11 @@ insert overwrite table ${hiveconf:hex.db}.${hiveconf:hex.table} partition(experi
            experiment_name, 
            variant_name, 
            status, 
-           experiment_test_id, 
+           experiment_test_id,
+           supplier_id,
+           lodg_property_key,
            experiment_code, 
            version_number, 
            variant_code 
-      from ETL_HCOM_HEX_FACT_UNPARTED;
-      
+      from ETL_HCOM_HEX_FACT_UNPARTED
+      distribute by experiment_code, version_number, variant_code; 
