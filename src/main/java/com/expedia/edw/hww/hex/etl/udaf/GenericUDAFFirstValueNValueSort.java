@@ -49,12 +49,12 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
             + parameters[num].getTypeName() + " was passed as parameter " + num);
       }
       switch (((PrimitiveTypeInfo) parameters[num]).getPrimitiveCategory()) {
-      case VOID:
-      case UNKNOWN:
-        throw new UDFArgumentTypeException(0, ((PrimitiveTypeInfo) parameters[num]).getPrimitiveCategory()
-            + " arguments not acceptable in order by columns");
-      default:
-        break;
+        case VOID:
+        case UNKNOWN:
+          throw new UDFArgumentTypeException(0, ((PrimitiveTypeInfo) parameters[num]).getPrimitiveCategory()
+              + " arguments not acceptable in order by columns");
+        default:
+          break;
       }
     }
     return createEvaluator();
@@ -67,7 +67,7 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
   /*
    * Keeps track of the Top key-value pair in the group
    */
-  private static class MinOrderedSet implements AggregationBuffer {
+  protected static class MinOrderedSet implements AggregationBuffer {
     private Object[] sortKeys;
     private Object value;
 
@@ -83,7 +83,7 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
     void checkAndSet(Object[] newkeys, ObjectInspector[] sortKeyOI, Object newValue) {
       if (sortKeys == null || (newkeys != null && areNewSortKeysLesser(newkeys, sortKeyOI))) {
         sortKeys = newkeys;
-        this.value = newValue;
+        value = newValue;
       }
     }
 
@@ -123,7 +123,7 @@ public class GenericUDAFFirstValueNValueSort extends AbstractGenericUDAFResolver
         sortKeysOI = new PrimitiveObjectInspector[parameters.length - 1];
         stdSortKeysOI = new ObjectInspector[parameters.length - 1];
         for (int num = 1; num < parameters.length; num++) {
-          sortKeysOI[num - 1] = (PrimitiveObjectInspector) parameters[num];
+          sortKeysOI[num - 1] = parameters[num];
           stdSortKeysOI[num - 1] = ObjectInspectorUtils.getStandardObjectInspector(parameters[num]);
         }
         writableValueOI = ObjectInspectorUtils.getWritableObjectInspector(valueOI);

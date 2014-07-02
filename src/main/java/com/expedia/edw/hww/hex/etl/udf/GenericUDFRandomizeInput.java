@@ -44,7 +44,7 @@ public class GenericUDFRandomizeInput extends GenericUDF {
       if (arguments[4] != null && !(arguments[4] instanceof ListObjectInspector)) {
         throw new UDFArgumentException("fifth argument must be a list / array");
       }
-      this.whitelistValuesOI = (ListObjectInspector) arguments[4];
+      whitelistValuesOI = (ListObjectInspector) arguments[4];
     }
     if (!(inputValOI instanceof PrimitiveObjectInspector)) {
       throw new UDFArgumentException("first argument must be a primitive data type");
@@ -62,6 +62,7 @@ public class GenericUDFRandomizeInput extends GenericUDF {
         .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.writableStringObjectInspector);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public Object evaluate(DeferredObject[] arguments) throws HiveException {
     String inputVal = (String) ObjectInspectorUtils.copyToStandardJavaObject(arguments[0].get(),
@@ -77,7 +78,7 @@ public class GenericUDFRandomizeInput extends GenericUDF {
     }
     List<String> whitelist = null;
     if (whitelistValuesOI != null) {
-      whitelist = (List<String>) this.whitelistValuesOI.getList(arguments[4].get());
+      whitelist = (List<String>) whitelistValuesOI.getList(arguments[4].get());
     }
     // check for nulls
     if (inputVal == null || seed == null || seedValSeparator == null) {
@@ -102,6 +103,6 @@ public class GenericUDFRandomizeInput extends GenericUDF {
   public String getDisplayString(String[] children) {
     assert (children.length == 5);
     return "randomize(" + children[0] + ", " + children[1] + ", " + children[2] + ", " + children[3] + ", "
-        + children[4] + ")";
+    + children[4] + ")";
   }
 }
