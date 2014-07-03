@@ -384,6 +384,8 @@ else
     _WRITE_PROCESS_CONTEXT "$PROCESS_ID" "STEP_TO_PROCESS_FROM" "$STEP_LOAD_FACT_DATA"
   fi
   
+  source /usr/etl/HWW/common-scripts/init.sh
+  
   if [[ "$STEP_TO_PROCESS_FROM"  -le  "$STEP_LOAD_FACT_DATA" ]]; then
     DATE=$(date +"%Y%m%d%H%M");
     LOG_FILE_NAME="hdp_hex_fact_"$DATE".log";
@@ -391,7 +393,6 @@ else
     _LOG_PROCESS_DETAIL $RUN_ID "FACT_UNPARTED_STATUS" "STARTED"
     export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/usr/lib/hive/lib/*:/app/edw/hive/conf
 
-    source /usr/etl/HWW/common-scripts/init.sh
 
     hadoop jar ${JAR_PATH} com.expedia.edw.hww.hex.etl.aggregation.R4AggregationTool \
     -Dmapred.job.queue.name=${JOB_QUEUE} \
